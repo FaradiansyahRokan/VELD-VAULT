@@ -1,0 +1,17 @@
+[dotenv@17.3.1] injecting env (6) from .env.local -- tip: ⚡️ secrets for agents: https://dotenvx.com/as2
+
+An unexpected error occurred:
+
+E:\BELAJAR\BLOCKCHAIN\cipher-vault\web3\scripts\deploy.ts:9
+import { ethers } from "hardhat";
+         ^
+SyntaxError: The requested module 'hardhat' does not provide an export named 'ethers'
+    at ModuleJob._instantiate (node:internal/modules/esm/module_job:226:21)
+    at async ModuleJob.run (node:internal/modules/esm/module_job:335:5)
+    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:665:26)
+    at async runScriptWithHardhat (E:\BELAJAR\BLOCKCHAIN\cipher-vault\web3\node_modules\hardhat\dist\src\internal\builtin-plugins\run\task-action.js:14:5)
+    at async Promise.all (index 0)
+    at async main (E:\BELAJAR\BLOCKCHAIN\cipher-vault\web3\node_modules\hardhat\src\internal\cli\main.ts:221:26)
+    at async file:///E:/BELAJAR/BLOCKCHAIN/cipher-vault/web3/node_modules/hardhat/dist/src/cli.js:21:1
+
+If you think this is a bug in Hardhat, please report it here: https://hardhat.org/report-bug

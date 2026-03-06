@@ -1,0 +1,83 @@
+@import "tailwindcss";
+
+@plugin "tailwindcss-animate";
+
+/* Konfigurasi Tema Tailwind v4 */
+@theme {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  
+  --color-border: var(--border);
+  
+  /* Radius ala iOS */
+  --radius-lg: var(--radius);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-sm: calc(var(--radius) - 4px);
+}
+
+/* CSS Variables untuk Light & Dark Mode */
+@layer base {
+  :root {
+    --background: #F2F2F7;       /* Apple System Grey 6 (Light) */
+    --foreground: #000000;
+    --card: #FFFFFF;             /* Pure White Cards */
+    --card-foreground: #000000;
+    --primary: #000000;          /* Tombol Hitam Solid */
+    --primary-foreground: #FFFFFF;
+    --muted: #E5E5EA;            /* Apple System Grey 5 */
+    --muted-foreground: #8E8E93; /* Apple System Grey */
+    --border: #D1D1D6;
+    --radius: 1.8rem;            /* Rounded Besar Premium */
+  }
+
+  .dark {
+    --background: #000000;       /* OLED Black */
+    --foreground: #FFFFFF;
+    --card: #1C1C1E;             /* Apple Dark Grey Surface */
+    --card-foreground: #FFFFFF;
+    --primary: #FFFFFF;          /* Tombol Putih Solid */
+    --primary-foreground: #000000;
+    --muted: #2C2C2E;            /* Apple System Grey 5 Dark */
+    --muted-foreground: #98989D;
+    --border: #3A3A3C;
+  }
+}
+
+/* Base Styles */
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+  font-feature-settings: "ss01", "ss02", "cv01", "cv02";
+  -webkit-font-smoothing: antialiased;
+  transition: background-color 0.5s ease, color 0.5s ease; /* Transisi Halus saat ganti tema */
+}
+
+/* Glassmorphism Premium v4 */
+.glass {
+  background: rgba(255, 255, 255, 0.65);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.dark .glass {
+  background: rgba(30, 30, 30, 0.60);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Input Styles ala iOS */
+.ios-input {
+  @apply transition-all duration-300;
+}
+.ios-input:focus {
+  @apply ring-2 ring-primary/20 border-primary/50;
+}

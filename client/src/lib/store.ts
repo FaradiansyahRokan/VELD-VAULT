@@ -809,6 +809,7 @@ export const useStore = create<VaultState>((set, get) => ({
 // HELPER: Parse ethers/contract errors jadi pesan user-friendly
 // ============================================================
 function parseContractError(error: any): string {
+  console.error("[Contract Error]:", error);
   if (error?.reason) return error.reason;
   if (error?.data?.message) return error.data.message;
   if (error?.code === "ACTION_REJECTED") return "Transaksi dibatalkan oleh user";

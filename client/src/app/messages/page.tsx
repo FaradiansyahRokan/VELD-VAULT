@@ -44,12 +44,12 @@ function detectAmbient(msgs: any[]): string {
 }
 
 const EFFECT_EMOJIS: Record<string, string[]> = {
-  hearts:   ["❤️", "💕", "💖", "💗", "🩷", "💝", "🫶"],
-  coins:    ["🪙", "💰", "💎", "✨", "💴", "🤑", "💸"],
-  laugh:    ["😂", "🤣", "😆", "😹", "💀", "🤭", "😭"],
+  hearts: ["❤️", "💕", "💖", "💗", "🩷", "💝", "🫶"],
+  coins: ["🪙", "💰", "💎", "✨", "💴", "🤑", "💸"],
+  laugh: ["😂", "🤣", "😆", "😹", "💀", "🤭", "😭"],
   confetti: ["🎉", "🎊", "✨", "⭐", "🌟", "💫", "🎈", "🎆"],
-  stars:    ["⭐", "🌟", "💫", "✨", "🌙", "🌌", "🌠", "🌃"],
-  party:    ["🎉", "🎊", "🎈", "✨", "🦄", "🔥", "💫", "🎁", "🥳", "🍾"],
+  stars: ["⭐", "🌟", "💫", "✨", "🌙", "🌌", "🌠", "🌃"],
+  party: ["🎉", "🎊", "🎈", "✨", "🦄", "🔥", "💫", "🎁", "🥳", "🍾"],
 };
 
 interface Particle { id: string; x: number; delay: number; duration: number; size: number; rotate: number; drift: number; emoji: string; }
@@ -177,10 +177,10 @@ function TapSparks({ sparks }: { sparks: TapSpark[] }) {
 function AmbientRoom({ mood }: { mood: string }) {
   const styles: Record<string, string> = {
     romantic: "radial-gradient(ellipse 80% 60% at 50% 80%, rgba(251,113,133,0.13) 0%, transparent 70%)",
-    fun:      "radial-gradient(ellipse at 20% 80%, rgba(251,191,36,0.1) 0%, transparent 55%), radial-gradient(ellipse at 80% 20%, rgba(167,139,250,0.1) 0%, transparent 55%)",
-    night:    "radial-gradient(ellipse at 50% 0%, rgba(15,23,42,0.55) 0%, transparent 65%)",
-    hype:     "radial-gradient(ellipse at 85% 15%, rgba(251,146,60,0.12) 0%, transparent 55%)",
-    default:  "none",
+    fun: "radial-gradient(ellipse at 20% 80%, rgba(251,191,36,0.1) 0%, transparent 55%), radial-gradient(ellipse at 80% 20%, rgba(167,139,250,0.1) 0%, transparent 55%)",
+    night: "radial-gradient(ellipse at 50% 0%, rgba(15,23,42,0.55) 0%, transparent 65%)",
+    hype: "radial-gradient(ellipse at 85% 15%, rgba(251,146,60,0.12) 0%, transparent 55%)",
+    default: "none",
   };
   return (
     <motion.div className="absolute inset-0 pointer-events-none z-0 rounded-[2rem]"
@@ -289,7 +289,7 @@ interface ConversationMeta { address: string; lastMessage?: string; lastTime?: n
 
 export default function MessagesPage() {
   const router = useRouter();
-  const { contract, wallet, signer } = useStore();
+  const { contract, wallet, signer, startAutoRefresh } = useStore();
   const { contacts, getByAddress } = useContactsStore();
   const { addActivity } = useActivityStore();
 
@@ -325,7 +325,13 @@ export default function MessagesPage() {
   useEffect(() => {
     setMounted(true);
     if (!contract || !wallet) { router.push("/"); return; }
-  }, [contract, wallet, router]);
+    startAutoRefresh();
+
+    // Request notification permission if not yet granted/denied
+    if ("Notification" in window && Notification.permission === "default") {
+      Notification.requestPermission().catch(() => { });
+    }
+  }, [contract, wallet, router, startAutoRefresh]);
 
   const triggerEffect = useCallback((text: string) => {
     const now = Date.now();
@@ -334,7 +340,7 @@ export default function MessagesPage() {
     if (!fx) return;
     effectCooldown.current = now;
     if (fx === "matrix") { setMatrixActive(true); setTimeout(() => setMatrixActive(false), 9_000); return; }
-    if (fx === "rain")   { setRainActive(true);  setTimeout(() => setRainActive(false), 9_000);  return; }
+    if (fx === "rain") { setRainActive(true); setTimeout(() => setRainActive(false), 9_000); return; }
     setEffect(fx);
   }, []);
 
@@ -380,7 +386,7 @@ export default function MessagesPage() {
     const now = Date.now();
     if (now - lastTypingNotif.current < 4_000 || !wallet?.address || !activeAddr) return;
     lastTypingNotif.current = now;
-    fetch("/api/typing", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ from: wallet.address, to: activeAddr }) }).catch(() => {});
+    fetch("/api/typing", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ from: wallet.address, to: activeAddr }) }).catch(() => { });
   }, [wallet?.address, activeAddr]);
 
   const fetchMessages = useCallback(async (passive = false) => {
@@ -425,6 +431,27 @@ export default function MessagesPage() {
       if (incoming.length) {
         incoming.forEach(m => triggerEffect(m.decrypted || ""));
         if (!passive) incoming.forEach(m => addActivity({ type: "message_received", title: "Pesan diterima", description: `Dari ${shortAddr(m.from)}: ${(m.decrypted || "").slice(0, 40)}`, walletAddress: wallet.address, address: m.from }));
+
+        // Notifikasi
+        incoming.forEach((m) => {
+          // Hanya notif jika bukan sedang di chat yang sama ATAU tab disembunyikan
+          if (m.from !== activeAddr || document.visibilityState !== "visible") {
+            const title = `Pesan dari ${shortAddr(m.from)}`;
+            const text = m.decrypted ? m.decrypted.slice(0, 50) : "Pesan terenkripsi";
+
+            // In-app toast
+            toast(title, { description: text, icon: "💬" });
+
+            // Native browser notification
+            if ("Notification" in window && Notification.permission === "granted") {
+              const n = new Notification(title, { body: text });
+              n.onclick = () => {
+                window.focus();
+                setActiveAddr(m.from);
+              };
+            }
+          }
+        });
       }
     } catch (e) { console.error("[Messages]", e); }
   }, [wallet, signer, activeAddr, addActivity, triggerEffect]);

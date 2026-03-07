@@ -111,7 +111,7 @@ export default function DashboardPage() {
   if (!mounted || !wallet || !stats) return null;
 
   return (
-    <div className="min-h-screen pt-36 px-6 pb-24 max-w-[1400px] mx-auto">
+    <div className="absolute inset-0 overflow-y-auto"><div className="pt-36 px-6 pb-24 max-w-[1400px] mx-auto">
 
       {/* ── Header ── */}
       <motion.div
@@ -281,7 +281,7 @@ export default function DashboardPage() {
           </div>
         </div>
       </motion.div>
-    </div>
+    </div></div>
   );
 }
 

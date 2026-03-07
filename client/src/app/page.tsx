@@ -54,7 +54,7 @@ export default function LoginPage() {
     const success = await importWallet(importInput.trim());
     if (success) {
       toast.success("Vault berhasil dibuka!");
-      router.push("/vault");
+      router.push("/dashboard");
     } else {
       toast.error("Seed phrase atau private key tidak valid");
       setIsLoading(false);
@@ -73,7 +73,7 @@ export default function LoginPage() {
       toast.error("Centang konfirmasi dulu ya!");
       return;
     }
-    router.push("/vault");
+    router.push("/dashboard");
   };
 
   return (
@@ -194,15 +194,14 @@ export default function LoginPage() {
               {/* Feature pills */}
               <div className="mt-2 flex flex-wrap gap-2 justify-center">
                 {[
-                  { icon: "🔐", label: "End-to-End Encrypted" },
-                  { icon: "⛓️", label: "On-Chain NFT" },
-                  { icon: "⚡", label: "Auto Faucet" },
+                  {label: "End-to-End Encrypted" },
+                  { label: "On-Chain NFT" },
+                  { label: "Auto Faucet" },
                 ].map((f) => (
                   <span
                     key={f.label}
                     className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-muted/20 border border-border/40 text-[10px] font-medium text-muted-foreground"
                   >
-                    <span>{f.icon}</span>
                     {f.label}
                   </span>
                 ))}

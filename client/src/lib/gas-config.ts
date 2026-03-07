@@ -20,24 +20,24 @@ import { ethers, FeeData } from "ethers";
 //
 // Kalau mau lebih murah → turunkan MAX_FEE_PER_GAS
 // Kalau tx sering pending → naikkan MAX_PRIORITY_FEE
-export const MAX_FEE_PER_GAS  = ethers.parseUnits("30", "gwei"); // maks 30 gwei
-export const MAX_PRIORITY_FEE = ethers.parseUnits("1",  "gwei"); // tip 1 gwei
+export const MAX_FEE_PER_GAS = ethers.parseUnits("30", "gwei"); // maks 30 gwei
+export const MAX_PRIORITY_FEE = ethers.parseUnits("1", "gwei"); // tip 1 gwei
 
 // ── Gas Limits per operasi ────────────────────────────────────
 // Diturunkan dari versi sebelumnya berdasarkan actual tx cost.
 // Jika revert "out of gas" → naikkan operasi yang bersangkutan sebesar 20k-50k.
 export const GAS_LIMITS = {
-  mintAsset:          180_000,  // actual usage ~120k-150k
-  listAsset:          120_000,  // actual usage ~80k-100k
-  updateListing:       80_000,  // actual usage ~60k
-  cancelListing:       80_000,  // actual usage ~50k
-  buyAsset:           160_000,  // actual usage ~100k-130k
-  transferAsset:       80_000,  // actual usage ~60k
-  sendCopy:           120_000,  // actual usage ~80k-100k
-  updateEncryptedCid:  80_000,  // actual usage ~50k
-  confirmTrade:       120_000,  // actual usage ~80k-100k
-  cancelTrade:         80_000,  // actual usage ~60k
-  burnAsset:           80_000,  // actual usage ~50k
+    mintAsset: 400_000,  // actual usage ~150k-300k
+    listAsset: 300_000,  // actual usage ~150k-250k
+    updateListing: 150_000,  // actual usage ~80k-120k
+    cancelListing: 150_000,  // actual usage ~60k
+    buyAsset: 300_000,  // actual usage ~120k-250k
+    transferAsset: 150_000,  // actual usage ~60k-100k
+    sendCopy: 300_000,  // actual usage ~120k-200k
+    updateEncryptedCid: 150_000,  // actual usage ~80k
+    confirmTrade: 300_000,  // actual usage ~150k-250k
+    cancelTrade: 150_000,  // actual usage ~80k-120k
+    burnAsset: 150_000,  // actual usage ~80k-120k
 } as const;
 
 // ── Patch provider.getFeeData ─────────────────────────────────
@@ -45,32 +45,32 @@ export const GAS_LIMITS = {
 // re-fetch fee dari node (yang bisa kasih 50+ gwei dan override limit kita).
 // Panggil fungsi ini di store.ts tepat setelah getProvider() dipanggil.
 export function patchProviderFeeData(provider: ethers.JsonRpcProvider): void {
-  provider.getFeeData = async (): Promise<FeeData> =>
-    new FeeData(null, MAX_FEE_PER_GAS, MAX_PRIORITY_FEE);
+    provider.getFeeData = async (): Promise<FeeData> =>
+        new FeeData(null, MAX_FEE_PER_GAS, MAX_PRIORITY_FEE);
 }
 
 // ── Helper: override untuk tx biasa (tanpa value) ─────────────
 export function gasOverride(operation: keyof typeof GAS_LIMITS) {
-  return {
-    maxFeePerGas:         MAX_FEE_PER_GAS,
-    maxPriorityFeePerGas: MAX_PRIORITY_FEE,
-    gasLimit:             GAS_LIMITS[operation],
-  };
+    return {
+        maxFeePerGas: MAX_FEE_PER_GAS,
+        maxPriorityFeePerGas: MAX_PRIORITY_FEE,
+        gasLimit: GAS_LIMITS[operation],
+    };
 }
 
 // ── Helper: override untuk tx dengan value (buyAsset) ─────────
 export function gasOverrideWithValue(operation: keyof typeof GAS_LIMITS, value: bigint) {
-  return {
-    maxFeePerGas:         MAX_FEE_PER_GAS,
-    maxPriorityFeePerGas: MAX_PRIORITY_FEE,
-    gasLimit:             GAS_LIMITS[operation],
-    value,
-  };
+    return {
+        maxFeePerGas: MAX_FEE_PER_GAS,
+        maxPriorityFeePerGas: MAX_PRIORITY_FEE,
+        gasLimit: GAS_LIMITS[operation],
+        value,
+    };
 }
 
 // ── Estimasi biaya worst-case per operasi ─────────────────────
 // Berguna untuk UI: tampilkan estimasi fee sebelum user konfirmasi tx.
 export function estimateCost(operation: keyof typeof GAS_LIMITS): string {
-  const costWei = BigInt(GAS_LIMITS[operation]) * MAX_FEE_PER_GAS;
-  return ethers.formatEther(costWei); // return dalam VELD
+    const costWei = BigInt(GAS_LIMITS[operation]) * MAX_FEE_PER_GAS;
+    return ethers.formatEther(costWei); // return dalam VELD
 }

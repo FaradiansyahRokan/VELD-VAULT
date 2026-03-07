@@ -135,7 +135,7 @@ export default function DocumentSigner() {
                 : "text-muted-foreground hover:text-foreground"
             }`}
           >
-            {m === "sign" ? "✍️ Tanda Tangan" : "🔍 Verifikasi"}
+            {m === "sign" ? "Tanda Tangan" : "Verifikasi"}
           </button>
         ))}
       </div>
@@ -329,7 +329,7 @@ export default function DocumentSigner() {
             >
               {loading
                 ? <><Loader2 size={16} className="animate-spin" /> Memverifikasi...</>
-                : "🔍 Verifikasi Dokumen"}
+                : "Verifikasi Dokumen"}
             </button>
 
             {/* Result */}

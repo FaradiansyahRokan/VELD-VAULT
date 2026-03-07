@@ -13,7 +13,6 @@ import {
   Lock, Loader2, UserCircle2, Check, CheckCheck,
 } from "lucide-react";
 import { toast } from "sonner";
-import { EmojiPhysicsPlayground } from "./chat-extras";
 
 // ══════════════════════════════════════════════════════════════════
 // 📱 useVisualViewport — WhatsApp-style keyboard handling
@@ -734,7 +733,7 @@ export default function MessagesPage() {
 
 
                 {/* Emoji Physics */}
-                <EmojiPhysicsPlayground containerRef={messagesContainerRef} />
+                {/* <EmojiPhysicsPlayground containerRef={messagesContainerRef} /> */}
 
                 {/* Input */}
                 <div className="p-4 border-t border-border/50 shrink-0 relative z-10">
@@ -757,9 +756,6 @@ export default function MessagesPage() {
                       </motion.button>
                     </div>
                   </div>
-                  <p className="text-[9px] text-muted-foreground/35 mt-1.5 ml-1">
-                    ✨ sayang · wkwk · wow · uang · good night · :party: · :rain: · :matrix:
-                  </p>
                 </div>
               </>
             )}

@@ -13,6 +13,12 @@ import {
   Lock, Loader2, UserCircle2, Check, CheckCheck,
 } from "lucide-react";
 import { toast } from "sonner";
+import {
+  EmojiPhysicsPlayground,
+  RandomVisitorLayer,
+  RoomEventLayer,
+  useChatExtras,
+} from "./chat-extras";
 
 // ══════════════════════════════════════════════════════════════════
 // ✨ EFFECT ENGINE
@@ -44,12 +50,12 @@ function detectAmbient(msgs: any[]): string {
 }
 
 const EFFECT_EMOJIS: Record<string, string[]> = {
-  hearts:   ["❤️", "💕", "💖", "💗", "🩷", "💝", "🫶"],
-  coins:    ["🪙", "💰", "💎", "✨", "💴", "🤑", "💸"],
-  laugh:    ["😂", "🤣", "😆", "😹", "💀", "🤭", "😭"],
+  hearts: ["❤️", "💕", "💖", "💗", "🩷", "💝", "🫶"],
+  coins: ["🪙", "💰", "💎", "✨", "💴", "🤑", "💸"],
+  laugh: ["😂", "🤣", "😆", "😹", "💀", "🤭", "😭"],
   confetti: ["🎉", "🎊", "✨", "⭐", "🌟", "💫", "🎈", "🎆"],
-  stars:    ["⭐", "🌟", "💫", "✨", "🌙", "🌌", "🌠", "🌃"],
-  party:    ["🎉", "🎊", "🎈", "✨", "🦄", "🔥", "💫", "🎁", "🥳", "🍾"],
+  stars: ["⭐", "🌟", "💫", "✨", "🌙", "🌌", "🌠", "🌃"],
+  party: ["🎉", "🎊", "🎈", "✨", "🦄", "🔥", "💫", "🎁", "🥳", "🍾"],
 };
 
 interface Particle { id: string; x: number; delay: number; duration: number; size: number; rotate: number; drift: number; emoji: string; }
@@ -95,7 +101,7 @@ function EffectOverlay({ effect, onDone }: { effect: EffectType; onDone: () => v
 
 function MatrixCanvas({ active }: { active: boolean }) {
   const ref = useRef<HTMLCanvasElement>(null);
-  const raf = useRef<number>();
+  const raf = useRef<number>(0);
   useEffect(() => {
     if (!active || !ref.current) return;
     const canvas = ref.current;
@@ -127,7 +133,7 @@ function MatrixCanvas({ active }: { active: boolean }) {
 
 function RainCanvas({ active }: { active: boolean }) {
   const ref = useRef<HTMLCanvasElement>(null);
-  const raf = useRef<number>();
+  const raf = useRef<number>(0);
   useEffect(() => {
     if (!active || !ref.current) return;
     const canvas = ref.current;
@@ -177,10 +183,10 @@ function TapSparks({ sparks }: { sparks: TapSpark[] }) {
 function AmbientRoom({ mood }: { mood: string }) {
   const styles: Record<string, string> = {
     romantic: "radial-gradient(ellipse 80% 60% at 50% 80%, rgba(251,113,133,0.13) 0%, transparent 70%)",
-    fun:      "radial-gradient(ellipse at 20% 80%, rgba(251,191,36,0.1) 0%, transparent 55%), radial-gradient(ellipse at 80% 20%, rgba(167,139,250,0.1) 0%, transparent 55%)",
-    night:    "radial-gradient(ellipse at 50% 0%, rgba(15,23,42,0.55) 0%, transparent 65%)",
-    hype:     "radial-gradient(ellipse at 85% 15%, rgba(251,146,60,0.12) 0%, transparent 55%)",
-    default:  "none",
+    fun: "radial-gradient(ellipse at 20% 80%, rgba(251,191,36,0.1) 0%, transparent 55%), radial-gradient(ellipse at 80% 20%, rgba(167,139,250,0.1) 0%, transparent 55%)",
+    night: "radial-gradient(ellipse at 50% 0%, rgba(15,23,42,0.55) 0%, transparent 65%)",
+    hype: "radial-gradient(ellipse at 85% 15%, rgba(251,146,60,0.12) 0%, transparent 55%)",
+    default: "none",
   };
   return (
     <motion.div className="absolute inset-0 pointer-events-none z-0 rounded-[2rem]"
@@ -233,7 +239,7 @@ function TypingIndicator({ name }: { name?: string }) {
 function RoomCreature({ mood, msgCount }: { mood: MascotMood; msgCount: number }) {
   const [sleeping, setSleeping] = useState(false);
   const [frame, setFrame] = useState(0);
-  const timer = useRef<NodeJS.Timeout>();
+  const timer = useRef<NodeJS.Timeout | undefined>(undefined);
   useEffect(() => {
     setSleeping(false);
     clearTimeout(timer.current);
@@ -247,12 +253,12 @@ function RoomCreature({ mood, msgCount }: { mood: MascotMood; msgCount: number }
   const faces = sleeping
     ? ["(=ω=)zzz", "(=ω=)zzZ"]
     : mood === "excited" ? ["(=^▽^=)!", "(=^ω^=)↑"]
-    : mood === "catching" ? ["(ﾐ=^∇^=ﾐ)", "(=^◉ᆺ◉^=)"]
-    : ["(=^･ω･^=)", "(=^･ᆺ･^=)"];
+      : mood === "catching" ? ["(ﾐ=^∇^=ﾐ)", "(=^◉ᆺ◉^=)"]
+        : ["(=^･ω･^=)", "(=^･ᆺ･^=)"];
   const anims = sleeping ? { rotate: [0, 2, 0, -2, 0] }
     : mood === "excited" ? { y: [0, -14, 0, -9, 0, -5, 0], rotate: [-4, 4, -3, 3, 0] }
-    : mood === "catching" ? { y: [0, -7, 0], scale: [1, 1.12, 1] }
-    : { y: [0, -4, 0] };
+      : mood === "catching" ? { y: [0, -7, 0], scale: [1, 1.12, 1] }
+        : { y: [0, -4, 0] };
   return (
     <motion.div className="absolute bottom-[76px] right-4 z-30 select-none cursor-pointer"
       animate={anims}
@@ -366,10 +372,13 @@ export default function MessagesPage() {
 
   const effectCooldown = useRef(0);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
+  const chatAreaRef = useRef<HTMLDivElement>(null);
   const pollRef = useRef<NodeJS.Timeout | null>(null);
   const lastPollRef = useRef<number>(0);
   const sentCacheRef = useRef<Map<string, string>>(new Map());
   const lastTypingNotif = useRef(0);
+
+  const { roomEvent } = useChatExtras(activeAddr);
 
   useEffect(() => {
     setMounted(true);
@@ -383,7 +392,7 @@ export default function MessagesPage() {
     if (!fx) return;
     effectCooldown.current = now;
     if (fx === "matrix") { setMatrixActive(true); setTimeout(() => setMatrixActive(false), 9_000); return; }
-    if (fx === "rain")   { setRainActive(true);  setTimeout(() => setRainActive(false), 9_000);  return; }
+    if (fx === "rain") { setRainActive(true); setTimeout(() => setRainActive(false), 9_000); return; }
     if (fx === "hearts" || fx === "coins") { setMascotMood("catching"); setTimeout(() => setMascotMood("idle"), 3_000); }
     else { setMascotMood("excited"); setTimeout(() => setMascotMood("idle"), 2_500); }
     setEffect(fx);
@@ -431,7 +440,7 @@ export default function MessagesPage() {
     const now = Date.now();
     if (now - lastTypingNotif.current < 4_000 || !wallet?.address || !activeAddr) return;
     lastTypingNotif.current = now;
-    fetch("/api/typing", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ from: wallet.address, to: activeAddr }) }).catch(() => {});
+    fetch("/api/typing", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ from: wallet.address, to: activeAddr }) }).catch(() => { });
   }, [wallet?.address, activeAddr]);
 
   const fetchMessages = useCallback(async (passive = false) => {
@@ -657,11 +666,15 @@ export default function MessagesPage() {
 
         {/* ── Chat Area ── */}
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+          ref={chatAreaRef}
           className={`flex-1 flex flex-col bg-card border border-border/50 rounded-[2rem] overflow-hidden min-h-0 relative ${!activeAddr ? "hidden md:flex" : "flex"}`}>
           <AmbientRoom mood={ambientMood} />
           <MatrixCanvas active={matrixActive} />
           <RainCanvas active={rainActive} />
           <EffectOverlay effect={effect} onDone={() => setEffect(null)} />
+          {/* ✨ Extras */}
+          {activeAddr && <RandomVisitorLayer containerRef={chatAreaRef} />}
+          {activeAddr && <RoomEventLayer {...roomEvent} />}
 
           {!activeAddr ? (
             <div className="flex-1 flex flex-col items-center justify-center gap-4 text-center px-8 relative z-10">
@@ -737,6 +750,8 @@ export default function MessagesPage() {
 
               {/* Mascot */}
               <RoomCreature mood={mascotMood} msgCount={msgCount} />
+              {/* Emoji Physics */}
+              <EmojiPhysicsPlayground containerRef={messagesContainerRef} />
 
               {/* Input */}
               <div className="p-4 border-t border-border/50 shrink-0 relative z-10">

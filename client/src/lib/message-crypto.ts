@@ -6,11 +6,10 @@ export interface EncryptedMessage {
   senderPublicKey: string;  // for recipient to compute shared secret
 }
 
-export interface MessagePayload {
+export interface MessagePayload extends EncryptedMessage {
   id: string;
   from: string;
   to: string;
-  encrypted: EncryptedMessage;
   timestamp: number;
   read: boolean;
 }

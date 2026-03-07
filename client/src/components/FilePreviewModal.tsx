@@ -7,43 +7,58 @@ import { X, Download, ZoomIn, ZoomOut, RotateCcw, FileText, Music, Video, File }
 interface FilePreviewModalProps {
   isOpen: boolean;
   onClose: () => void;
-  file: File | null;
+  file?: File | null;
+  url?: string | null;
+  fileType?: string;
   fileName?: string;
+  fileSize?: number;
 }
 
-export default function FilePreviewModal({ isOpen, onClose, file, fileName }: FilePreviewModalProps) {
+export default function FilePreviewModal({ isOpen, onClose, file, url, fileType, fileName, fileSize }: FilePreviewModalProps) {
   const [objectUrl, setObjectUrl] = useState<string | null>(null);
   const [zoom, setZoom] = useState(1);
   const [textContent, setTextContent] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!file || !isOpen) return;
-
-    // Revoke previous URL
-    if (objectUrl) URL.revokeObjectURL(objectUrl);
-
-    const url = URL.createObjectURL(file);
-    setObjectUrl(url);
+    if (!isOpen) return;
     setZoom(1);
     setTextContent(null);
 
-    // Read text files
-    if (file.type.startsWith("text/") || isTextExtension(file.name)) {
-      const reader = new FileReader();
-      reader.onload = (e) => setTextContent(e.target?.result as string);
-      reader.readAsText(file);
+    let generatedUrl: string | null = null;
+
+    if (file) {
+      generatedUrl = URL.createObjectURL(file);
+      setObjectUrl(generatedUrl);
+
+      // Read text files
+      if (file.type.startsWith("text/") || isTextExtension(file.name)) {
+        const reader = new FileReader();
+        reader.onload = (e) => setTextContent(e.target?.result as string);
+        reader.readAsText(file);
+      }
+    } else if (url) {
+      setObjectUrl(url);
+
+      if (fileType?.startsWith("text/") || (fileName && isTextExtension(fileName))) {
+        fetch(url).then(r => r.text()).then(setTextContent).catch(() => { });
+      }
+    } else {
+      setObjectUrl(null);
     }
 
-    return () => URL.revokeObjectURL(url);
-  }, [file, isOpen]); // eslint-disable-line
+    return () => {
+      if (generatedUrl) URL.revokeObjectURL(generatedUrl);
+    };
+  }, [file, url, isOpen, fileName, fileType]); // eslint-disable-line
 
   const handleDownload = useCallback(() => {
-    if (!objectUrl || !file) return;
+    if (!objectUrl) return;
     const a = document.createElement("a");
     a.href = objectUrl;
-    a.download = fileName || file.name;
+    a.download = fileName || file?.name || "download";
+    if (url && !file) a.target = "_blank";
     a.click();
-  }, [objectUrl, file, fileName]);
+  }, [objectUrl, file, fileName, url]);
 
   // Close on Escape
   useEffect(() => {
@@ -53,12 +68,13 @@ export default function FilePreviewModal({ isOpen, onClose, file, fileName }: Fi
     return () => document.removeEventListener("keydown", handler);
   }, [isOpen, onClose]);
 
-  const type = file?.type || "";
+  const type = file?.type || fileType || "";
   const isImage = type.startsWith("image/");
   const isPdf = type === "application/pdf";
   const isVideo = type.startsWith("video/");
   const isAudio = type.startsWith("audio/");
-  const isText = type.startsWith("text/") || (file ? isTextExtension(file.name) : false);
+  const isText = type.startsWith("text/") || isTextExtension(fileName || file?.name || "");
+  const size = file?.size || fileSize;
 
   return (
     <AnimatePresence>
@@ -90,7 +106,7 @@ export default function FilePreviewModal({ isOpen, onClose, file, fileName }: Fi
                 <div className="min-w-0">
                   <p className="font-bold text-foreground text-sm truncate">{fileName || file?.name}</p>
                   <p className="text-[11px] text-muted-foreground">
-                    {file ? formatFileSize(file.size) : ""} · {type || "Unknown"}
+                    {size ? formatFileSize(size) : ""} {size && type ? "·" : ""} {type || "Unknown"}
                   </p>
                 </div>
               </div>

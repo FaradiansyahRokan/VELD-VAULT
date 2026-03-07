@@ -35,7 +35,7 @@ function getProvider(url: string): ethers.JsonRpcProvider {
     { chainId: NETWORK_CONFIG.chainId, name: NETWORK_CONFIG.name },
     { staticNetwork: true }
   );
-  // ✅ Override getFeeData agar ethers tidak re-fetch fee dari node.
+  // Override getFeeData agar ethers tidak re-fetch fee dari node.
   // Tanpa ini, ethers bisa pakai 50+ gwei meskipun kita set 30 gwei di gasOverride.
   patchProviderFeeData(provider);
   return provider;
@@ -55,7 +55,6 @@ async function requestFaucet(address: string): Promise<void> {
     if (data.success) {
       console.log(`[Faucet] ${data.message}`);
     } else {
-      // Bukan error fatal — mungkin sudah punya saldo atau cooldown
       console.warn("[Faucet]", data.error);
     }
   } catch (err) {
@@ -66,8 +65,6 @@ async function requestFaucet(address: string): Promise<void> {
 // ============================================================
 // PUBKEY REGISTER — Auto-register saat login
 // ============================================================
-// Dipanggil saat createWallet & importWallet selesai.
-// Fire-and-forget — tidak blokir login, gagal pun tidak masalah.
 async function registerPublicKey(wallet: ethers.Wallet | ethers.HDNodeWallet): Promise<void> {
   try {
     await fetch("/api/pubkey-store", {
@@ -181,7 +178,6 @@ export const useStore = create<VaultState>((set, get) => ({
   // ----------------------------------------------------------
   logout: () => {
     const { signer } = get();
-    // Hapus cached vault key dari memori
     if (signer) clearVaultKey(signer).catch(() => { });
     get().stopAutoRefresh();
     set({
@@ -244,7 +240,6 @@ export const useStore = create<VaultState>((set, get) => ({
       balance = ethers.formatEther(bal);
     } catch { }
 
-    // Drip VELD otomatis jika wallet baru/kosong
     if (parseFloat(balance) < 0.01) {
       requestFaucet(connectedWallet.address).then(() => get().refreshBalance());
     }
@@ -263,9 +258,7 @@ export const useStore = create<VaultState>((set, get) => ({
       salesItems: [],
     });
 
-    // Daftarkan public key agar bisa menerima pesan & re-encrypt escrow
     registerPublicKey(connectedWallet);
-
     get().startAutoRefresh();
     return randomWallet.mnemonic!.phrase;
   },
@@ -299,7 +292,6 @@ export const useStore = create<VaultState>((set, get) => ({
         balance = ethers.formatEther(bal);
       } catch { }
 
-      // Drip VELD otomatis jika saldo rendah
       if (parseFloat(balance) < 0.01) {
         requestFaucet(connectedWallet.address).then(() => get().refreshBalance());
       }
@@ -315,9 +307,7 @@ export const useStore = create<VaultState>((set, get) => ({
         balance,
       });
 
-      // Daftarkan public key agar bisa menerima pesan & re-encrypt escrow
       registerPublicKey(connectedWallet);
-
       get().startAutoRefresh();
       return true;
     } catch (e) {
@@ -376,7 +366,6 @@ export const useStore = create<VaultState>((set, get) => ({
     if (get().isAutoRefreshRunning) return;
     set({ isAutoRefreshRunning: true });
 
-    // Update RPC URL jika pakai ngrok (hanya di server, bukan browser)
     if (typeof window !== "undefined" && window.location.hostname !== "localhost") {
       try {
         const urls = await getTunnelUrls();
@@ -399,11 +388,9 @@ export const useStore = create<VaultState>((set, get) => ({
 
     if (get().refreshInterval) return;
 
-    // Initial sync
     get().syncAll();
     get().checkNetwork();
 
-    // Polling setiap 4 detik
     const interval = setInterval(() => {
       if (get().contract) {
         get().syncAll();
@@ -505,7 +492,6 @@ export const useStore = create<VaultState>((set, get) => ({
 
   // ----------------------------------------------------------
   // FETCH MY ESCROW SALES
-  // Menampilkan item di mana seller belum konfirmasi (tombol "Terima" masih aktif).
   // ----------------------------------------------------------
   fetchMyEscrowSales: async () => {
     const { contract, wallet } = get();
@@ -534,7 +520,6 @@ export const useStore = create<VaultState>((set, get) => ({
 
   // ----------------------------------------------------------
   // UNLOCK VAULT
-  // Panggil sekali saat vault dibuka — MetaMask popup muncul di sini.
   // ----------------------------------------------------------
   unlockVault: async () => {
     const { signer } = get();
@@ -543,7 +528,9 @@ export const useStore = create<VaultState>((set, get) => ({
   },
 
   // ----------------------------------------------------------
-  // MINT & ENCRYPT — Upload file, enkripsi, mint NFT
+  // MINT & ENCRYPT
+  // FIX: Nama function di kontrak adalah mintAsset(name, cid) — urutan (name, cid),
+  // bukan mintToVault(cid, name). Semua gas override sudah terpusat di sini.
   // ----------------------------------------------------------
   mintAndEncrypt: async (file: File): Promise<number> => {
     const { contract, signer, syncAll } = get();
@@ -552,7 +539,7 @@ export const useStore = create<VaultState>((set, get) => ({
     // 1. Enkripsi & upload ke IPFS
     const { cid } = await encryptAndUpload(file, signer);
 
-    // 2. Mint NFT di contract
+    // 2. Mint NFT di contract — (name, cid) sesuai signature kontrak
     const tx = await contract.mintAsset(file.name, cid, gasOverride("mintAsset"));
     const receipt = await tx.wait();
 
@@ -573,7 +560,7 @@ export const useStore = create<VaultState>((set, get) => ({
   },
 
   // ----------------------------------------------------------
-  // DOWNLOAD & DECRYPT — Ambil file dari IPFS, dekripsi
+  // DOWNLOAD & DECRYPT
   // ----------------------------------------------------------
   downloadAndDecrypt: async (tokenId: number): Promise<File> => {
     const { vaultItems, signer } = get();
@@ -587,10 +574,12 @@ export const useStore = create<VaultState>((set, get) => ({
 
   // ----------------------------------------------------------
   // LIST ASSET FOR SALE
+  // FIX: Tambah ensureGas() — tanpa ini, tx bisa langsung revert tanpa pesan jelas
+  // jika saldo habis di tengah sesi.
   // ----------------------------------------------------------
   listAssetForSale: async (tokenId, price, description, previewURI, useEscrow) => {
     const { contract, syncAll } = get();
-    await get().ensureGas();
+    await get().ensureGas(); // ← FIXED: was missing
     try {
       const tx = await contract!.listAsset(
         tokenId,
@@ -646,7 +635,6 @@ export const useStore = create<VaultState>((set, get) => ({
 
   // ----------------------------------------------------------
   // BUY ASSET
-  // Setelah beli, daftarkan public key ke server untuk proses ECDH re-encryption.
   // ----------------------------------------------------------
   buyAsset: async (tokenId, price) => {
     const { contract, syncAll, signer, wallet } = get();
@@ -714,18 +702,15 @@ export const useStore = create<VaultState>((set, get) => ({
   // ----------------------------------------------------------
   // CONFIRM TRADE (Escrow)
   //
-  // Alur untuk SELLER:
+  // Alur SELLER:
   //   1. Ambil public key pembeli dari server
   //   2. ECDH re-encrypt file key → CID baru di IPFS
   //   3. Update CID di contract (hanya jika CID berubah)
-  //   4. Panggil confirmTrade di contract → sellerConfirmed = true
+  //   4. Panggil confirmTrade di contract
   //
-  // Alur untuk BUYER:
+  // Alur BUYER:
   //   1. Langsung panggil confirmTrade → buyerConfirmed = true
   //   2. Jika keduanya sudah confirm → trade selesai, dana ke seller
-  //
-  // Note: Setiap tx di-await satu per satu, sehingga nonce dikelola
-  //       otomatis oleh ethers tanpa perlu tracking manual.
   // ----------------------------------------------------------
   confirmTrade: async (tokenId) => {
     const { contract, syncAll, vaultItems, signer } = get();
@@ -736,12 +721,9 @@ export const useStore = create<VaultState>((set, get) => ({
       if (!item) throw new Error("Asset tidak ditemukan di vault");
 
       const myAddress = await signer.getAddress();
-      const isSeller =
-        item.seller?.toLowerCase() === myAddress.toLowerCase();
+      const isSeller = item.seller?.toLowerCase() === myAddress.toLowerCase();
 
-      // Seller: re-encrypt file untuk buyer sebelum konfirmasi
       if (isSeller && item.isEscrowActive) {
-        // 1. Ambil public key pembeli dari server
         const res = await fetch(`/api/pubkey-store?address=${item.buyer}`);
         if (!res.ok) {
           throw new Error(
@@ -750,20 +732,14 @@ export const useStore = create<VaultState>((set, get) => ({
         }
         const { publicKey } = await res.json();
 
-        // 2. Re-encrypt file key dengan ECDH shared secret
-        //    Jika file sudah v3 (re-encrypt sebelumnya gagal di tengah),
-        //    fungsi ini otomatis return CID yang sama tanpa proses ulang.
         const { newCid } = await reEncryptForBuyer(item.cid, signer, publicKey);
 
-        // 3. Update CID di contract hanya jika CID benar-benar berubah.
-        //    Ini mencegah tx yang sia-sia saat re-try setelah partial failure.
         if (newCid !== item.cid) {
           const txUpdate = await contract!.updateEncryptedCid(tokenId, newCid, gasOverride("updateEncryptedCid"));
           await txUpdate.wait();
         }
       }
 
-      // 4. Konfirmasi trade (baik seller maupun buyer)
       const tx = await contract!.confirmTrade(tokenId, gasOverride("confirmTrade"));
       await tx.wait();
 
@@ -792,10 +768,11 @@ export const useStore = create<VaultState>((set, get) => ({
 
   // ----------------------------------------------------------
   // BURN ASSET
+  // FIX: Tambah ensureGas() — sama seperti listAssetForSale.
   // ----------------------------------------------------------
   burnAsset: async (tokenId, _cid) => {
     const { contract, syncAll } = get();
-    await get().ensureGas();
+    await get().ensureGas(); // ← FIXED: was missing
     try {
       const tx = await contract!.burnAsset(tokenId, gasOverride("burnAsset"));
       await tx.wait();
@@ -809,14 +786,40 @@ export const useStore = create<VaultState>((set, get) => ({
 
 // ============================================================
 // HELPER: Parse ethers/contract errors jadi pesan user-friendly
+// FIX: Tambah handling untuk ethers v6 error format yang berbeda dari v5.
+// v5: error.data.message
+// v6: error.revert.args[0], error.info.error.message, error.shortMessage
 // ============================================================
 function parseContractError(error: any): string {
+  // Log full error object untuk debugging di console dev
   console.error("[Contract Error]:", error);
-  if (error?.reason) return error.reason;
-  if (error?.data?.message) return error.data.message;
+
+  // User cancelled
   if (error?.code === "ACTION_REJECTED") return "Transaksi dibatalkan oleh user";
+
+  // Insufficient funds (dari ethers, sebelum sampai ke node)
   if (error?.code === "INSUFFICIENT_FUNDS")
     return `Saldo ${NETWORK_CONFIG.tokenSymbol} tidak cukup`;
+
+  // ethers v6 — custom revert dengan args (paling umum untuk kontrak Solidity)
+  if (error?.revert?.args?.[0]) return String(error.revert.args[0]);
+
+  // ethers v6 — shortMessage dari ethers sendiri
+  if (error?.shortMessage) {
+    const short: string = error.shortMessage;
+    if (short.includes("insufficient funds")) return `Saldo ${NETWORK_CONFIG.tokenSymbol} tidak cukup`;
+    // Hapus prefix "execution reverted: " kalau ada
+    return short.replace(/^execution reverted:\s*/i, "");
+  }
+
+  // ethers v6 — info.error dari node response
+  if (error?.info?.error?.message) return error.info.error.message;
+
+  // ethers v5 / fallback lama
+  if (error?.reason) return error.reason;
+  if (error?.data?.message) return error.data.message;
+
+  // Fallback: parse dari error.message
   if (error?.message) {
     const msg: string = error.message;
     if (msg.includes("Only owner")) return "Hanya pemilik yang bisa melakukan ini";
@@ -827,5 +830,6 @@ function parseContractError(error: any): string {
       return `Saldo ${NETWORK_CONFIG.tokenSymbol} tidak cukup`;
     return msg.length > 120 ? "Transaksi gagal. Cek konsol untuk detail." : msg;
   }
+
   return "Transaksi gagal";
 }

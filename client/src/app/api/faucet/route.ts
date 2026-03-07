@@ -2,26 +2,21 @@
  * Faucet API — /api/faucet
  *
  * Kirim sejumlah kecil VELD ke wallet baru yang belum punya saldo.
- * Dipanggil otomatis dari client saat createWallet / importWallet.
  *
- * Semua konfigurasi diambil dari .env.local:
- *   NEXT_PUBLIC_RPC_URL   — blockchain node
- *   FAUCET_PRIVATE_KEY    — wallet pengirim (server-side only)
- *   FAUCET_AMOUNT         — jumlah VELD per drip (default: 0.05)
- *   FAUCET_COOLDOWN_MS    — cooldown per address (default: 24 jam)
+ * URL RPC diambil dari KV (paling fresh) → env var → localhost.
  */
 
 import { ethers } from "ethers";
 import { NextRequest } from "next/server";
+import { getActiveRpcUrl } from "@/lib/tunnel-url";
 
-const RPC_URL          = process.env.NEXT_PUBLIC_RPC_URL  || "http://127.0.0.1:9654/ext/bc/w4DDDiThpt7dv6A1T2UqkAUxZkC1JVceqg3QMpZ8nL4KPQcHs/rpc";
 const FAUCET_PRIVATE_KEY = process.env.FAUCET_PRIVATE_KEY || "";
-const FAUCET_AMOUNT    = process.env.FAUCET_AMOUNT        || "0.05";
-const COOLDOWN_MS      = Number(process.env.FAUCET_COOLDOWN_MS || 24 * 60 * 60 * 1000);
-const MIN_THRESHOLD    = ethers.parseEther("0.01");
+const FAUCET_AMOUNT      = process.env.FAUCET_AMOUNT      || "0.05";
+const COOLDOWN_MS        = Number(process.env.FAUCET_COOLDOWN_MS || 24 * 60 * 60 * 1000);
+const MIN_THRESHOLD      = ethers.parseEther("0.01");
 
 // In-memory rate limit — cukup untuk dev lokal.
-// Untuk Vercel/production: ganti dengan Redis/Vercel KV.
+// Untuk production: ganti dengan Redis/Vercel KV.
 const lastClaim = new Map<string, number>();
 
 export async function POST(request: NextRequest) {
@@ -45,7 +40,6 @@ export async function POST(request: NextRequest) {
     const normalizedAddress = address.toLowerCase();
     const now = Date.now();
 
-    // Rate limit check
     const lastClaimTime = lastClaim.get(normalizedAddress) || 0;
     if (now - lastClaimTime < COOLDOWN_MS) {
       const remaining = Math.ceil((COOLDOWN_MS - (now - lastClaimTime)) / 1000 / 60);
@@ -55,10 +49,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const RPC_URL  = await getActiveRpcUrl(); // ← baca dari KV, selalu fresh
     const provider = new ethers.JsonRpcProvider(RPC_URL);
     const funder   = new ethers.Wallet(FAUCET_PRIVATE_KEY, provider);
 
-    // Jangan drip jika user sudah punya saldo cukup
     const userBalance = await provider.getBalance(address);
     if (userBalance >= MIN_THRESHOLD) {
       return Response.json(
@@ -70,7 +64,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Cek saldo funder
     const amountWei     = ethers.parseEther(FAUCET_AMOUNT);
     const funderBalance = await provider.getBalance(funder.address);
     if (funderBalance < amountWei) {
@@ -81,9 +74,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Kirim VELD
     const tx = await funder.sendTransaction({ to: address, value: amountWei });
-    lastClaim.set(normalizedAddress, now); // catat sebelum wait agar rate limit aktif segera
+    lastClaim.set(normalizedAddress, now);
     await tx.wait();
 
     console.log(`[Faucet] Sent ${FAUCET_AMOUNT} VELD → ${address} | tx: ${tx.hash}`);

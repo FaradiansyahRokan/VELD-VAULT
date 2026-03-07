@@ -1,21 +1,22 @@
 /**
  * Health Check Proxy — /api/health
  *
- * Browser tidak bisa langsung hit node karena CORS.
- * Proxy ini forward ke /ext/health di blockchain node (server-to-server).
+ * URL node diambil dari KV (paling fresh) → env var → localhost.
  */
 
-const RPC_URL = process.env.NEXT_PUBLIC_RPC_URL ||
-  "http://127.0.0.1:9654/ext/bc/w4DDDiThpt7dv6A1T2UqkAUxZkC1JVceqg3QMpZ8nL4KPQcHs/rpc";
+import { getActiveRpcUrl } from "@/lib/tunnel-url";
 
 export async function GET() {
   try {
-    // Ekstrak base URL dari RPC URL
-    const url = new URL(RPC_URL);
+    const rpcUrl    = await getActiveRpcUrl();
+    const url       = new URL(rpcUrl);
     const healthUrl = `${url.protocol}//${url.host}/ext/health`;
 
     const response = await fetch(healthUrl, {
-      headers: { "ngrok-skip-browser-warning": "true" },
+      headers: {
+        "ngrok-skip-browser-warning": "true",
+        "cf-skip-browser-warning": "true",
+      },
       signal: AbortSignal.timeout(3000),
     });
 

@@ -5,13 +5,15 @@
  * Semua request JSON-RPC dari frontend dikirim ke /api/rpc (same-origin),
  * lalu di sini di-forward ke node (server-to-server = bebas CORS).
  *
- * URL target diambil dari NEXT_PUBLIC_RPC_URL di .env.local
+ * URL target diambil dari KV (paling fresh) → env var → localhost.
+ * Update URL: POST /api/update-tunnel (tanpa redeploy Vercel).
  */
 
-const TARGET_RPC = process.env.NEXT_PUBLIC_RPC_URL ||
-  "http://127.0.0.1:9654/ext/bc/w4DDDiThpt7dv6A1T2UqkAUxZkC1JVceqg3QMpZ8nL4KPQcHs/rpc";
+import { getActiveRpcUrl } from "@/lib/tunnel-url";
 
 export async function POST(request: Request) {
+  const TARGET_RPC = await getActiveRpcUrl(); // ← baca dari KV, selalu fresh
+
   try {
     const body = await request.text();
 
@@ -20,6 +22,7 @@ export async function POST(request: Request) {
       headers: {
         "Content-Type": "application/json",
         "ngrok-skip-browser-warning": "true",
+        "cf-skip-browser-warning": "true",
       },
       body,
     });
@@ -34,8 +37,13 @@ export async function POST(request: Request) {
       },
     });
   } catch (err: any) {
+    console.error("[RPC Proxy] Error →", TARGET_RPC, err.message);
     return new Response(
-      JSON.stringify({ jsonrpc: "2.0", error: { code: -32603, message: err.message }, id: null }),
+      JSON.stringify({
+        jsonrpc: "2.0",
+        error: { code: -32603, message: `RPC proxy error: ${err.message}` },
+        id: null,
+      }),
       { status: 502, headers: { "Content-Type": "application/json" } }
     );
   }

@@ -5,85 +5,89 @@
  * Semua request dari kubo-rpc-client dikirim ke /api/ipfs/... (same-origin),
  * lalu di sini di-forward ke node IPFS (server-to-server = bebas CORS).
  *
- * URL target diambil dari NEXT_PUBLIC_IPFS_URL di .env.local
+ * URL target diambil dari KV (paling fresh) → env var → localhost.
+ * Update URL: POST /api/update-tunnel (tanpa redeploy Vercel).
  */
 
-const IPFS_NODE = process.env.NEXT_PUBLIC_IPFS_URL || "http://127.0.0.1:5001";
+import { getActiveIpfsUrl } from "@/lib/tunnel-url";
 
-// Vercel Serverless Function limit override
-export const maxDuration = 60; // 60 seconds (max for Hobby)
-
+export const maxDuration = 60;
 export const dynamic = "force-dynamic";
 
 export async function POST(
-    request: Request,
-    { params }: { params: Promise<{ path: string[] }> }
+  request: Request,
+  { params }: { params: Promise<{ path: string[] }> }
 ) {
-    return proxyToIpfs(request, await params, "POST");
+  return proxyToIpfs(request, await params, "POST");
 }
 
 export async function GET(
-    request: Request,
-    { params }: { params: Promise<{ path: string[] }> }
+  request: Request,
+  { params }: { params: Promise<{ path: string[] }> }
 ) {
-    return proxyToIpfs(request, await params, "GET");
+  return proxyToIpfs(request, await params, "GET");
 }
 
 export async function OPTIONS() {
-    return new Response(null, {
-        headers: {
-            "Access-Control-Allow-Origin": "*",
-            "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-            "Access-Control-Allow-Headers": "Content-Type, X-Stream-Output, X-Chunked-Output, X-Stream-Error",
-        },
-    });
+  return new Response(null, {
+    headers: {
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+      "Access-Control-Allow-Headers":
+        "Content-Type, X-Stream-Output, X-Chunked-Output, X-Stream-Error",
+    },
+  });
 }
 
 async function proxyToIpfs(
-    request: Request,
-    params: { path: string[] },
-    method: string
+  request: Request,
+  params: { path: string[] },
+  method: string
 ) {
-    try {
-        const pathSegments = params.path ?? [];
-        const requestUrl = new URL(request.url);
+  const IPFS_NODE = await getActiveIpfsUrl(); // ← baca dari KV, selalu fresh
 
-        const targetPath = "/api/v0/" + pathSegments.join("/");
-        const targetUrl = `${IPFS_NODE}${targetPath}${requestUrl.search}`;
+  try {
+    const pathSegments = params.path ?? [];
+    const requestUrl = new URL(request.url);
 
-        const body = method === "POST" ? await request.arrayBuffer() : undefined;
+    const targetPath = "/api/v0/" + pathSegments.join("/");
+    const targetUrl = `${IPFS_NODE}${targetPath}${requestUrl.search}`;
 
-        const headers: Record<string, string> = {
-            "ngrok-skip-browser-warning": "true",
-        };
-        const contentType = request.headers.get("content-type");
-        if (contentType) headers["content-type"] = contentType;
+    const body = method === "POST" ? await request.arrayBuffer() : undefined;
 
-        const response = await fetch(targetUrl, { method, headers, body });
+    const headers: Record<string, string> = {
+      "ngrok-skip-browser-warning": "true",
+      "cf-skip-browser-warning": "true",
+    };
+    const contentType = request.headers.get("content-type");
+    if (contentType) headers["content-type"] = contentType;
 
-        const responseHeaders = new Headers();
-        responseHeaders.set("Access-Control-Allow-Origin", "*");
+    const response = await fetch(targetUrl, { method, headers, body });
 
-        const forwardHeaders = [
-            "content-type",
-            "x-stream-output",
-            "x-chunked-output",
-            "trailer",
-            "transfer-encoding",
-        ];
-        for (const h of forwardHeaders) {
-            const v = response.headers.get(h);
-            if (v) responseHeaders.set(h, v);
-        }
+    const responseHeaders = new Headers();
+    responseHeaders.set("Access-Control-Allow-Origin", "*");
 
-        return new Response(response.body, {
-            status: response.status,
-            headers: responseHeaders,
-        });
-    } catch (err: any) {
-        return new Response(
-            JSON.stringify({ error: err.message }),
-            { status: 502, headers: { "Content-Type": "application/json" } }
-        );
+    const forwardHeaders = [
+      "content-type",
+      "x-stream-output",
+      "x-chunked-output",
+      "trailer",
+      "transfer-encoding",
+    ];
+    for (const h of forwardHeaders) {
+      const v = response.headers.get(h);
+      if (v) responseHeaders.set(h, v);
     }
+
+    return new Response(response.body, {
+      status: response.status,
+      headers: responseHeaders,
+    });
+  } catch (err: any) {
+    console.error("[IPFS Proxy] Error →", err.message);
+    return new Response(JSON.stringify({ error: err.message }), {
+      status: 502,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
 }

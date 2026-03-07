@@ -785,51 +785,104 @@ export const useStore = create<VaultState>((set, get) => ({
 }));
 
 // ============================================================
-// HELPER: Parse ethers/contract errors jadi pesan user-friendly
-// FIX: Tambah handling untuk ethers v6 error format yang berbeda dari v5.
-// v5: error.data.message
-// v6: error.revert.args[0], error.info.error.message, error.shortMessage
+// HELPER: Parse ethers/contract errors → pesan user-friendly
+//
+// Urutan pengecekan:
+//  1. User cancel
+//  2. Network/tunnel error (paling sering di Vercel saat tunnel mati)
+//  3. Insufficient funds
+//  4. Contract revert (ethers v6)
+//  5. Contract revert (ethers v5 / fallback)
+//  6. Solidity require string matching
 // ============================================================
 function parseContractError(error: any): string {
-  // Log full error object untuk debugging di console dev
-  console.error("[Contract Error]:", error);
+  // Selalu log full error agar debug mudah di Vercel logs
+  console.error("[Contract Error Full]:", JSON.stringify(error, null, 2));
+  console.error("[Contract Error Raw]:", error);
 
-  // User cancelled
-  if (error?.code === "ACTION_REJECTED") return "Transaksi dibatalkan oleh user";
+  // ── 1. User cancel ──────────────────────────────────────────
+  if (error?.code === "ACTION_REJECTED") {
+    return "Transaksi dibatalkan oleh user";
+  }
 
-  // Insufficient funds (dari ethers, sebelum sampai ke node)
-  if (error?.code === "INSUFFICIENT_FUNDS")
-    return `Saldo ${NETWORK_CONFIG.tokenSymbol} tidak cukup`;
+  // ── 2. Network / Tunnel errors ──────────────────────────────
+  // Ini yang paling sering jadi "Transaksi gagal" di Vercel:
+  // tunnel mati → Cloudflare return HTML 502 → ethers gagal parse JSON
+  const isNetworkError =
+    error?.code === "NETWORK_ERROR" ||
+    error?.code === "CONNECTION_ERROR" ||
+    error?.code === "TIMEOUT" ||
+    error?.code === "SERVER_ERROR" ||
+    error?.status === 502 ||
+    error?.status === 503 ||
+    error?.status === 504;
 
-  // ethers v6 — custom revert dengan args (paling umum untuk kontrak Solidity)
-  if (error?.revert?.args?.[0]) return String(error.revert.args[0]);
+  const msgLower = (error?.message || "").toLowerCase();
+  const isFetchFail =
+    msgLower.includes("fetch failed") ||
+    msgLower.includes("failed to fetch") ||
+    msgLower.includes("network error") ||
+    msgLower.includes("econnrefused") ||
+    msgLower.includes("econnreset") ||
+    msgLower.includes("etimedout") ||
+    msgLower.includes("unexpected token") || // HTML returned instead of JSON
+    msgLower.includes("502") ||
+    msgLower.includes("503") ||
+    msgLower.includes("bad gateway") ||
+    msgLower.includes("service unavailable");
 
-  // ethers v6 — shortMessage dari ethers sendiri
+  if (isNetworkError || isFetchFail) {
+    return "Node tidak bisa dijangkau. Tunnel mungkin mati — jalankan: node scripts/update-tunnel.mjs";
+  }
+
+  // ── 3. Insufficient funds ───────────────────────────────────
+  if (
+    error?.code === "INSUFFICIENT_FUNDS" ||
+    msgLower.includes("insufficient funds")
+  ) {
+    return `Saldo ${NETWORK_CONFIG.tokenSymbol} tidak cukup untuk gas`;
+  }
+
+  // ── 4. ethers v6 — contract revert ─────────────────────────
+  if (error?.revert?.args?.[0]) {
+    return String(error.revert.args[0]);
+  }
+
   if (error?.shortMessage) {
     const short: string = error.shortMessage;
-    if (short.includes("insufficient funds")) return `Saldo ${NETWORK_CONFIG.tokenSymbol} tidak cukup`;
-    // Hapus prefix "execution reverted: " kalau ada
+    if (short.includes("insufficient funds"))
+      return `Saldo ${NETWORK_CONFIG.tokenSymbol} tidak cukup untuk gas`;
     return short.replace(/^execution reverted:\s*/i, "");
   }
 
-  // ethers v6 — info.error dari node response
-  if (error?.info?.error?.message) return error.info.error.message;
+  if (error?.info?.error?.message) {
+    const nodeMsg: string = error.info.error.message;
+    return nodeMsg.replace(/^execution reverted:\s*/i, "");
+  }
 
-  // ethers v5 / fallback lama
+  // ── 5. ethers v5 / fallback ─────────────────────────────────
   if (error?.reason) return error.reason;
   if (error?.data?.message) return error.data.message;
 
-  // Fallback: parse dari error.message
+  // ── 6. Solidity require string matching ─────────────────────
   if (error?.message) {
     const msg: string = error.message;
-    if (msg.includes("Only owner")) return "Hanya pemilik yang bisa melakukan ini";
-    if (msg.includes("Wrong price")) return "Harga tidak sesuai";
-    if (msg.includes("Not in escrow")) return "Asset tidak sedang dalam escrow";
-    if (msg.includes("Only seller")) return "Hanya seller yang bisa melakukan ini";
-    if (msg.includes("insufficient funds"))
-      return `Saldo ${NETWORK_CONFIG.tokenSymbol} tidak cukup`;
-    return msg.length > 120 ? "Transaksi gagal. Cek konsol untuk detail." : msg;
+
+    // Coba ekstrak revert reason dari dalam string panjang
+    const revertMatch = msg.match(/execution reverted[:\s]+"?([^"]+)"?/i);
+    if (revertMatch?.[1]) return revertMatch[1];
+
+    if (msg.includes("Only owner") || msg.includes("Not owner"))
+      return "Hanya pemilik asset yang bisa melakukan ini";
+    if (msg.includes("Only seller"))
+      return "Hanya seller yang bisa melakukan ini";
+    if (msg.includes("Wrong price"))
+      return "Harga tidak sesuai dengan yang tertera";
+    if (msg.includes("Not in escrow"))
+      return "Asset tidak sedang dalam proses escrow";
+
+    if (msg.length <= 120) return msg;
   }
 
-  return "Transaksi gagal";
+  return "Transaksi gagal — cek Vercel logs atau browser console untuk detail";
 }

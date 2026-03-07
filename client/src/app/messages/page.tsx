@@ -6,11 +6,11 @@ import { useStore } from "@/lib/store";
 import { useContactsStore } from "../../lib/contact-store";
 import { useActivityStore } from "../../lib/activity-store";
 import { encryptMessage, decryptMessage, type MessagePayload } from "@/lib/message-crypto";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useSpring, useTransform } from "framer-motion";
 import { ethers } from "ethers";
 import {
   MessageSquare, Send, Plus, Search, X, ChevronLeft,
-  Lock, Loader2, UserCircle2, Check, CheckCheck,
+  Lock, Loader2, UserCircle2, Check, CheckCheck, Sparkles,
 } from "lucide-react";
 import { toast } from "sonner";
 import { NETWORK_CONFIG } from "@/lib/constants";
@@ -22,6 +22,123 @@ interface ConversationMeta {
   unread: number;
 }
 
+// ── Floating particle that shoots out on send ──
+function SendParticle({ trigger }: { trigger: number }) {
+  const particles = Array.from({ length: 8 }, (_, i) => i);
+  return (
+    <AnimatePresence>
+      {trigger > 0 && particles.map((i) => {
+        const angle = (i / particles.length) * 360;
+        const rad = (angle * Math.PI) / 180;
+        const dist = 40 + Math.random() * 20;
+        return (
+          <motion.div
+            key={`${trigger}-${i}`}
+            className="absolute pointer-events-none"
+            style={{ left: "50%", top: "50%", zIndex: 50 }}
+            initial={{ x: 0, y: 0, opacity: 1, scale: 1 }}
+            animate={{
+              x: Math.cos(rad) * dist,
+              y: Math.sin(rad) * dist,
+              opacity: 0,
+              scale: 0,
+            }}
+            transition={{ duration: 0.5, ease: "easeOut" }}
+          >
+            <div
+              className="w-1.5 h-1.5 rounded-full"
+              style={{
+                background: i % 2 === 0 ? "hsl(var(--primary))" : "#a78bfa",
+              }}
+            />
+          </motion.div>
+        );
+      })}
+    </AnimatePresence>
+  );
+}
+
+// ── Animated message bubble ──
+function MessageBubble({
+  m,
+  isMine,
+  showDate,
+  prevTimestamp,
+}: {
+  m: any;
+  isMine: boolean;
+  showDate: boolean;
+  prevTimestamp?: number;
+}) {
+  return (
+    <div key={m.id}>
+      {showDate && (
+        <motion.div
+          initial={{ opacity: 0, y: -8 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex items-center gap-3 my-4"
+        >
+          <div className="flex-1 h-px bg-border/40" />
+          <span className="text-[10px] text-muted-foreground font-medium">
+            {new Date(m.timestamp).toLocaleDateString("id-ID", {
+              weekday: "long", day: "numeric", month: "long",
+            })}
+          </span>
+          <div className="flex-1 h-px bg-border/40" />
+        </motion.div>
+      )}
+      <motion.div
+        layout
+        initial={
+          isMine
+            ? { opacity: 0, scale: 0.6, x: 40, y: 10 }
+            : { opacity: 0, scale: 0.6, x: -40, y: 10 }
+        }
+        animate={{ opacity: 1, scale: 1, x: 0, y: 0 }}
+        transition={{
+          type: "spring",
+          stiffness: 420,
+          damping: 22,
+          mass: 0.8,
+        }}
+        className={`flex ${isMine ? "justify-end" : "justify-start"}`}
+      >
+        <motion.div
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.97 }}
+          transition={{ type: "spring", stiffness: 500, damping: 20 }}
+          className={`max-w-[72%] px-4 py-2.5 rounded-2xl text-sm leading-relaxed cursor-default select-text ${isMine
+              ? "bg-primary text-primary-foreground rounded-br-md shadow-lg shadow-primary/20"
+              : "bg-muted/40 text-foreground border border-border/40 rounded-bl-md"
+            }`}
+        >
+          <p>{m.decrypted}</p>
+          <div
+            className={`flex items-center gap-1 mt-1 ${isMine ? "justify-end" : "justify-start"
+              }`}
+          >
+            <span
+              className={`text-[9px] ${isMine ? "text-primary-foreground/60" : "text-muted-foreground"
+                }`}
+            >
+              {new Date(m.timestamp).toLocaleTimeString("id-ID", {
+                hour: "2-digit",
+                minute: "2-digit",
+              })}
+            </span>
+            {isMine &&
+              (m.read ? (
+                <CheckCheck size={10} className="text-primary-foreground/60" />
+              ) : (
+                <Check size={10} className="text-primary-foreground/60" />
+              ))}
+          </div>
+        </motion.div>
+      </motion.div>
+    </div>
+  );
+}
+
 export default function MessagesPage() {
   const router = useRouter();
   const { contract, wallet, signer } = useStore();
@@ -30,7 +147,12 @@ export default function MessagesPage() {
 
   const [conversations, setConversations] = useState<ConversationMeta[]>([]);
   const [activeAddr, setActiveAddr] = useState<string | null>(null);
-  const [messages, setMessages] = useState<(MessagePayload & { decrypted?: string })[]>([]);
+  const [messages, setMessages] = useState<(Omit<MessagePayload, "encrypted"> & {
+    encryptedContent: string;
+    iv: string;
+    senderPublicKey: string;
+    decrypted?: string;
+  })[]>([]);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -38,91 +160,141 @@ export default function MessagesPage() {
   const [showNew, setShowNew] = useState(false);
   const [searchQ, setSearchQ] = useState("");
   const [mounted, setMounted] = useState(false);
+  const [sendParticleTrigger, setSendParticleTrigger] = useState(0);
 
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  // Use a ref for the messages scroll container (NOT scrollIntoView — that leaks to page)
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
   const pollRef = useRef<NodeJS.Timeout | null>(null);
   const lastPollRef = useRef<number>(0);
-  // Cache plaintext pesan yang kita kirim sendiri
-  // key = encryptedContent (unik per pesan), value = plaintext
+
+  // Cache plaintext for sent messages (key = encryptedContent)
   const sentCacheRef = useRef<Map<string, string>>(new Map());
+  // Track optimistic message encryptedContent so we can remove them when server confirms
+  const optimisticContentRef = useRef<Map<string, string>>(new Map()); // encryptedContent → opt-id
 
   useEffect(() => {
     setMounted(true);
     if (!contract || !wallet) { router.push("/"); return; }
   }, [contract, wallet, router]);
 
+  // ── Scroll to bottom (only inside the messages container, NOT the page) ──
+  const scrollToBottom = useCallback((behavior: ScrollBehavior = "smooth") => {
+    const container = messagesContainerRef.current;
+    if (!container) return;
+    container.scrollTo({ top: container.scrollHeight, behavior });
+  }, []);
+
+  useEffect(() => {
+    scrollToBottom("smooth");
+  }, [messages, activeAddr, scrollToBottom]);
+
   // ── Fetch & decrypt messages ──────────────────────────────
-  const fetchMessages = useCallback(async (passive = false) => {
-    if (!wallet?.address || !signer) return;
-    try {
-      const res = await fetch(`/api/messages?address=${wallet.address}&after=${lastPollRef.current}`);
-      const data = await res.json();
-      if (!data.success || !data.messages.length) return;
+  const fetchMessages = useCallback(
+    async (passive = false) => {
+      if (!wallet?.address || !signer) return;
+      try {
+        const res = await fetch(
+          `/api/messages?address=${wallet.address}&after=${lastPollRef.current}`
+        );
+        const data = await res.json();
+        if (!data.success || !data.messages.length) return;
 
-      lastPollRef.current = Date.now();
+        lastPollRef.current = Date.now();
 
-      const w = signer as ethers.Wallet;
-      const decrypted = await Promise.all(
-        data.messages.map(async (m: any) => {
-          // Pesan yang kita kirim sendiri — ambil dari cache, skip dekripsi
-          if (m.from === wallet.address.toLowerCase()) {
-            const cached = sentCacheRef.current.get(m.encryptedContent);
-            return { ...m, decrypted: cached ?? m.encryptedContent };
-          }
-          try {
-            const text = await decryptMessage(
-              { encryptedContent: m.encryptedContent, iv: m.iv, senderPublicKey: m.senderPublicKey },
-              w
-            );
-            return { ...m, decrypted: text };
-          } catch {
-            return { ...m, decrypted: "[Pesan tidak bisa didekripsi]" };
-          }
-        })
-      );
+        const w = signer as ethers.Wallet;
+        const decrypted = await Promise.all(
+          data.messages.map(async (m: any) => {
+            if (m.from === wallet.address.toLowerCase()) {
+              const cached = sentCacheRef.current.get(m.encryptedContent);
+              return { ...m, decrypted: cached ?? m.encryptedContent };
+            }
+            try {
+              const text = await decryptMessage(
+                {
+                  encryptedContent: m.encryptedContent,
+                  iv: m.iv,
+                  senderPublicKey: m.senderPublicKey,
+                },
+                w
+              );
+              return { ...m, decrypted: text };
+            } catch {
+              return { ...m, decrypted: "[Pesan tidak bisa didekripsi]" };
+            }
+          })
+        );
 
-      setMessages((prev) => {
-        const ids = new Set(prev.map((m) => m.id));
-        const newMsgs = decrypted.filter((m) => !ids.has(m.id));
-        if (!newMsgs.length) return prev;
-        return [...prev, ...newMsgs].sort((a, b) => a.timestamp - b.timestamp);
-      });
-
-      // Update conversations list
-      setConversations((prev) => {
-        const map = new Map(prev.map((c) => [c.address, c]));
-        for (const m of decrypted) {
-          const peer = m.from === wallet.address.toLowerCase() ? m.to : m.from;
-          const existing = map.get(peer) || { address: peer, unread: 0 };
-          map.set(peer, {
-            ...existing,
-            lastMessage: m.decrypted,
-            lastTime: m.timestamp,
-            unread: !passive && m.to === wallet.address.toLowerCase() && m.from !== activeAddr
-              ? existing.unread + 1
-              : existing.unread,
+        setMessages((prev) => {
+          // 1. Remove optimistic messages whose real counterpart has arrived
+          const arrivedContents = new Set(
+            decrypted
+              .filter((m) => m.from === wallet.address.toLowerCase())
+              .map((m) => m.encryptedContent)
+          );
+          const withoutOptimistic = prev.filter((m) => {
+            if (!String(m.id).startsWith("opt-")) return true;
+            // Keep optimistic only if its encryptedContent hasn't been confirmed yet
+            const ec = (m as any).encryptedContent;
+            return ec ? !arrivedContents.has(ec) : true;
           });
-        }
-        return Array.from(map.values()).sort((a, b) => (b.lastTime || 0) - (a.lastTime || 0));
-      });
 
-      if (!passive && decrypted.some((m) => m.to === wallet.address.toLowerCase())) {
-        decrypted
-          .filter((m) => m.to === wallet.address.toLowerCase())
-          .forEach((m) => {
-            addActivity({
-              type: "message_received",
-              title: "Pesan diterima",
-              description: `Dari ${shortAddr(m.from)}: ${(m.decrypted || "").slice(0, 40)}`,
-              walletAddress: wallet.address,
-              address: m.from,
+          // 2. Normal dedup by id
+          const ids = new Set(withoutOptimistic.map((m) => m.id));
+          const newMsgs = decrypted.filter((m) => !ids.has(m.id));
+          if (!newMsgs.length && withoutOptimistic.length === prev.length) return prev;
+          return [...withoutOptimistic, ...newMsgs].sort(
+            (a, b) => a.timestamp - b.timestamp
+          );
+        });
+
+        // Update conversations list
+        setConversations((prev) => {
+          const map = new Map(prev.map((c) => [c.address, c]));
+          for (const m of decrypted) {
+            const peer =
+              m.from === wallet.address.toLowerCase() ? m.to : m.from;
+            const existing = map.get(peer) || { address: peer, unread: 0 };
+            map.set(peer, {
+              ...existing,
+              lastMessage: m.decrypted,
+              lastTime: m.timestamp,
+              unread:
+                !passive &&
+                  m.to === wallet.address.toLowerCase() &&
+                  m.from !== activeAddr
+                  ? existing.unread + 1
+                  : existing.unread,
             });
-          });
+          }
+          return Array.from(map.values()).sort(
+            (a, b) => (b.lastTime || 0) - (a.lastTime || 0)
+          );
+        });
+
+        if (
+          !passive &&
+          decrypted.some((m) => m.to === wallet.address.toLowerCase())
+        ) {
+          decrypted
+            .filter((m) => m.to === wallet.address.toLowerCase())
+            .forEach((m) => {
+              addActivity({
+                type: "message_received",
+                title: "Pesan diterima",
+                description: `Dari ${shortAddr(m.from)}: ${(
+                  m.decrypted || ""
+                ).slice(0, 40)}`,
+                walletAddress: wallet.address,
+                address: m.from,
+              });
+            });
+        }
+      } catch (e) {
+        console.error("[Messages] fetch error:", e);
       }
-    } catch (e) {
-      console.error("[Messages] fetch error:", e);
-    }
-  }, [wallet, signer, activeAddr, addActivity]);
+    },
+    [wallet, signer, activeAddr, addActivity]
+  );
 
   // Initial load
   useEffect(() => {
@@ -135,14 +307,17 @@ export default function MessagesPage() {
         const w = signer as ethers.Wallet;
         const decrypted = await Promise.all(
           (data.messages as any[]).map(async (m) => {
-            // Pesan yang kita kirim sendiri — ambil dari cache, skip dekripsi
             if (m.from === wallet.address.toLowerCase()) {
               const cached = sentCacheRef.current.get(m.encryptedContent);
               return { ...m, decrypted: cached ?? "📤 Pesan terkirim" };
             }
             try {
               const text = await decryptMessage(
-                { encryptedContent: m.encryptedContent, iv: m.iv, senderPublicKey: m.senderPublicKey },
+                {
+                  encryptedContent: m.encryptedContent,
+                  iv: m.iv,
+                  senderPublicKey: m.senderPublicKey,
+                },
                 w
               );
               return { ...m, decrypted: text };
@@ -155,10 +330,10 @@ export default function MessagesPage() {
         setMessages(sorted);
         lastPollRef.current = Date.now();
 
-        // Build conversations
         const convMap = new Map<string, ConversationMeta>();
         for (const m of sorted) {
-          const peer = m.from === wallet.address.toLowerCase() ? m.to : m.from;
+          const peer =
+            m.from === wallet.address.toLowerCase() ? m.to : m.from;
           const existing = convMap.get(peer) || { address: peer, unread: 0 };
           convMap.set(peer, {
             ...existing,
@@ -167,7 +342,9 @@ export default function MessagesPage() {
           });
         }
         setConversations(
-          Array.from(convMap.values()).sort((a, b) => (b.lastTime || 0) - (a.lastTime || 0))
+          Array.from(convMap.values()).sort(
+            (a, b) => (b.lastTime || 0) - (a.lastTime || 0)
+          )
         );
       })
       .finally(() => setLoading(false));
@@ -177,32 +354,70 @@ export default function MessagesPage() {
   useEffect(() => {
     if (!mounted || !wallet) return;
     pollRef.current = setInterval(() => fetchMessages(true), 3000);
-    return () => { if (pollRef.current) clearInterval(pollRef.current); };
+    return () => {
+      if (pollRef.current) clearInterval(pollRef.current);
+    };
   }, [mounted, wallet?.address, fetchMessages]);
-
-  // Scroll to bottom
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, activeAddr]);
 
   // ── Send message ─────────────────────────────────────────
   const handleSend = async () => {
     if (!input.trim() || !activeAddr || !signer || !wallet) return;
     setSending(true);
+    const textToSend = input.trim();
+    setInput(""); // clear immediately for better UX
+
     try {
       const w = signer as ethers.Wallet;
 
-      // Get recipient's public key
       const res = await fetch(`/api/pubkey-store?address=${activeAddr}`);
       if (!res.ok) {
-        toast.error("Public key penerima tidak ditemukan. Minta mereka login terlebih dahulu.");
+        toast.error(
+          "Public key penerima tidak ditemukan. Minta mereka login terlebih dahulu."
+        );
+        setInput(textToSend); // restore on error
         return;
       }
       const { publicKey: recipientPubKey } = await res.json();
 
-      const encrypted = await encryptMessage(input.trim(), w, recipientPubKey);
+      const encrypted = await encryptMessage(textToSend, w, recipientPubKey);
 
-      const res2 = await fetch("/api/messages", {
+      const optId = `opt-${Date.now()}`;
+
+      // Cache plaintext & track optimistic id by encryptedContent
+      sentCacheRef.current.set(encrypted.encryptedContent, textToSend);
+      optimisticContentRef.current.set(encrypted.encryptedContent, optId);
+
+      const optimistic = {
+        id: optId,
+        from: wallet.address.toLowerCase(),
+        to: activeAddr.toLowerCase(),
+        // Expose encryptedContent top-level so dedup can find it
+        encryptedContent: encrypted.encryptedContent,
+        iv: encrypted.iv,
+        senderPublicKey: encrypted.senderPublicKey,
+        timestamp: Date.now(),
+        read: false,
+        decrypted: textToSend,
+      };
+
+      setMessages((prev) => [...prev, optimistic]);
+      setConversations((prev) => {
+        const map = new Map(prev.map((c) => [c.address, c]));
+        const existing = map.get(activeAddr) || { address: activeAddr, unread: 0 };
+        map.set(activeAddr, {
+          ...existing,
+          lastMessage: textToSend,
+          lastTime: Date.now(),
+        });
+        return Array.from(map.values()).sort(
+          (a, b) => (b.lastTime || 0) - (a.lastTime || 0)
+        );
+      });
+
+      // Shoot particles 🎉
+      setSendParticleTrigger((t) => t + 1);
+
+      await fetch("/api/messages", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -212,37 +427,16 @@ export default function MessagesPage() {
         }),
       });
 
-      // Simpan plaintext di cache agar polling tidak error "tidak bisa didekripsi"
-      sentCacheRef.current.set(encrypted.encryptedContent, input.trim());
-
-      const optimistic = {
-        id: `opt-${Date.now()}`,
-        from: wallet.address.toLowerCase(),
-        to: activeAddr.toLowerCase(),
-        encrypted,
-        timestamp: Date.now(),
-        read: false,
-        decrypted: input.trim(),
-      };
-      setMessages((prev) => [...prev, optimistic]);
-      setConversations((prev) => {
-        const map = new Map(prev.map((c) => [c.address, c]));
-        const existing = map.get(activeAddr) || { address: activeAddr, unread: 0 };
-        map.set(activeAddr, { ...existing, lastMessage: input.trim(), lastTime: Date.now() });
-        return Array.from(map.values()).sort((a, b) => (b.lastTime || 0) - (a.lastTime || 0));
-      });
-
       addActivity({
         type: "message_sent",
         title: "Pesan dikirim",
-        description: `Ke ${shortAddr(activeAddr)}: ${input.trim().slice(0, 40)}`,
+        description: `Ke ${shortAddr(activeAddr)}: ${textToSend.slice(0, 40)}`,
         walletAddress: wallet.address,
         address: activeAddr,
       });
-
-      setInput("");
     } catch (e: any) {
       toast.error(e.message || "Gagal mengirim pesan");
+      setInput(textToSend); // restore on error
     } finally {
       setSending(false);
     }
@@ -250,11 +444,20 @@ export default function MessagesPage() {
 
   const startConversation = () => {
     const addr = newRecipient.trim();
-    if (!ethers.isAddress(addr)) { toast.error("Address tidak valid"); return; }
-    if (addr.toLowerCase() === wallet?.address.toLowerCase()) { toast.error("Tidak bisa chat dengan dirimu sendiri"); return; }
+    if (!ethers.isAddress(addr)) {
+      toast.error("Address tidak valid");
+      return;
+    }
+    if (addr.toLowerCase() === wallet?.address.toLowerCase()) {
+      toast.error("Tidak bisa chat dengan dirimu sendiri");
+      return;
+    }
     setActiveAddr(addr.toLowerCase());
     if (!conversations.find((c) => c.address === addr.toLowerCase())) {
-      setConversations((prev) => [{ address: addr.toLowerCase(), unread: 0 }, ...prev]);
+      setConversations((prev) => [
+        { address: addr.toLowerCase(), unread: 0 },
+        ...prev,
+      ]);
     }
     setNewRecipient("");
     setShowNew(false);
@@ -279,8 +482,9 @@ export default function MessagesPage() {
   if (!mounted) return null;
 
   return (
+    // overflow-hidden on the outermost div so nothing on this page leaks to page scroll
     <div className="h-screen overflow-hidden pt-24 px-4 pb-4 max-w-[1400px] mx-auto flex flex-col">
-      <div className="flex-1 flex gap-4 min-h-0">
+      <div className="flex-1 flex gap-4 min-h-0 overflow-hidden">
 
         {/* ── Sidebar ── */}
         <motion.div
@@ -289,7 +493,7 @@ export default function MessagesPage() {
           className={`w-full md:w-[300px] shrink-0 flex flex-col bg-card border border-border/50 rounded-[2rem] overflow-hidden min-h-0 ${activeAddr ? "hidden md:flex" : "flex"}`}
         >
           {/* Header */}
-          <div className="p-5 border-b border-border/50">
+          <div className="p-5 border-b border-border/50 shrink-0">
             <div className="flex items-center justify-between mb-4">
               <h2 className="font-bold text-foreground flex items-center gap-2">
                 <MessageSquare size={16} className="text-muted-foreground" />
@@ -299,12 +503,15 @@ export default function MessagesPage() {
                   <span className="text-[9px] text-emerald-600 dark:text-emerald-400 font-bold">E2E</span>
                 </div>
               </h2>
-              <button
+              <motion.button
+                whileHover={{ scale: 1.1, rotate: 90 }}
+                whileTap={{ scale: 0.85 }}
+                transition={{ type: "spring", stiffness: 500, damping: 20 }}
                 onClick={() => setShowNew(true)}
-                className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground hover:opacity-90 transition-opacity shadow-lg shadow-primary/20"
+                className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground shadow-lg shadow-primary/20"
               >
                 <Plus size={15} />
-              </button>
+              </motion.button>
             </div>
             {/* Search */}
             <div className="relative">
@@ -325,7 +532,7 @@ export default function MessagesPage() {
                 initial={{ height: 0, opacity: 0 }}
                 animate={{ height: "auto", opacity: 1 }}
                 exit={{ height: 0, opacity: 0 }}
-                className="overflow-hidden border-b border-border/50"
+                className="overflow-hidden border-b border-border/50 shrink-0"
               >
                 <div className="p-4">
                   <p className="text-xs font-bold text-muted-foreground mb-2">Percakapan Baru</p>
@@ -344,11 +551,13 @@ export default function MessagesPage() {
                     >
                       Mulai
                     </button>
-                    <button onClick={() => setShowNew(false)} className="h-9 w-9 rounded-xl bg-muted/30 flex items-center justify-center text-muted-foreground hover:text-foreground">
+                    <button
+                      onClick={() => setShowNew(false)}
+                      className="h-9 w-9 rounded-xl bg-muted/30 flex items-center justify-center text-muted-foreground hover:text-foreground"
+                    >
                       <X size={14} />
                     </button>
                   </div>
-                  {/* Contacts shortcut */}
                   {contacts.length > 0 && (
                     <div className="mt-2 flex gap-2 overflow-x-auto pb-1">
                       {contacts.slice(0, 6).map((c) => (
@@ -368,8 +577,8 @@ export default function MessagesPage() {
             )}
           </AnimatePresence>
 
-          {/* Conversation list */}
-          <div className="flex-1 overflow-y-auto">
+          {/* Conversation list — this is the only scrollable part in sidebar */}
+          <div className="flex-1 overflow-y-auto min-h-0">
             {loading ? (
               <div className="flex items-center justify-center h-32">
                 <Loader2 size={18} className="animate-spin text-muted-foreground" />
@@ -386,22 +595,31 @@ export default function MessagesPage() {
                 </button>
               </div>
             ) : (
-              filteredConvs.map((conv) => {
+              filteredConvs.map((conv, idx) => {
                 const contact = getByAddress(conv.address);
                 const isActive = activeAddr === conv.address;
                 return (
-                  <button
+                  <motion.button
                     key={conv.address}
+                    initial={{ opacity: 0, x: -12 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: idx * 0.04, type: "spring", stiffness: 400, damping: 28 }}
+                    whileHover={{ x: 4, backgroundColor: "hsl(var(--muted) / 0.3)" }}
+                    whileTap={{ scale: 0.98 }}
                     onClick={() => {
                       setActiveAddr(conv.address);
                       setConversations((prev) =>
-                        prev.map((c) => c.address === conv.address ? { ...c, unread: 0 } : c)
+                        prev.map((c) =>
+                          c.address === conv.address ? { ...c, unread: 0 } : c
+                        )
                       );
                     }}
-                    className={`w-full flex items-center gap-3 p-4 text-left hover:bg-muted/20 transition-colors ${isActive ? "bg-muted/20" : ""}`}
+                    className={`w-full flex items-center gap-3 p-4 text-left transition-colors ${isActive ? "bg-muted/20" : ""}`}
                   >
                     <div className="w-10 h-10 rounded-full bg-muted/40 border border-border/40 flex items-center justify-center text-lg shrink-0">
-                      {contact?.emoji || <UserCircle2 size={20} className="text-muted-foreground" />}
+                      {contact?.emoji || (
+                        <UserCircle2 size={20} className="text-muted-foreground" />
+                      )}
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between">
@@ -418,14 +636,22 @@ export default function MessagesPage() {
                         <p className="text-[11px] text-muted-foreground truncate flex-1">
                           {conv.lastMessage || "Mulai percakapan..."}
                         </p>
-                        {conv.unread > 0 && (
-                          <span className="ml-1 w-4 h-4 rounded-full bg-primary flex items-center justify-center text-[9px] font-bold text-primary-foreground shrink-0">
-                            {conv.unread}
-                          </span>
-                        )}
+                        <AnimatePresence>
+                          {conv.unread > 0 && (
+                            <motion.span
+                              initial={{ scale: 0 }}
+                              animate={{ scale: 1 }}
+                              exit={{ scale: 0 }}
+                              transition={{ type: "spring", stiffness: 600, damping: 20 }}
+                              className="ml-1 w-4 h-4 rounded-full bg-primary flex items-center justify-center text-[9px] font-bold text-primary-foreground shrink-0"
+                            >
+                              {conv.unread}
+                            </motion.span>
+                          )}
+                        </AnimatePresence>
                       </div>
                     </div>
-                  </button>
+                  </motion.button>
                 );
               })
             )}
@@ -440,12 +666,18 @@ export default function MessagesPage() {
         >
           {!activeAddr ? (
             <div className="flex-1 flex flex-col items-center justify-center gap-4 text-center px-8">
-              <div className="w-16 h-16 rounded-[1.5rem] bg-muted/20 flex items-center justify-center">
+              <motion.div
+                animate={{ rotate: [0, -5, 5, -5, 0], scale: [1, 1.05, 1] }}
+                transition={{ repeat: Infinity, repeatDelay: 3, duration: 0.6 }}
+                className="w-16 h-16 rounded-[1.5rem] bg-muted/20 flex items-center justify-center"
+              >
                 <MessageSquare size={28} className="text-muted-foreground/50" />
-              </div>
+              </motion.div>
               <div>
                 <p className="font-bold text-foreground mb-1">Pilih percakapan</p>
-                <p className="text-sm text-muted-foreground">Semua pesan terenkripsi end-to-end dengan ECDH</p>
+                <p className="text-sm text-muted-foreground">
+                  Semua pesan terenkripsi end-to-end dengan ECDH
+                </p>
               </div>
               <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20">
                 <Lock size={10} className="text-emerald-400" />
@@ -457,15 +689,19 @@ export default function MessagesPage() {
           ) : (
             <>
               {/* Chat Header */}
-              <div className="flex items-center gap-3 p-5 border-b border-border/50">
-                <button
+              <div className="flex items-center gap-3 p-5 border-b border-border/50 shrink-0">
+                <motion.button
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.9 }}
                   onClick={() => setActiveAddr(null)}
                   className="md:hidden w-8 h-8 rounded-full bg-muted/30 flex items-center justify-center text-muted-foreground"
                 >
                   <ChevronLeft size={16} />
-                </button>
+                </motion.button>
                 <div className="w-9 h-9 rounded-full bg-muted/40 border border-border/40 flex items-center justify-center text-base">
-                  {getByAddress(activeAddr)?.emoji || <UserCircle2 size={18} className="text-muted-foreground" />}
+                  {getByAddress(activeAddr)?.emoji || (
+                    <UserCircle2 size={18} className="text-muted-foreground" />
+                  )}
                 </div>
                 <div className="flex-1">
                   <p className="font-bold text-foreground text-sm">
@@ -479,12 +715,19 @@ export default function MessagesPage() {
                 </div>
               </div>
 
-              {/* Messages */}
-              <div className="flex-1 overflow-y-auto p-5 space-y-3">
+              {/* ── Messages — THIS is the only element that scrolls ── */}
+              <div
+                ref={messagesContainerRef}
+                className="flex-1 overflow-y-auto min-h-0 p-5 space-y-3"
+              >
                 {activeMessages.length === 0 && (
-                  <div className="text-center py-12">
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="text-center py-12"
+                  >
                     <p className="text-sm text-muted-foreground">Mulai percakapan yang aman 🔐</p>
-                  </div>
+                  </motion.div>
                 )}
                 {activeMessages.map((m, i) => {
                   const isMine = m.from === wallet?.address.toLowerCase();
@@ -493,45 +736,21 @@ export default function MessagesPage() {
                     new Date(m.timestamp).toDateString() !==
                     new Date(activeMessages[i - 1].timestamp).toDateString();
                   return (
-                    <div key={m.id}>
-                      {showDate && (
-                        <div className="flex items-center gap-3 my-4">
-                          <div className="flex-1 h-px bg-border/40" />
-                          <span className="text-[10px] text-muted-foreground font-medium">
-                            {new Date(m.timestamp).toLocaleDateString("id-ID", {
-                              weekday: "long", day: "numeric", month: "long",
-                            })}
-                          </span>
-                          <div className="flex-1 h-px bg-border/40" />
-                        </div>
-                      )}
-                      <div className={`flex ${isMine ? "justify-end" : "justify-start"}`}>
-                        <div
-                          className={`max-w-[72%] px-4 py-2.5 rounded-2xl text-sm leading-relaxed ${isMine
-                              ? "bg-primary text-primary-foreground rounded-br-md"
-                              : "bg-muted/40 text-foreground border border-border/40 rounded-bl-md"
-                            }`}
-                        >
-                          <p>{m.decrypted}</p>
-                          <div className={`flex items-center gap-1 mt-1 ${isMine ? "justify-end" : "justify-start"}`}>
-                            <span className={`text-[9px] ${isMine ? "text-primary-foreground/60" : "text-muted-foreground"}`}>
-                              {new Date(m.timestamp).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })}
-                            </span>
-                            {isMine && (m.read
-                              ? <CheckCheck size={10} className="text-primary-foreground/60" />
-                              : <Check size={10} className="text-primary-foreground/60" />
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
+                    <MessageBubble
+                      key={m.id}
+                      m={m}
+                      isMine={isMine}
+                      showDate={showDate}
+                      prevTimestamp={i > 0 ? activeMessages[i - 1].timestamp : undefined}
+                    />
                   );
                 })}
-                <div ref={messagesEndRef} />
+                {/* Invisible anchor — scroll target stays inside container */}
+                <div className="h-1" aria-hidden />
               </div>
 
               {/* Input */}
-              <div className="p-4 border-t border-border/50">
+              <div className="p-4 border-t border-border/50 shrink-0">
                 <div className="flex items-end gap-3">
                   <textarea
                     value={input}
@@ -547,15 +766,24 @@ export default function MessagesPage() {
                     className="flex-1 bg-muted/30 border border-border/40 focus:border-primary/30 rounded-2xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground/50 resize-none outline-none focus:ring-1 focus:ring-primary/20 transition-all max-h-32"
                     style={{ minHeight: "48px" }}
                   />
-                  <button
-                    onClick={handleSend}
-                    disabled={sending || !input.trim()}
-                    className="h-12 w-12 rounded-2xl bg-primary flex items-center justify-center text-primary-foreground hover:opacity-90 disabled:opacity-40 transition-all shadow-lg shadow-primary/20 shrink-0"
-                  >
-                    {sending
-                      ? <Loader2 size={16} className="animate-spin" />
-                      : <Send size={16} />}
-                  </button>
+                  {/* Send button with particles */}
+                  <div className="relative shrink-0">
+                    <SendParticle trigger={sendParticleTrigger} />
+                    <motion.button
+                      onClick={handleSend}
+                      disabled={sending || !input.trim()}
+                      whileHover={!sending && input.trim() ? { scale: 1.12, rotate: -8 } : {}}
+                      whileTap={!sending && input.trim() ? { scale: 0.82, rotate: 12 } : {}}
+                      transition={{ type: "spring", stiffness: 600, damping: 18 }}
+                      className="h-12 w-12 rounded-2xl bg-primary flex items-center justify-center text-primary-foreground disabled:opacity-40 shadow-lg shadow-primary/20"
+                    >
+                      {sending ? (
+                        <Loader2 size={16} className="animate-spin" />
+                      ) : (
+                        <Send size={16} />
+                      )}
+                    </motion.button>
+                  </div>
                 </div>
               </div>
             </>

@@ -359,6 +359,19 @@ export default function MessagesPage() {
     if (!contract || !wallet) { router.push("/"); return; }
   }, [contract, wallet, router]);
 
+  // Lock body scroll while messages page is open.
+  // Cleanup runs on unmount — restores scroll for all other pages.
+  useEffect(() => {
+    const prevBody = document.body.style.overflow;
+    const prevHtml = document.documentElement.style.overflow;
+    document.body.style.overflow = "hidden";
+    document.documentElement.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prevBody;
+      document.documentElement.style.overflow = prevHtml;
+    };
+  }, []);
+
   const triggerEffect = useCallback((text: string) => {
     const now = Date.now();
     if (now - effectCooldown.current < 10_000) return;
@@ -544,8 +557,6 @@ export default function MessagesPage() {
       className="fixed inset-0 flex flex-col overflow-hidden touch-none"
       style={{ paddingBottom: keyboardOffset }}
     >
-      {/* ── Lock body scroll on mount ── */}
-      <style>{`body,html{overflow:hidden!important;height:100%!important}`}</style>
       <div className="flex-1 flex flex-col overflow-hidden pt-24 px-4 pb-4 max-w-[1400px] w-full mx-auto min-h-0">
         <div className="flex-1 flex gap-4 min-h-0 overflow-hidden">
 

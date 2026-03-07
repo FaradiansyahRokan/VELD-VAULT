@@ -4,10 +4,10 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useStore } from "@/lib/store";
 import { useActivityStore } from "@/lib/activity-store";
-import { encryptAndUpload, decryptFile, uploadPreview, unlockVaultKey } from "@/lib/crypto-engine";
+import { decryptFile, uploadPreview, unlockVaultKey } from "@/lib/crypto-engine";
 import {
   Upload, FileText, Send, Trash2, Box, Users, Check, Tag, XCircle,
-  Eye, Lock, ShieldCheck, Clock, CheckCircle2, ImagePlus, Zap
+  Eye, Lock, ShieldCheck, Clock, CheckCircle2, ImagePlus,
 } from "lucide-react";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
@@ -19,6 +19,7 @@ export default function VaultPage() {
   const {
     contract, wallet, signer, ensureGas, syncAll, startAutoRefresh,
     vaultItems, salesItems,
+    mintAndEncrypt,
     listAssetForSale, updateListing, cancelListing,
     transferAsset, sendCopyAsset, confirmTrade, cancelTrade, burnAsset,
   } = useStore();
@@ -30,8 +31,6 @@ export default function VaultPage() {
     sell: false, edit: false, transfer: false, burn: false, preview: false,
   });
   const [activeId, setActiveId] = useState<number | null>(null);
-
-  // Loading state for transaction buttons per-item (to prevent double click)
   const [txLoading, setTxLoading] = useState<Record<number, boolean>>({});
 
   const [formData, setFormData] = useState({
@@ -45,8 +44,7 @@ export default function VaultPage() {
     setIsClient(true);
     if (!contract || !wallet) { router.push("/"); return; }
     startAutoRefresh();
-    // Unlock vault key ONCE — satu-satunya MetaMask popup untuk enkripsi.
-    // Semua upload & decrypt berikutnya tidak memerlukan popup lagi.
+    // Unlock vault key ONCE — satu-satunya titik sign untuk enkripsi.
     if (signer) {
       unlockVaultKey(signer).catch(() => {
         toast.error("Gagal membuka kunci vault. Coba refresh.");
@@ -65,7 +63,9 @@ export default function VaultPage() {
   };
 
   // ──────────────────────────────────────────
-  // UPLOAD & ENCRYPT (v2 — wallet-bound key)
+  // UPLOAD & ENCRYPT
+  // FIX: Pakai mintAndEncrypt dari store (bukan contract.mintToVault langsung).
+  // mintAndEncrypt sudah include gas override, urutan arg yang benar, dan syncAll.
   // ──────────────────────────────────────────
   const handleUpload = async (e: any) => {
     const f: File = e.target.files[0];
@@ -74,23 +74,21 @@ export default function VaultPage() {
     const t = toast.loading("Mengenkripsi & mengupload...");
     try {
       await ensureGas();
-      const { cid } = await encryptAndUpload(f, signer);
-      await (await contract!.mintToVault(cid, f.name)).wait();
+      const tokenId = await mintAndEncrypt(f); // ← FIXED: was contract!.mintToVault(cid, f.name) — arg terbalik & tanpa gas override
       toast.dismiss(t);
-      toast.success("Asset berhasil di-mint ke vault!");
+      toast.success(`Asset #${tokenId} berhasil di-mint ke vault!`);
       addActivity({
         type: "upload",
         title: "Asset di-upload",
         description: `File "${f.name}" berhasil dienkripsi & di-mint ke vault`,
         walletAddress: wallet!.address,
+        tokenId,
       });
-      await syncAll();
     } catch (e: any) {
       toast.dismiss(t);
       toast.error(e.message || "Upload gagal");
     }
     setLoading(false);
-    // Reset input
     e.target.value = "";
   };
 
@@ -126,13 +124,14 @@ export default function VaultPage() {
     if (!formData.price || !activeId) return;
     setLoading(true);
     try {
+      await ensureGas(); // ← FIXED: pastikan gas cukup sebelum listing
       let previewCid = "";
       if (formData.previewFile) {
         const t = toast.loading("Mengupload preview...");
         previewCid = await uploadPreview(formData.previewFile);
         toast.dismiss(t);
       }
-      await listAssetForSale(activeId, formData.price, formData.desc, previewCid || null, formData.escrow);
+      await listAssetForSale(activeId, formData.price, formData.desc, previewCid || null, true);
       toast.success("Asset berhasil di-listing!");
       addActivity({
         type: "list",
@@ -211,7 +210,7 @@ export default function VaultPage() {
                     <div>
                       <h3 className="font-bold text-foreground">Offer: {sale.name}</h3>
                       <p className="text-xs text-muted-foreground">
-                        Buyer: {sale.buyer.slice(0, 6)}... ·{" "}
+                        Buyer: {sale.buyer.slice(0, 6)}...{sale.buyer.slice(-4)} ·{" "}
                         <span className="text-foreground font-bold">
                           {sale.price} {NETWORK_CONFIG.tokenSymbol}
                         </span>
@@ -236,9 +235,11 @@ export default function VaultPage() {
                             amount: sale.price,
                             address: sale.buyer,
                           });
+                        } catch (e: any) {
+                          toast.error(e.message);
+                        } finally {
+                          setTxLoading(prev => ({ ...prev, [sale.tokenId]: false }));
                         }
-                        catch (e: any) { toast.error(e.message); }
-                        finally { setTxLoading(prev => ({ ...prev, [sale.tokenId]: false })); }
                       }}
                       className="h-10 text-xs px-6 bg-emerald-500 hover:bg-emerald-600 text-white"
                     >
@@ -249,7 +250,6 @@ export default function VaultPage() {
                       onClick={async () => {
                         try {
                           setTxLoading(prev => ({ ...prev, [sale.tokenId]: true }));
-                          // BUG FIX: cancelTrade (bukan cancelListing) — refund buyer
                           await cancelTrade(sale.tokenId);
                           toast.success("Trade dibatalkan, buyer di-refund");
                           addActivity({
@@ -260,8 +260,11 @@ export default function VaultPage() {
                             tokenId: sale.tokenId,
                             address: sale.buyer,
                           });
-                        } catch (e: any) { toast.error(e.message); }
-                        finally { setTxLoading(prev => ({ ...prev, [sale.tokenId]: false })); }
+                        } catch (e: any) {
+                          toast.error(e.message);
+                        } finally {
+                          setTxLoading(prev => ({ ...prev, [sale.tokenId]: false }));
+                        }
                       }}
                       variant="danger"
                       className="h-10 w-10 p-0 rounded-full flex items-center justify-center shrink-0"
@@ -309,12 +312,13 @@ export default function VaultPage() {
                 <div className="p-6 pb-2">
                   {/* CARD HEADER */}
                   <div className="flex justify-between items-start mb-8">
-                    <div className={`w-14 h-14 rounded-[1.2rem] flex items-center justify-center border ${file.isCopy
-                      ? "bg-muted/50 border-border text-muted-foreground"
-                      : inEscrow
-                        ? "bg-amber-500/20 text-amber-500 border-amber-500/30"
-                        : "bg-gradient-to-br from-background to-muted border-white/10 text-foreground"
-                      }`}>
+                    <div className={`w-14 h-14 rounded-[1.2rem] flex items-center justify-center border ${
+                      file.isCopy
+                        ? "bg-muted/50 border-border text-muted-foreground"
+                        : inEscrow
+                          ? "bg-amber-500/20 text-amber-500 border-amber-500/30"
+                          : "bg-gradient-to-br from-background to-muted border-white/10 text-foreground"
+                    }`}>
                       {inEscrow ? <ShieldCheck size={24} /> : file.isCopy ? <Users size={24} /> : <FileText size={24} />}
                     </div>
 
@@ -325,10 +329,11 @@ export default function VaultPage() {
                         </span>
                       )}
                       {inEscrow && (
-                        <span className={`px-2.5 py-1 rounded-full text-[9px] font-bold border uppercase tracking-wide ${isSeller
-                          ? "bg-blue-500/10 text-blue-500 border-blue-500/20"
-                          : "bg-purple-500/10 text-purple-500 border-purple-500/20"
-                          }`}>
+                        <span className={`px-2.5 py-1 rounded-full text-[9px] font-bold border uppercase tracking-wide ${
+                          isSeller
+                            ? "bg-blue-500/10 text-blue-500 border-blue-500/20"
+                            : "bg-purple-500/10 text-purple-500 border-purple-500/20"
+                        }`}>
                           {isSeller ? "Kamu Seller" : "Kamu Buyer"}
                         </span>
                       )}
@@ -380,11 +385,11 @@ export default function VaultPage() {
                   {inEscrow ? (
                     <>
                       {isSeller ? (
-                        // SELLER: Cancel trade (refund buyer) — BUG FIX di sini
+                        // SELLER: hanya bisa batalkan trade (refund buyer)
                         <button
                           onClick={async () => {
                             try {
-                              await cancelTrade(file.id); // ← FIXED: was cancelListing
+                              await cancelTrade(file.id);
                               toast.success("Trade dibatalkan, buyer di-refund");
                               addActivity({
                                 type: "escrow_cancel",
@@ -407,7 +412,7 @@ export default function VaultPage() {
                               if (file.previewURI) {
                                 setFormData((p) => ({
                                   ...p,
-                                  previewUrl: `http://127.0.0.1:8080/ipfs/${file.previewURI}`,
+                                  previewUrl: `${NETWORK_CONFIG.ipfsGateway}/ipfs/${file.previewURI}`,
                                 }));
                                 setModals((p) => ({ ...p, preview: true }));
                               } else {
@@ -434,10 +439,11 @@ export default function VaultPage() {
                               } catch (e: any) { toast.error(e.message); }
                             }}
                             disabled={file.buyerConfirmed}
-                            className={`flex-1 h-12 rounded-[1.5rem] font-bold text-xs transition-all border flex items-center justify-center gap-2 ${file.buyerConfirmed
-                              ? "bg-muted text-muted-foreground border-border"
-                              : "bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500 hover:text-white border-emerald-500/20"
-                              }`}
+                            className={`flex-1 h-12 rounded-[1.5rem] font-bold text-xs transition-all border flex items-center justify-center gap-2 ${
+                              file.buyerConfirmed
+                                ? "bg-muted text-muted-foreground border-border"
+                                : "bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500 hover:text-white border-emerald-500/20"
+                            }`}
                           >
                             {file.buyerConfirmed ? "Menunggu Seller..." : <><Check size={14} /> Konfirmasi Payment</>}
                           </button>
@@ -445,7 +451,7 @@ export default function VaultPage() {
                             onClick={async () => {
                               try {
                                 await cancelTrade(file.id);
-                                toast.success("Trade dibatalkan, APEX di-refund");
+                                toast.success("Trade dibatalkan, saldo di-refund");
                                 addActivity({
                                   type: "escrow_cancel",
                                   title: "Trade dibatalkan",
@@ -476,8 +482,7 @@ export default function VaultPage() {
                               walletAddress: wallet!.address,
                               tokenId: file.id,
                             });
-                          }
-                          catch (e: any) { toast.error(e.message); }
+                          } catch (e: any) { toast.error(e.message); }
                         }}
                         className="flex-1 h-12 rounded-[1.5rem] bg-red-500/10 text-red-500 font-bold text-xs hover:bg-red-500 hover:text-white transition-all border border-red-500/20"
                       >
@@ -595,7 +600,7 @@ export default function VaultPage() {
                 </label>
               </div>
 
-              {/* Escrow is now forced to TRUE for cryptography reason */}
+              {/* Escrow wajib aktif */}
               <div className="flex items-center gap-4 p-5 bg-muted/30 rounded-3xl border border-transparent">
                 <div className="w-6 h-6 rounded-full border flex items-center justify-center bg-foreground border-foreground">
                   <Check size={12} className="text-background" />
@@ -631,7 +636,7 @@ export default function VaultPage() {
               <Button
                 onClick={async () => {
                   try {
-                    await updateListing(activeId!, formData.price, formData.desc, formData.escrow);
+                    await updateListing(activeId!, formData.price, formData.desc, true);
                     toast.success("Listing diupdate!");
                     closeModal("edit");
                   } catch (e: any) { toast.error(e.message); }
@@ -681,7 +686,7 @@ export default function VaultPage() {
                         : await sendCopyAsset(activeId!, formData.address, formData.name, formData.cid);
                     if (success) {
                       addActivity({
-                        type: formData.mode === "MOVE" ? "transfer_out" : "transfer_out",
+                        type: "transfer_out",
                         title: formData.mode === "MOVE" ? "Asset ditransfer" : "Salinan dikirim",
                         description: `Asset #${activeId} dikirim ke ${formData.address.slice(0, 6)}...${formData.address.slice(-4)}`,
                         walletAddress: wallet!.address,

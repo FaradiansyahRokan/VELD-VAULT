@@ -590,6 +590,7 @@ export const useStore = create<VaultState>((set, get) => ({
   // ----------------------------------------------------------
   listAssetForSale: async (tokenId, price, description, previewURI, useEscrow) => {
     const { contract, syncAll } = get();
+    await get().ensureGas();
     try {
       const tx = await contract!.listAsset(
         tokenId,
@@ -794,6 +795,7 @@ export const useStore = create<VaultState>((set, get) => ({
   // ----------------------------------------------------------
   burnAsset: async (tokenId, _cid) => {
     const { contract, syncAll } = get();
+    await get().ensureGas();
     try {
       const tx = await contract!.burnAsset(tokenId, gasOverride("burnAsset"));
       await tx.wait();

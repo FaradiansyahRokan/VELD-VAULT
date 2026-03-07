@@ -16,6 +16,37 @@ import { toast } from "sonner";
 import { EmojiPhysicsPlayground } from "./chat-extras";
 
 // ══════════════════════════════════════════════════════════════════
+// 📱 useVisualViewport — WhatsApp-style keyboard handling
+//    Tracks the visual viewport height so the layout shrinks
+//    exactly when the soft keyboard opens, no page scroll.
+// ══════════════════════════════════════════════════════════════════
+
+function useVisualViewport() {
+  const [keyboardOffset, setKeyboardOffset] = useState(0);
+
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!vv) return;
+
+    const update = () => {
+      // How many px the keyboard is pushing the viewport up
+      const offset = window.innerHeight - vv.height - vv.offsetTop;
+      setKeyboardOffset(Math.max(0, offset));
+    };
+
+    vv.addEventListener("resize", update);
+    vv.addEventListener("scroll", update);
+    update();
+    return () => {
+      vv.removeEventListener("resize", update);
+      vv.removeEventListener("scroll", update);
+    };
+  }, []);
+
+  return keyboardOffset;
+}
+
+// ══════════════════════════════════════════════════════════════════
 // ✨ EFFECT ENGINE
 // ══════════════════════════════════════════════════════════════════
 
@@ -289,7 +320,7 @@ interface ConversationMeta { address: string; lastMessage?: string; lastTime?: n
 
 export default function MessagesPage() {
   const router = useRouter();
-  const { contract, wallet, signer, startAutoRefresh } = useStore();
+  const { contract, wallet, signer } = useStore();
   const { contacts, getByAddress } = useContactsStore();
   const { addActivity } = useActivityStore();
 
@@ -303,6 +334,7 @@ export default function MessagesPage() {
   const [showNew, setShowNew] = useState(false);
   const [searchQ, setSearchQ] = useState("");
   const [mounted, setMounted] = useState(false);
+  const keyboardOffset = useVisualViewport();
 
   // ── Alive state ──
   const [effect, setEffect] = useState<EffectType>(null);
@@ -325,13 +357,7 @@ export default function MessagesPage() {
   useEffect(() => {
     setMounted(true);
     if (!contract || !wallet) { router.push("/"); return; }
-    startAutoRefresh();
-
-    // Request notification permission if not yet granted/denied
-    if ("Notification" in window && Notification.permission === "default") {
-      Notification.requestPermission().catch(() => { });
-    }
-  }, [contract, wallet, router, startAutoRefresh]);
+  }, [contract, wallet, router]);
 
   const triggerEffect = useCallback((text: string) => {
     const now = Date.now();
@@ -431,27 +457,6 @@ export default function MessagesPage() {
       if (incoming.length) {
         incoming.forEach(m => triggerEffect(m.decrypted || ""));
         if (!passive) incoming.forEach(m => addActivity({ type: "message_received", title: "Pesan diterima", description: `Dari ${shortAddr(m.from)}: ${(m.decrypted || "").slice(0, 40)}`, walletAddress: wallet.address, address: m.from }));
-
-        // Notifikasi
-        incoming.forEach((m) => {
-          // Hanya notif jika bukan sedang di chat yang sama ATAU tab disembunyikan
-          if (m.from !== activeAddr || document.visibilityState !== "visible") {
-            const title = `Pesan dari ${shortAddr(m.from)}`;
-            const text = m.decrypted ? m.decrypted.slice(0, 50) : "Pesan terenkripsi";
-
-            // In-app toast
-            toast(title, { description: text, icon: "💬" });
-
-            // Native browser notification
-            if ("Notification" in window && Notification.permission === "granted") {
-              const n = new Notification(title, { body: text });
-              n.onclick = () => {
-                window.focus();
-                setActiveAddr(m.from);
-              };
-            }
-          }
-        });
       }
     } catch (e) { console.error("[Messages]", e); }
   }, [wallet, signer, activeAddr, addActivity, triggerEffect]);
@@ -535,210 +540,220 @@ export default function MessagesPage() {
   if (!mounted) return null;
 
   return (
-    <div className="h-screen overflow-hidden pt-24 px-4 pb-4 max-w-[1400px] mx-auto flex flex-col">
-      <div className="flex-1 flex gap-4 min-h-0 overflow-hidden">
+    <div
+      className="fixed inset-0 flex flex-col overflow-hidden touch-none"
+      style={{ paddingBottom: keyboardOffset }}
+    >
+      {/* ── Lock body scroll on mount ── */}
+      <style>{`body,html{overflow:hidden!important;height:100%!important}`}</style>
+      <div className="flex-1 flex flex-col overflow-hidden pt-24 px-4 pb-4 max-w-[1400px] w-full mx-auto min-h-0">
+        <div className="flex-1 flex gap-4 min-h-0 overflow-hidden">
 
-        {/* ── Sidebar ── */}
-        <motion.div initial={{ x: -20, opacity: 0 }} animate={{ x: 0, opacity: 1 }}
-          className={`w-full md:w-[300px] shrink-0 flex flex-col bg-card border border-border/50 rounded-[2rem] overflow-hidden min-h-0 ${activeAddr ? "hidden md:flex" : "flex"}`}>
-          <div className="p-5 border-b border-border/50 shrink-0">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="font-bold text-foreground flex items-center gap-2">
-                <MessageSquare size={16} className="text-muted-foreground" />Pesan
-                <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-muted/30 border border-border/40">
-                  <Lock size={8} className="text-emerald-400" />
-                  <span className="text-[9px] text-emerald-600 dark:text-emerald-400 font-bold">E2E</span>
-                </div>
-              </h2>
-              <motion.button whileHover={{ scale: 1.12, rotate: 90 }} whileTap={{ scale: 0.82 }} transition={{ type: "spring", stiffness: 520, damping: 20 }}
-                onClick={() => setShowNew(true)} className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground shadow-lg shadow-primary/20">
-                <Plus size={15} />
-              </motion.button>
-            </div>
-            <div className="relative">
-              <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-              <input value={searchQ} onChange={e => setSearchQ(e.target.value)} placeholder="Cari kontak atau address..."
-                className="w-full h-9 pl-8 pr-3 rounded-xl bg-muted/30 border border-border/40 text-sm text-foreground placeholder:text-muted-foreground/50 outline-none focus:ring-1 focus:ring-primary/30 transition-all" />
-            </div>
-          </div>
-
-          <AnimatePresence>
-            {showNew && (
-              <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden border-b border-border/50 shrink-0">
-                <div className="p-4">
-                  <p className="text-xs font-bold text-muted-foreground mb-2">Percakapan Baru</p>
-                  <div className="flex gap-2">
-                    <input value={newRecipient} onChange={e => setNewRecipient(e.target.value)} onKeyDown={e => e.key === "Enter" && startConversation()} placeholder="0x... atau pilih kontak" autoFocus
-                      className="flex-1 h-9 px-3 rounded-xl bg-muted/30 border border-border/40 text-sm text-foreground placeholder:text-muted-foreground/40 outline-none focus:ring-1 focus:ring-primary/30" />
-                    <button onClick={startConversation} className="h-9 px-3 rounded-xl bg-primary text-primary-foreground text-sm font-bold hover:opacity-90">Mulai</button>
-                    <button onClick={() => setShowNew(false)} className="h-9 w-9 rounded-xl bg-muted/30 flex items-center justify-center text-muted-foreground hover:text-foreground"><X size={14} /></button>
+          {/* ── Sidebar ── */}
+          <motion.div initial={{ x: -20, opacity: 0 }} animate={{ x: 0, opacity: 1 }}
+            className={`w-full md:w-[300px] shrink-0 flex flex-col bg-card border border-border/50 rounded-[2rem] overflow-hidden min-h-0 ${activeAddr ? "hidden md:flex" : "flex"}`}>
+            <div className="p-5 border-b border-border/50 shrink-0">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="font-bold text-foreground flex items-center gap-2">
+                  <MessageSquare size={16} className="text-muted-foreground" />Pesan
+                  <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-muted/30 border border-border/40">
+                    <Lock size={8} className="text-emerald-400" />
+                    <span className="text-[9px] text-emerald-600 dark:text-emerald-400 font-bold">E2E</span>
                   </div>
-                  {contacts.length > 0 && (
-                    <div className="mt-2 flex gap-2 overflow-x-auto pb-1">
-                      {contacts.slice(0, 6).map(c => (
-                        <button key={c.id} onClick={() => setNewRecipient(c.address)} className="shrink-0 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-muted/30 border border-border/40 text-[11px] hover:bg-muted/60 transition-colors">
-                          <span>{c.emoji}</span><span className="text-foreground font-medium">{c.name}</span>
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          <div className="flex-1 overflow-y-auto min-h-0">
-            {loading ? <div className="flex items-center justify-center h-32"><Loader2 size={18} className="animate-spin text-muted-foreground" /></div>
-              : filteredConvs.length === 0 ? (
-                <div className="flex flex-col items-center justify-center h-40 gap-3 text-center px-6">
-                  <MessageSquare size={28} className="text-muted-foreground/30" />
-                  <p className="text-sm text-muted-foreground">Belum ada percakapan</p>
-                  <button onClick={() => setShowNew(true)} className="text-xs text-primary font-semibold hover:underline">Mulai percakapan baru →</button>
-                </div>
-              ) : filteredConvs.map((conv, idx) => {
-                const contact = getByAddress(conv.address);
-                return (
-                  <motion.button key={conv.address} initial={{ opacity: 0, x: -14 }} animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: idx * 0.045, type: "spring", stiffness: 380, damping: 26 }}
-                    whileHover={{ x: 5 }} whileTap={{ scale: 0.97 }}
-                    onClick={() => { setActiveAddr(conv.address); setConversations(p => p.map(c => c.address === conv.address ? { ...c, unread: 0 } : c)); }}
-                    className={`w-full flex items-center gap-3 p-4 text-left hover:bg-muted/20 transition-colors ${activeAddr === conv.address ? "bg-muted/20" : ""}`}>
-                    <div className="w-10 h-10 rounded-full bg-muted/40 border border-border/40 flex items-center justify-center text-lg shrink-0">
-                      {contact?.emoji || <UserCircle2 size={20} className="text-muted-foreground" />}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between">
-                        <p className="text-sm font-semibold text-foreground truncate">{contact?.name || shortAddr(conv.address)}</p>
-                        {conv.lastTime && <span className="text-[10px] text-muted-foreground/60 shrink-0 ml-1">{formatTime(conv.lastTime)}</span>}
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <p className="text-[11px] text-muted-foreground truncate flex-1">{conv.lastMessage || "Mulai percakapan..."}</p>
-                        <AnimatePresence>
-                          {conv.unread > 0 && (
-                            <motion.span initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }} transition={{ type: "spring", stiffness: 600, damping: 20 }}
-                              className="ml-1 w-4 h-4 rounded-full bg-primary flex items-center justify-center text-[9px] font-bold text-primary-foreground shrink-0">
-                              {conv.unread}
-                            </motion.span>
-                          )}
-                        </AnimatePresence>
-                      </div>
-                    </div>
-                  </motion.button>
-                );
-              })}
-          </div>
-        </motion.div>
-
-        {/* ── Chat Area ── */}
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-          ref={chatAreaRef}
-          className={`flex-1 flex flex-col bg-card border border-border/50 rounded-[2rem] overflow-hidden min-h-0 relative ${!activeAddr ? "hidden md:flex" : "flex"}`}>
-          <AmbientRoom mood={ambientMood} />
-          <MatrixCanvas active={matrixActive} />
-          <RainCanvas active={rainActive} />
-          <EffectOverlay effect={effect} onDone={() => setEffect(null)} />
-
-          {!activeAddr ? (
-            <div className="flex-1 flex flex-col items-center justify-center gap-4 text-center px-8 relative z-10">
-              <motion.div animate={{ rotate: [0, -6, 6, -4, 0], scale: [1, 1.06, 1] }} transition={{ repeat: Infinity, repeatDelay: 3.5, duration: 0.65 }}
-                className="w-16 h-16 rounded-[1.5rem] bg-muted/20 flex items-center justify-center">
-                <MessageSquare size={28} className="text-muted-foreground/50" />
-              </motion.div>
-              <div>
-                <p className="font-bold text-foreground mb-1">Pilih percakapan</p>
-                <p className="text-sm text-muted-foreground">Semua pesan terenkripsi end-to-end dengan ECDH</p>
-              </div>
-              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20">
-                <Lock size={10} className="text-emerald-400" />
-                <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400">Zero-Knowledge · Server tidak bisa baca isi pesan</span>
-              </div>
-            </div>
-          ) : (
-            <>
-              {/* Header */}
-              <div className="flex items-center gap-3 p-5 border-b border-border/50 shrink-0 relative z-10">
-                <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.88 }} onClick={() => setActiveAddr(null)}
-                  className="md:hidden w-8 h-8 rounded-full bg-muted/30 flex items-center justify-center text-muted-foreground">
-                  <ChevronLeft size={16} />
+                </h2>
+                <motion.button whileHover={{ scale: 1.12, rotate: 90 }} whileTap={{ scale: 0.82 }} transition={{ type: "spring", stiffness: 520, damping: 20 }}
+                  onClick={() => setShowNew(true)} className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground shadow-lg shadow-primary/20">
+                  <Plus size={15} />
                 </motion.button>
-                <div className="w-9 h-9 rounded-full bg-muted/40 border border-border/40 flex items-center justify-center text-base">
-                  {getByAddress(activeAddr)?.emoji || <UserCircle2 size={18} className="text-muted-foreground" />}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="font-bold text-foreground text-sm truncate">{getByAddress(activeAddr)?.name || shortAddr(activeAddr)}</p>
-                  <div className="flex items-center gap-2">
-                    <p className="text-[10px] text-muted-foreground font-mono truncate">{activeAddr}</p>
-                    <AnimatePresence>
-                      {peerTyping && (
-                        <motion.span initial={{ opacity: 0, x: -4 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0 }}
-                          className="text-[9px] text-primary/70 font-medium italic shrink-0">
-                          mengetik...
-                        </motion.span>
-                      )}
-                    </AnimatePresence>
+              </div>
+              <div className="relative">
+                <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                <input value={searchQ} onChange={e => setSearchQ(e.target.value)} placeholder="Cari kontak atau address..."
+                  className="w-full h-9 pl-8 pr-3 rounded-xl bg-muted/30 border border-border/40 text-sm text-foreground placeholder:text-muted-foreground/50 outline-none focus:ring-1 focus:ring-primary/30 transition-all" />
+              </div>
+            </div>
+
+            <AnimatePresence>
+              {showNew && (
+                <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden border-b border-border/50 shrink-0">
+                  <div className="p-4">
+                    <p className="text-xs font-bold text-muted-foreground mb-2">Percakapan Baru</p>
+                    <div className="flex gap-2">
+                      <input value={newRecipient} onChange={e => setNewRecipient(e.target.value)} onKeyDown={e => e.key === "Enter" && startConversation()} placeholder="0x... atau pilih kontak" autoFocus
+                        className="flex-1 h-9 px-3 rounded-xl bg-muted/30 border border-border/40 text-sm text-foreground placeholder:text-muted-foreground/40 outline-none focus:ring-1 focus:ring-primary/30" />
+                      <button onClick={startConversation} className="h-9 px-3 rounded-xl bg-primary text-primary-foreground text-sm font-bold hover:opacity-90">Mulai</button>
+                      <button onClick={() => setShowNew(false)} className="h-9 w-9 rounded-xl bg-muted/30 flex items-center justify-center text-muted-foreground hover:text-foreground"><X size={14} /></button>
+                    </div>
+                    {contacts.length > 0 && (
+                      <div className="mt-2 flex gap-2 overflow-x-auto pb-1">
+                        {contacts.slice(0, 6).map(c => (
+                          <button key={c.id} onClick={() => setNewRecipient(c.address)} className="shrink-0 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-muted/30 border border-border/40 text-[11px] hover:bg-muted/60 transition-colors">
+                            <span>{c.emoji}</span><span className="text-foreground font-medium">{c.name}</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
                   </div>
-                </div>
-                <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 shrink-0">
-                  <Lock size={9} className="text-emerald-400" />
-                  <span className="text-[9px] text-emerald-400 font-bold">ECDH</span>
-                </div>
-              </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
 
-              {/* ── Messages: THE only scroll container ── */}
-              <div ref={messagesContainerRef} className="chat-messages-area flex-1 overflow-y-auto min-h-0 p-5 space-y-3 relative z-10">
-                <TapSparks sparks={tapSparks} />
-
-                {activeMessages.length === 0 && (
-                  <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="text-center py-12">
-                    <p className="text-sm text-muted-foreground">Mulai percakapan yang aman 🔐</p>
-                    <p className="text-[11px] text-muted-foreground/40 mt-2">
-                      ✨ Coba ketik: "sayang" · "wkwk" · "gila" · ":party:" · ":rain:" · ":matrix:"
-                    </p>
-                  </motion.div>
-                )}
-
-                {activeMessages.map((m, i) => {
-                  const isMine = m.from === wallet?.address.toLowerCase();
-                  const showDate = i === 0 || new Date(m.timestamp).toDateString() !== new Date(activeMessages[i - 1].timestamp).toDateString();
-                  return <MessageBubble key={m.id} m={m} isMine={isMine} showDate={showDate} onTap={handleBubbleTap} />;
-                })}
-
-                <AnimatePresence>
-                  {peerTyping && <TypingIndicator name={getByAddress(activeAddr)?.name} />}
-                </AnimatePresence>
-
-                <div className="h-2" aria-hidden />
-              </div>
-
-
-              {/* Emoji Physics */}
-              <EmojiPhysicsPlayground containerRef={messagesContainerRef} />
-
-              {/* Input */}
-              <div className="p-4 border-t border-border/50 shrink-0 relative z-10">
-                <div className="flex items-end gap-3">
-                  <textarea value={input}
-                    onChange={e => { setInput(e.target.value); notifyTyping(); }}
-                    onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
-                    placeholder="Ketik pesan... (Enter kirim)"
-                    rows={1}
-                    className="flex-1 bg-muted/30 border border-border/40 focus:border-primary/30 rounded-2xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground/50 resize-none outline-none focus:ring-1 focus:ring-primary/20 transition-all max-h-32"
-                    style={{ minHeight: "48px" }} />
-                  <div className="relative shrink-0">
-                    <SendBurst trigger={sendTrigger} />
-                    <motion.button onClick={handleSend} disabled={sending || !input.trim()}
-                      whileHover={!sending && input.trim() ? { scale: 1.18, rotate: -12 } : {}}
-                      whileTap={!sending && input.trim() ? { scale: 0.78, rotate: 18 } : {}}
-                      transition={{ type: "spring", stiffness: 580, damping: 14 }}
-                      className="h-12 w-12 rounded-2xl bg-primary flex items-center justify-center text-primary-foreground disabled:opacity-40 shadow-lg shadow-primary/20">
-                      {sending ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
+            <div className="flex-1 overflow-y-auto min-h-0">
+              {loading ? <div className="flex items-center justify-center h-32"><Loader2 size={18} className="animate-spin text-muted-foreground" /></div>
+                : filteredConvs.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center h-40 gap-3 text-center px-6">
+                    <MessageSquare size={28} className="text-muted-foreground/30" />
+                    <p className="text-sm text-muted-foreground">Belum ada percakapan</p>
+                    <button onClick={() => setShowNew(true)} className="text-xs text-primary font-semibold hover:underline">Mulai percakapan baru →</button>
+                  </div>
+                ) : filteredConvs.map((conv, idx) => {
+                  const contact = getByAddress(conv.address);
+                  return (
+                    <motion.button key={conv.address} initial={{ opacity: 0, x: -14 }} animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: idx * 0.045, type: "spring", stiffness: 380, damping: 26 }}
+                      whileHover={{ x: 5 }} whileTap={{ scale: 0.97 }}
+                      onClick={() => { setActiveAddr(conv.address); setConversations(p => p.map(c => c.address === conv.address ? { ...c, unread: 0 } : c)); }}
+                      className={`w-full flex items-center gap-3 p-4 text-left hover:bg-muted/20 transition-colors ${activeAddr === conv.address ? "bg-muted/20" : ""}`}>
+                      <div className="w-10 h-10 rounded-full bg-muted/40 border border-border/40 flex items-center justify-center text-lg shrink-0">
+                        {contact?.emoji || <UserCircle2 size={20} className="text-muted-foreground" />}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between">
+                          <p className="text-sm font-semibold text-foreground truncate">{contact?.name || shortAddr(conv.address)}</p>
+                          {conv.lastTime && <span className="text-[10px] text-muted-foreground/60 shrink-0 ml-1">{formatTime(conv.lastTime)}</span>}
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <p className="text-[11px] text-muted-foreground truncate flex-1">{conv.lastMessage || "Mulai percakapan..."}</p>
+                          <AnimatePresence>
+                            {conv.unread > 0 && (
+                              <motion.span initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }} transition={{ type: "spring", stiffness: 600, damping: 20 }}
+                                className="ml-1 w-4 h-4 rounded-full bg-primary flex items-center justify-center text-[9px] font-bold text-primary-foreground shrink-0">
+                                {conv.unread}
+                              </motion.span>
+                            )}
+                          </AnimatePresence>
+                        </div>
+                      </div>
                     </motion.button>
-                  </div>
+                  );
+                })}
+            </div>
+          </motion.div>
+
+          {/* ── Chat Area ── */}
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+            ref={chatAreaRef}
+            className={`flex-1 flex flex-col bg-card border border-border/50 rounded-[2rem] overflow-hidden min-h-0 relative ${!activeAddr ? "hidden md:flex" : "flex"}`}>
+            <AmbientRoom mood={ambientMood} />
+            <MatrixCanvas active={matrixActive} />
+            <RainCanvas active={rainActive} />
+            <EffectOverlay effect={effect} onDone={() => setEffect(null)} />
+
+            {!activeAddr ? (
+              <div className="flex-1 flex flex-col items-center justify-center gap-4 text-center px-8 relative z-10">
+                <motion.div animate={{ rotate: [0, -6, 6, -4, 0], scale: [1, 1.06, 1] }} transition={{ repeat: Infinity, repeatDelay: 3.5, duration: 0.65 }}
+                  className="w-16 h-16 rounded-[1.5rem] bg-muted/20 flex items-center justify-center">
+                  <MessageSquare size={28} className="text-muted-foreground/50" />
+                </motion.div>
+                <div>
+                  <p className="font-bold text-foreground mb-1">Pilih percakapan</p>
+                  <p className="text-sm text-muted-foreground">Semua pesan terenkripsi end-to-end dengan ECDH</p>
+                </div>
+                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20">
+                  <Lock size={10} className="text-emerald-400" />
+                  <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400">Zero-Knowledge · Server tidak bisa baca isi pesan</span>
                 </div>
               </div>
-            </>
-          )}
-        </motion.div>
+            ) : (
+              <>
+                {/* Header */}
+                <div className="flex items-center gap-3 p-5 border-b border-border/50 shrink-0 relative z-10">
+                  <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.88 }} onClick={() => setActiveAddr(null)}
+                    className="md:hidden w-8 h-8 rounded-full bg-muted/30 flex items-center justify-center text-muted-foreground">
+                    <ChevronLeft size={16} />
+                  </motion.button>
+                  <div className="w-9 h-9 rounded-full bg-muted/40 border border-border/40 flex items-center justify-center text-base">
+                    {getByAddress(activeAddr)?.emoji || <UserCircle2 size={18} className="text-muted-foreground" />}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-bold text-foreground text-sm truncate">{getByAddress(activeAddr)?.name || shortAddr(activeAddr)}</p>
+                    <div className="flex items-center gap-2">
+                      <p className="text-[10px] text-muted-foreground font-mono truncate">{activeAddr}</p>
+                      <AnimatePresence>
+                        {peerTyping && (
+                          <motion.span initial={{ opacity: 0, x: -4 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0 }}
+                            className="text-[9px] text-primary/70 font-medium italic shrink-0">
+                            mengetik...
+                          </motion.span>
+                        )}
+                      </AnimatePresence>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 shrink-0">
+                    <Lock size={9} className="text-emerald-400" />
+                    <span className="text-[9px] text-emerald-400 font-bold">ECDH</span>
+                  </div>
+                </div>
+
+                {/* ── Messages: THE only scroll container ── */}
+                <div ref={messagesContainerRef} className="chat-messages-area flex-1 overflow-y-auto min-h-0 p-5 space-y-3 relative z-10">
+                  <TapSparks sparks={tapSparks} />
+
+                  {activeMessages.length === 0 && (
+                    <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="text-center py-12">
+                      <p className="text-sm text-muted-foreground">Mulai percakapan yang aman 🔐</p>
+                      <p className="text-[11px] text-muted-foreground/40 mt-2">
+                        ✨ Coba ketik: "sayang" · "wkwk" · "gila" · ":party:" · ":rain:" · ":matrix:"
+                      </p>
+                    </motion.div>
+                  )}
+
+                  {activeMessages.map((m, i) => {
+                    const isMine = m.from === wallet?.address.toLowerCase();
+                    const showDate = i === 0 || new Date(m.timestamp).toDateString() !== new Date(activeMessages[i - 1].timestamp).toDateString();
+                    return <MessageBubble key={m.id} m={m} isMine={isMine} showDate={showDate} onTap={handleBubbleTap} />;
+                  })}
+
+                  <AnimatePresence>
+                    {peerTyping && <TypingIndicator name={getByAddress(activeAddr)?.name} />}
+                  </AnimatePresence>
+
+                  <div className="h-2" aria-hidden />
+                </div>
+
+
+                {/* Emoji Physics */}
+                <EmojiPhysicsPlayground containerRef={messagesContainerRef} />
+
+                {/* Input */}
+                <div className="p-4 border-t border-border/50 shrink-0 relative z-10">
+                  <div className="flex items-end gap-3">
+                    <textarea value={input}
+                      onChange={e => { setInput(e.target.value); notifyTyping(); }}
+                      onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
+                      placeholder="Ketik pesan... (Enter kirim)"
+                      rows={1}
+                      className="flex-1 bg-muted/30 border border-border/40 focus:border-primary/30 rounded-2xl px-4 py-3 text-foreground placeholder:text-muted-foreground/50 resize-none outline-none focus:ring-1 focus:ring-primary/20 transition-all max-h-32 text-[16px] md:text-sm"
+                      style={{ minHeight: "48px" }} />
+                    <div className="relative shrink-0">
+                      <SendBurst trigger={sendTrigger} />
+                      <motion.button onClick={handleSend} disabled={sending || !input.trim()}
+                        whileHover={!sending && input.trim() ? { scale: 1.18, rotate: -12 } : {}}
+                        whileTap={!sending && input.trim() ? { scale: 0.78, rotate: 18 } : {}}
+                        transition={{ type: "spring", stiffness: 580, damping: 14 }}
+                        className="h-12 w-12 rounded-2xl bg-primary flex items-center justify-center text-primary-foreground disabled:opacity-40 shadow-lg shadow-primary/20">
+                        {sending ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
+                      </motion.button>
+                    </div>
+                  </div>
+                  <p className="text-[9px] text-muted-foreground/35 mt-1.5 ml-1">
+                    ✨ sayang · wkwk · wow · uang · good night · :party: · :rain: · :matrix:
+                  </p>
+                </div>
+              </>
+            )}
+          </motion.div>
+        </div>
       </div>
     </div>
   );

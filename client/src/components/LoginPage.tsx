@@ -48,7 +48,7 @@ export default function LoginPage() {
     const success = await importWallet(importInput);
     if (success) {
       toast.success("Vault berhasil dibuka!");
-      router.push("/vault");
+      router.push("/dashboard");
     } else {
       toast.error("Seed phrase atau private key tidak valid");
     }
@@ -70,7 +70,7 @@ export default function LoginPage() {
   };
 
   const enterVault = () => {
-    router.push("/vault");
+    router.push("/dashboard");
   };
 
   return (

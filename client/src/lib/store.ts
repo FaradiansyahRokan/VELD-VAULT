@@ -529,8 +529,8 @@ export const useStore = create<VaultState>((set, get) => ({
 
   // ----------------------------------------------------------
   // MINT & ENCRYPT
-  // FIX: Nama function di kontrak adalah mintAsset(name, cid) — urutan (name, cid),
-  // bukan mintToVault(cid, name). Semua gas override sudah terpusat di sini.
+  // Kontrak: mintToVault(string tokenURI, string name)
+  // → arg pertama = CID (tokenURI), arg kedua = nama file
   // ----------------------------------------------------------
   mintAndEncrypt: async (file: File): Promise<number> => {
     const { contract, signer, syncAll } = get();
@@ -539,8 +539,8 @@ export const useStore = create<VaultState>((set, get) => ({
     // 1. Enkripsi & upload ke IPFS
     const { cid } = await encryptAndUpload(file, signer);
 
-    // 2. Mint NFT di contract — (name, cid) sesuai signature kontrak
-    const tx = await contract.mintAsset(file.name, cid, gasOverride("mintAsset"));
+    // 2. Mint NFT — mintToVault(tokenURI/cid, name) sesuai signature kontrak
+    const tx = await contract.mintToVault(cid, file.name, gasOverride("mintAsset"));
     const receipt = await tx.wait();
 
     // 3. Ambil tokenId dari event Transfer

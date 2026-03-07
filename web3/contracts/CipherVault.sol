@@ -166,6 +166,17 @@ contract CipherVault is ERC721URIStorage, Ownable {
         emit VaultItemCreated(newItemId, to); // EMIT EVENT
     }
 
+    /**
+     * @dev Seller update encryptedCid selama escrow aktif.
+     *      Dipakai untuk upload versi file yang sudah di-re-encrypt untuk buyer (ECDH).
+     */
+    function updateEncryptedCid(uint256 tokenId, string memory newCid) public {
+        require(idToVaultItem[tokenId].isEscrowActive, "Not in escrow");
+        require(idToVaultItem[tokenId].seller == msg.sender, "Only seller");
+        idToVaultItem[tokenId].encryptedCid = newCid;
+        _setTokenURI(tokenId, newCid);
+    }
+
     function burnAsset(uint256 tokenId) public {
         require(ownerOf(tokenId) == msg.sender, "Not owner");
         _burn(tokenId);

@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useStore } from "@/lib/store";
-import { encryptAndUpload, decryptFile, uploadPreview } from "@/lib/crypto-engine";
+import { encryptAndUpload, decryptFile, uploadPreview, unlockVaultKey } from "@/lib/crypto-engine";
 import {
   Upload, FileText, Send, Trash2, Box, Users, Check, Tag, XCircle,
   Eye, Lock, ShieldCheck, Clock, CheckCircle2, ImagePlus, Zap
@@ -28,8 +28,12 @@ export default function VaultPage() {
     sell: false, edit: false, transfer: false, burn: false, preview: false,
   });
   const [activeId, setActiveId] = useState<number | null>(null);
+
+  // Loading state for transaction buttons per-item (to prevent double click)
+  const [txLoading, setTxLoading] = useState<Record<number, boolean>>({});
+
   const [formData, setFormData] = useState({
-    price: "", desc: "", escrow: false, address: "",
+    price: "", desc: "", escrow: true, address: "",
     mode: "MOVE" as "MOVE" | "COPY",
     cid: "", name: "", previewUrl: "",
     previewFile: null as File | null,
@@ -39,6 +43,13 @@ export default function VaultPage() {
     setIsClient(true);
     if (!contract || !wallet) { router.push("/"); return; }
     startAutoRefresh();
+    // Unlock vault key ONCE — satu-satunya MetaMask popup untuk enkripsi.
+    // Semua upload & decrypt berikutnya tidak memerlukan popup lagi.
+    if (signer) {
+      unlockVaultKey(signer).catch(() => {
+        toast.error("Gagal membuka kunci vault. Coba refresh.");
+      });
+    }
   }, [contract, wallet, router, startAutoRefresh]);
 
   const openModal = (type: keyof typeof modals, id: number | null = null, extra: any = {}) => {
@@ -193,24 +204,34 @@ export default function VaultPage() {
                   </div>
                   <div className="flex gap-2">
                     <Button
+                      isLoading={txLoading[sale.tokenId]}
+                      disabled={txLoading[sale.tokenId]}
                       onClick={async () => {
-                        try { await confirmTrade(sale.tokenId); toast.success("Deal dikonfirmasi!"); }
+                        try {
+                          setTxLoading(prev => ({ ...prev, [sale.tokenId]: true }));
+                          await confirmTrade(sale.tokenId);
+                          toast.success("Deal dikonfirmasi!");
+                        }
                         catch (e: any) { toast.error(e.message); }
+                        finally { setTxLoading(prev => ({ ...prev, [sale.tokenId]: false })); }
                       }}
                       className="h-10 text-xs px-6 bg-emerald-500 hover:bg-emerald-600 text-white"
                     >
                       Terima
                     </Button>
                     <Button
+                      disabled={txLoading[sale.tokenId]}
                       onClick={async () => {
                         try {
+                          setTxLoading(prev => ({ ...prev, [sale.tokenId]: true }));
                           // BUG FIX: cancelTrade (bukan cancelListing) — refund buyer
                           await cancelTrade(sale.tokenId);
                           toast.success("Trade dibatalkan, buyer di-refund");
                         } catch (e: any) { toast.error(e.message); }
+                        finally { setTxLoading(prev => ({ ...prev, [sale.tokenId]: false })); }
                       }}
                       variant="danger"
-                      className="h-10 w-10 p-0 rounded-full flex items-center justify-center"
+                      className="h-10 w-10 p-0 rounded-full flex items-center justify-center shrink-0"
                     >
                       <XCircle size={18} />
                     </Button>
@@ -255,13 +276,12 @@ export default function VaultPage() {
                 <div className="p-6 pb-2">
                   {/* CARD HEADER */}
                   <div className="flex justify-between items-start mb-8">
-                    <div className={`w-14 h-14 rounded-[1.2rem] flex items-center justify-center border ${
-                      file.isCopy
-                        ? "bg-muted/50 border-border text-muted-foreground"
-                        : inEscrow
+                    <div className={`w-14 h-14 rounded-[1.2rem] flex items-center justify-center border ${file.isCopy
+                      ? "bg-muted/50 border-border text-muted-foreground"
+                      : inEscrow
                         ? "bg-amber-500/20 text-amber-500 border-amber-500/30"
                         : "bg-gradient-to-br from-background to-muted border-white/10 text-foreground"
-                    }`}>
+                      }`}>
                       {inEscrow ? <ShieldCheck size={24} /> : file.isCopy ? <Users size={24} /> : <FileText size={24} />}
                     </div>
 
@@ -272,11 +292,10 @@ export default function VaultPage() {
                         </span>
                       )}
                       {inEscrow && (
-                        <span className={`px-2.5 py-1 rounded-full text-[9px] font-bold border uppercase tracking-wide ${
-                          isSeller
-                            ? "bg-blue-500/10 text-blue-500 border-blue-500/20"
-                            : "bg-purple-500/10 text-purple-500 border-purple-500/20"
-                        }`}>
+                        <span className={`px-2.5 py-1 rounded-full text-[9px] font-bold border uppercase tracking-wide ${isSeller
+                          ? "bg-blue-500/10 text-blue-500 border-blue-500/20"
+                          : "bg-purple-500/10 text-purple-500 border-purple-500/20"
+                          }`}>
                           {isSeller ? "Kamu Seller" : "Kamu Buyer"}
                         </span>
                       )}
@@ -367,11 +386,10 @@ export default function VaultPage() {
                               } catch (e: any) { toast.error(e.message); }
                             }}
                             disabled={file.buyerConfirmed}
-                            className={`flex-1 h-12 rounded-[1.5rem] font-bold text-xs transition-all border flex items-center justify-center gap-2 ${
-                              file.buyerConfirmed
-                                ? "bg-muted text-muted-foreground border-border"
-                                : "bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500 hover:text-white border-emerald-500/20"
-                            }`}
+                            className={`flex-1 h-12 rounded-[1.5rem] font-bold text-xs transition-all border flex items-center justify-center gap-2 ${file.buyerConfirmed
+                              ? "bg-muted text-muted-foreground border-border"
+                              : "bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500 hover:text-white border-emerald-500/20"
+                              }`}
                           >
                             {file.buyerConfirmed ? "Menunggu Seller..." : <><Check size={14} /> Konfirmasi Payment</>}
                           </button>
@@ -401,7 +419,7 @@ export default function VaultPage() {
                         Cancel Listing
                       </button>
                       <button
-                        onClick={() => openModal("edit", file.id, { price: file.price, desc: file.description, escrow: file.useEscrow })}
+                        onClick={() => openModal("edit", file.id, { price: file.price, desc: file.description, escrow: true })}
                         className="h-12 w-12 rounded-full bg-background border border-border/50 flex items-center justify-center text-foreground hover:scale-105 transition-transform"
                       >
                         <Tag size={16} />
@@ -512,16 +530,14 @@ export default function VaultPage() {
                 </label>
               </div>
 
-              <div
-                onClick={() => setFormData({ ...formData, escrow: !formData.escrow })}
-                className="flex items-center gap-4 p-5 bg-muted/30 rounded-3xl cursor-pointer hover:bg-muted/50 border border-transparent hover:border-border transition-all"
-              >
-                <div className={`w-6 h-6 rounded-full border flex items-center justify-center transition-all ${formData.escrow ? "bg-foreground border-foreground" : "border-muted-foreground"}`}>
-                  {formData.escrow && <Check size={12} className="text-background" />}
+              {/* Escrow is now forced to TRUE for cryptography reason */}
+              <div className="flex items-center gap-4 p-5 bg-muted/30 rounded-3xl border border-transparent">
+                <div className="w-6 h-6 rounded-full border flex items-center justify-center bg-foreground border-foreground">
+                  <Check size={12} className="text-background" />
                 </div>
                 <div>
-                  <span className="text-sm font-bold text-foreground">Gunakan Escrow</span>
-                  <p className="text-xs text-muted-foreground">Buyer & seller harus konfirmasi sebelum transfer</p>
+                  <span className="text-sm font-bold text-foreground">Escrow Aktif (Wajib)</span>
+                  <p className="text-xs text-muted-foreground">Buyer & seller harus konfirmasi untuk proses serah terima dan re-enkripsi file</p>
                 </div>
               </div>
 

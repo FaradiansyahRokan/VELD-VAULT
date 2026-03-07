@@ -3,14 +3,24 @@ import { ethers } from "ethers";
 import { getTunnelUrls, checkNodeHealth } from "./tunnel-sync";
 import { NETWORK_CONFIG, CONTRACT_ADDRESS } from "./constants";
 import CipherVaultArtifact from "@/abis/CipherVault.json";
+import { reEncryptForBuyer } from "./crypto-engine";
 
 // ============================================================
-// NETWORK SETUP — BRIDGESTONE (Avalanche Fuji, ChainID 777000)
+// NETWORK SETUP — BRIDGESTONE (Avalanche L1, ChainID 777000)
 // ============================================================
-let RPC_URL =
+// Di browser: semua RPC call lewat proxy /api/rpc (same-origin, bebas CORS).
+// Di server / node: pakai URL langsung.
+
+const DIRECT_RPC_URL =
   process.env.NEXT_PUBLIC_RPC_URL || NETWORK_CONFIG.rpcUrl;
 
-const getProvider = (url: string): ethers.JsonRpcProvider => {
+const isBrowser = typeof window !== "undefined";
+
+let RPC_URL = isBrowser
+  ? window.location.origin + "/api/rpc"
+  : DIRECT_RPC_URL;
+
+function getProvider(url: string): ethers.JsonRpcProvider {
   const req = new ethers.FetchRequest(url);
   req.setHeader("ngrok-skip-browser-warning", "true");
   return new ethers.JsonRpcProvider(
@@ -18,7 +28,29 @@ const getProvider = (url: string): ethers.JsonRpcProvider => {
     { chainId: NETWORK_CONFIG.chainId, name: NETWORK_CONFIG.name },
     { staticNetwork: true }
   );
-};
+}
+
+// ============================================================
+// FAUCET — Request VELD otomatis untuk wallet baru
+// ============================================================
+async function requestFaucet(address: string): Promise<void> {
+  try {
+    const res = await fetch("/api/faucet", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ address }),
+    });
+    const data = await res.json();
+    if (data.success) {
+      console.log(`[Faucet] ${data.message}`);
+    } else {
+      // Bukan error fatal — mungkin sudah punya saldo atau cooldown
+      console.warn("[Faucet]", data.error);
+    }
+  } catch (err) {
+    console.warn("[Faucet] Tidak bisa terhubung ke faucet API:", err);
+  }
+}
 
 // ============================================================
 // TYPES
@@ -171,7 +203,12 @@ export const useStore = create<VaultState>((set, get) => ({
     try {
       const bal = await provider.getBalance(connectedWallet.address);
       balance = ethers.formatEther(bal);
-    } catch { }
+    } catch {}
+
+    // Drip VELD otomatis jika wallet baru/kosong
+    if (parseFloat(balance) < 0.01) {
+      requestFaucet(connectedWallet.address).then(() => get().refreshBalance());
+    }
 
     set({
       provider,
@@ -218,7 +255,12 @@ export const useStore = create<VaultState>((set, get) => ({
       try {
         const bal = await provider.getBalance(connectedWallet.address);
         balance = ethers.formatEther(bal);
-      } catch { }
+      } catch {}
+
+      // Drip VELD otomatis jika saldo rendah
+      if (parseFloat(balance) < 0.01) {
+        requestFaucet(connectedWallet.address).then(() => get().refreshBalance());
+      }
 
       set({
         provider,
@@ -243,16 +285,34 @@ export const useStore = create<VaultState>((set, get) => ({
   // REFRESH BALANCE
   // ----------------------------------------------------------
   refreshBalance: async () => {
-    const { provider, wallet } = get();
-    if (!provider || !wallet) return;
+    const { wallet } = get();
+    if (!wallet) return;
     try {
-      const bal = await provider.getBalance(wallet.address);
-      set({ balance: ethers.formatEther(bal) });
-    } catch { }
+      const response = await fetch(RPC_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "ngrok-skip-browser-warning": "true",
+        },
+        body: JSON.stringify({
+          jsonrpc: "2.0",
+          method: "eth_getBalance",
+          params: [wallet.address, "latest"],
+          id: 1,
+        }),
+        signal: AbortSignal.timeout(5000),
+      });
+      const data = await response.json();
+      if (data?.result) {
+        set({ balance: ethers.formatEther(BigInt(data.result)) });
+      }
+    } catch (err) {
+      console.error("[refreshBalance] Gagal fetch balance:", err);
+    }
   },
 
   // ----------------------------------------------------------
-  // ENSURE GAS (APEX)
+  // ENSURE GAS
   // ----------------------------------------------------------
   ensureGas: async () => {
     await get().refreshBalance();
@@ -265,21 +325,17 @@ export const useStore = create<VaultState>((set, get) => ({
   },
 
   // ----------------------------------------------------------
-  // START AUTO REFRESH — FIXED (tunnel bug resolved)
+  // START AUTO REFRESH
   // ----------------------------------------------------------
   startAutoRefresh: async () => {
-    // Guard: jangan mulai kalau sudah jalan
     if (get().isAutoRefreshRunning) return;
     set({ isAutoRefreshRunning: true });
 
-    // Update RPC URL kalau pakai ngrok (non-localhost)
-    if (
-      typeof window !== "undefined" &&
-      window.location.hostname !== "localhost"
-    ) {
+    // Update RPC URL jika pakai ngrok (hanya di server, bukan browser)
+    if (typeof window !== "undefined" && window.location.hostname !== "localhost") {
       try {
-        const urls = await getTunnelUrls(); // ← BUG FIX: tidak di-comment lagi
-        if (urls.blockchain && urls.blockchain !== RPC_URL) {
+        const urls = await getTunnelUrls();
+        if (urls.blockchain && !isBrowser) {
           RPC_URL = urls.blockchain;
           const provider = getProvider(RPC_URL);
           const currentSigner = get().signer;
@@ -293,7 +349,7 @@ export const useStore = create<VaultState>((set, get) => ({
             set({ provider, signer: newSigner, contract });
           }
         }
-      } catch { }
+      } catch {}
     }
 
     if (get().refreshInterval) return;
@@ -404,6 +460,7 @@ export const useStore = create<VaultState>((set, get) => ({
 
   // ----------------------------------------------------------
   // FETCH MY ESCROW SALES
+  // Menampilkan item di mana seller belum konfirmasi (tombol "Terima" masih aktif).
   // ----------------------------------------------------------
   fetchMyEscrowSales: async () => {
     const { contract, wallet } = get();
@@ -431,7 +488,7 @@ export const useStore = create<VaultState>((set, get) => ({
   },
 
   // ----------------------------------------------------------
-  // TRANSACTION HELPERS — Parse error jadi pesan yang readable
+  // LIST ASSET FOR SALE
   // ----------------------------------------------------------
   listAssetForSale: async (tokenId, price, description, previewURI, useEscrow) => {
     const { contract, syncAll } = get();
@@ -451,6 +508,9 @@ export const useStore = create<VaultState>((set, get) => ({
     }
   },
 
+  // ----------------------------------------------------------
+  // UPDATE LISTING
+  // ----------------------------------------------------------
   updateListing: async (tokenId, newPrice, newDesc, useEscrow) => {
     const { contract, syncAll } = get();
     try {
@@ -468,6 +528,9 @@ export const useStore = create<VaultState>((set, get) => ({
     }
   },
 
+  // ----------------------------------------------------------
+  // CANCEL LISTING
+  // ----------------------------------------------------------
   cancelListing: async (tokenId) => {
     const { contract, syncAll } = get();
     try {
@@ -480,13 +543,33 @@ export const useStore = create<VaultState>((set, get) => ({
     }
   },
 
+  // ----------------------------------------------------------
+  // BUY ASSET
+  // Setelah beli, daftarkan public key ke server untuk proses ECDH re-encryption.
+  // ----------------------------------------------------------
   buyAsset: async (tokenId, price) => {
-    const { contract, syncAll } = get();
+    const { contract, syncAll, signer, wallet } = get();
     try {
+      if (!signer || !wallet) throw new Error("Wallet tidak terhubung");
+
       const tx = await contract!.buyAsset(tokenId, {
         value: ethers.parseEther(price),
       });
       await tx.wait();
+
+      // Register public key pembeli agar seller bisa re-encrypt file
+      const w = signer as ethers.Wallet;
+      if (w.signingKey?.publicKey) {
+        await fetch("/api/pubkey-store", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            address: wallet.address,
+            publicKey: w.signingKey.publicKey,
+          }),
+        }).catch((err) => console.warn("[buyAsset] Gagal register pubkey:", err));
+      }
+
       await syncAll();
       return true;
     } catch (error: any) {
@@ -494,6 +577,9 @@ export const useStore = create<VaultState>((set, get) => ({
     }
   },
 
+  // ----------------------------------------------------------
+  // TRANSFER ASSET
+  // ----------------------------------------------------------
   transferAsset: async (tokenId, to) => {
     const { contract, syncAll } = get();
     try {
@@ -507,6 +593,9 @@ export const useStore = create<VaultState>((set, get) => ({
     }
   },
 
+  // ----------------------------------------------------------
+  // SEND COPY ASSET
+  // ----------------------------------------------------------
   sendCopyAsset: async (tokenId, to, name, encryptedCid) => {
     const { contract, syncAll } = get();
     try {
@@ -520,19 +609,73 @@ export const useStore = create<VaultState>((set, get) => ({
     }
   },
 
+  // ----------------------------------------------------------
+  // CONFIRM TRADE (Escrow)
+  //
+  // Alur untuk SELLER:
+  //   1. Ambil public key pembeli dari server
+  //   2. ECDH re-encrypt file key → CID baru di IPFS
+  //   3. Update CID di contract (hanya jika CID berubah)
+  //   4. Panggil confirmTrade di contract → sellerConfirmed = true
+  //
+  // Alur untuk BUYER:
+  //   1. Langsung panggil confirmTrade → buyerConfirmed = true
+  //   2. Jika keduanya sudah confirm → trade selesai, dana ke seller
+  //
+  // Note: Setiap tx di-await satu per satu, sehingga nonce dikelola
+  //       otomatis oleh ethers tanpa perlu tracking manual.
+  // ----------------------------------------------------------
   confirmTrade: async (tokenId) => {
-    const { contract, syncAll } = get();
+    const { contract, syncAll, vaultItems, signer } = get();
     try {
+      if (!signer) throw new Error("Signer tidak ditemukan");
+
+      const item = vaultItems.find((p) => p.id === tokenId);
+      if (!item) throw new Error("Asset tidak ditemukan di vault");
+
+      const myAddress = await signer.getAddress();
+      const isSeller =
+        item.seller?.toLowerCase() === myAddress.toLowerCase();
+
+      // Seller: re-encrypt file untuk buyer sebelum konfirmasi
+      if (isSeller && item.isEscrowActive) {
+        // 1. Ambil public key pembeli dari server
+        const res = await fetch(`/api/pubkey-store?address=${item.buyer}`);
+        if (!res.ok) {
+          throw new Error(
+            "Gagal mengambil Public Key pembeli. Minta pembeli untuk mencoba login ulang."
+          );
+        }
+        const { publicKey } = await res.json();
+
+        // 2. Re-encrypt file key dengan ECDH shared secret
+        //    Jika file sudah v3 (re-encrypt sebelumnya gagal di tengah),
+        //    fungsi ini otomatis return CID yang sama tanpa proses ulang.
+        const { newCid } = await reEncryptForBuyer(item.cid, signer, publicKey);
+
+        // 3. Update CID di contract hanya jika CID benar-benar berubah.
+        //    Ini mencegah tx yang sia-sia saat re-try setelah partial failure.
+        if (newCid !== item.cid) {
+          const txUpdate = await contract!.updateEncryptedCid(tokenId, newCid);
+          await txUpdate.wait();
+        }
+      }
+
+      // 4. Konfirmasi trade (baik seller maupun buyer)
       const tx = await contract!.confirmTrade(tokenId);
       await tx.wait();
+
       await syncAll();
       return true;
     } catch (error: any) {
+      console.error("[confirmTrade] Error:", error);
       throw new Error(parseContractError(error));
     }
   },
 
-  // BUG FIX: cancelTrade — refund buyer, bukan cancelListing
+  // ----------------------------------------------------------
+  // CANCEL TRADE (Escrow) — Refund buyer, asset balik ke seller
+  // ----------------------------------------------------------
   cancelTrade: async (tokenId) => {
     const { contract, syncAll } = get();
     try {
@@ -545,7 +688,10 @@ export const useStore = create<VaultState>((set, get) => ({
     }
   },
 
-  burnAsset: async (tokenId, cid) => {
+  // ----------------------------------------------------------
+  // BURN ASSET
+  // ----------------------------------------------------------
+  burnAsset: async (tokenId, _cid) => {
     const { contract, syncAll } = get();
     try {
       const tx = await contract!.burnAsset(tokenId);
@@ -562,23 +708,20 @@ export const useStore = create<VaultState>((set, get) => ({
 // HELPER: Parse ethers/contract errors jadi pesan user-friendly
 // ============================================================
 function parseContractError(error: any): string {
-  // Revert reason dari contract
   if (error?.reason) return error.reason;
-  // Decoded revert data
   if (error?.data?.message) return error.data.message;
-  // ethers v6 action rejected
   if (error?.code === "ACTION_REJECTED") return "Transaksi dibatalkan oleh user";
   if (error?.code === "INSUFFICIENT_FUNDS")
     return `Saldo ${NETWORK_CONFIG.tokenSymbol} tidak cukup`;
-  // Pesan custom
   if (error?.message) {
     const msg: string = error.message;
     if (msg.includes("Only owner")) return "Hanya pemilik yang bisa melakukan ini";
     if (msg.includes("Wrong price")) return "Harga tidak sesuai";
     if (msg.includes("Not in escrow")) return "Asset tidak sedang dalam escrow";
     if (msg.includes("Only seller")) return "Hanya seller yang bisa melakukan ini";
-    if (msg.includes("insufficient funds")) return `Saldo ${NETWORK_CONFIG.tokenSymbol} tidak cukup`;
-    return msg.length > 100 ? "Transaksi gagal. Cek konsol untuk detail." : msg;
+    if (msg.includes("insufficient funds"))
+      return `Saldo ${NETWORK_CONFIG.tokenSymbol} tidak cukup`;
+    return msg.length > 120 ? "Transaksi gagal. Cek konsol untuk detail." : msg;
   }
   return "Transaksi gagal";
 }

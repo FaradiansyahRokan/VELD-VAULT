@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useStore } from "@/lib/store";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowRight, Shield, Copy, Check, KeyRound, WalletCards, Zap, ExternalLink } from "lucide-react";
+import { ArrowRight, Shield, Copy, Check, KeyRound, WalletCards, Zap, ExternalLink, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 import { NETWORK_CONFIG } from "@/lib/constants";
 
@@ -17,8 +17,11 @@ export default function LoginPage() {
   const [view, setView] = useState<View>("MENU");
   const [generatedMnemonic, setGeneratedMnemonic] = useState("");
   const [generatedAddress, setGeneratedAddress] = useState("");
+  const [generatedPrivateKey, setGeneratedPrivateKey] = useState("");
   const [isCopied, setIsCopied] = useState(false);
   const [isAddrCopied, setIsAddrCopied] = useState(false);
+  const [isPkCopied, setIsPkCopied] = useState(false);
+  const [showPrivateKey, setShowPrivateKey] = useState(false);
   const [importInput, setImportInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
@@ -34,6 +37,7 @@ export default function LoginPage() {
       const { wallet } = useStore.getState();
       setGeneratedMnemonic(phrase);
       setGeneratedAddress(wallet?.address || "");
+      setGeneratedPrivateKey(wallet?.privateKey || "");
       setView("CREATE");
       toast.success("Vault baru dibuat!");
     } catch (e) {
@@ -67,6 +71,13 @@ export default function LoginPage() {
     setIsAddrCopied(true);
     toast.success("Alamat disalin!");
     setTimeout(() => setIsAddrCopied(false), 2000);
+  };
+
+  const copyPrivateKey = () => {
+    navigator.clipboard.writeText(generatedPrivateKey);
+    setIsPkCopied(true);
+    toast.success("Private key disalin!");
+    setTimeout(() => setIsPkCopied(false), 2000);
   };
 
   const enterVault = () => {
@@ -239,6 +250,35 @@ export default function LoginPage() {
                       ? <Check size={16} className="text-emerald-500" />
                       : <Copy size={16} className="text-muted-foreground group-hover:text-foreground" />}
                   </div>
+                </div>
+
+                {/* Private Key — import ke MetaMask */}
+                <div className="mb-4 p-4 bg-amber-500/5 border border-amber-500/20 rounded-2xl space-y-3">
+                  <div className="flex items-center justify-between">
+                    <p className="text-[11px] font-bold text-amber-500 uppercase tracking-wider">Private Key (Import MetaMask)</p>
+                    <button
+                      onClick={() => setShowPrivateKey((v) => !v)}
+                      className="text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      {showPrivateKey ? <EyeOff size={14} /> : <Eye size={14} />}
+                    </button>
+                  </div>
+                  <div
+                    onClick={copyPrivateKey}
+                    className="group flex items-center gap-3 p-3 bg-muted/20 border border-border/50 rounded-xl cursor-pointer hover:bg-muted/40 transition-all"
+                  >
+                    <code className="text-[11px] font-mono text-foreground flex-1 break-all leading-relaxed">
+                      {showPrivateKey ? generatedPrivateKey : "••••••••••••••••••••••••••••••••••••••••"}
+                    </code>
+                    <div className="shrink-0">
+                      {isPkCopied
+                        ? <Check size={14} className="text-emerald-500" />
+                        : <Copy size={14} className="text-muted-foreground group-hover:text-foreground" />}
+                    </div>
+                  </div>
+                  <p className="text-[10px] text-muted-foreground leading-relaxed">
+                    ⚠️ Jangan bagikan. Klik untuk salin, lalu import di MetaMask → My accounts → Import account.
+                  </p>
                 </div>
 
                 {/* Info */}

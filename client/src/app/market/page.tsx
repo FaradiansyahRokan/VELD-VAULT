@@ -50,7 +50,11 @@ export default function MarketPage() {
 
       {/* HEADER */}
       <div className="flex flex-col lg:flex-row justify-between items-end mb-20 gap-10">
-        <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.5 }}>
+        <motion.div
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.5 }}
+        >
           <h1 className="text-7xl md:text-8xl font-bold tracking-tighter bg-clip-text text-transparent bg-gradient-to-br from-foreground to-foreground/40 mb-4">
             Market.
           </h1>
@@ -132,7 +136,7 @@ export default function MarketPage() {
         <motion.div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-8">
           {filtered.map((item: any, i: number) => {
             const isLoading = loadingId === item.tokenId;
-            const isSelf = wallet?.address.toLowerCase() === item.seller?.toLowerCase();
+            const isSelf    = wallet?.address.toLowerCase() === item.seller?.toLowerCase();
 
             return (
               <motion.div
@@ -146,9 +150,11 @@ export default function MarketPage() {
                 <div className="h-56 bg-muted/30 relative overflow-hidden flex items-center justify-center group-hover:bg-muted/40 transition-colors">
                   {item.previewURI ? (
                     <img
-                      src={`http://127.0.0.1:8080/ipfs/${item.previewURI}`}
+                      // ✅ Pakai NETWORK_CONFIG.ipfsGateway — tidak ada hardcoded 127.0.0.1
+                      src={`${NETWORK_CONFIG.ipfsGateway}/ipfs/${item.previewURI}`}
                       className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                       onError={(e: any) => { e.target.style.display = "none"; }}
+                      alt={item.name}
                     />
                   ) : (
                     <div className="flex flex-col items-center gap-2 opacity-20 group-hover:opacity-40 transition-opacity">
@@ -178,7 +184,9 @@ export default function MarketPage() {
                 {/* INFO */}
                 <div className="p-5 flex flex-col flex-1">
                   <div className="flex-1">
-                    <h3 className="text-lg font-bold text-foreground truncate mb-1">{item.name}</h3>
+                    <h3 className="text-lg font-bold text-foreground truncate mb-1">
+                      {item.name}
+                    </h3>
                     {item.description && (
                       <p className="text-xs text-muted-foreground line-clamp-2 mb-2 leading-relaxed">
                         {item.description}
@@ -194,10 +202,16 @@ export default function MarketPage() {
 
                   <div className="mt-5 pt-5 border-t border-border/50 flex flex-col gap-4">
                     <div className="flex justify-between items-end">
-                      <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Harga</span>
+                      <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+                        Harga
+                      </span>
                       <div className="text-right">
-                        <span className="text-2xl font-bold text-foreground tracking-tight">{item.price}</span>
-                        <span className="text-xs font-bold text-muted-foreground ml-1.5">{NETWORK_CONFIG.tokenSymbol}</span>
+                        <span className="text-2xl font-bold text-foreground tracking-tight">
+                          {item.price}
+                        </span>
+                        <span className="text-xs font-bold text-muted-foreground ml-1.5">
+                          {NETWORK_CONFIG.tokenSymbol}
+                        </span>
                       </div>
                     </div>
                     <Button
@@ -206,7 +220,11 @@ export default function MarketPage() {
                       isLoading={isLoading}
                       className={`w-full h-14 rounded-[1.2rem] text-sm font-bold ${isSelf ? "opacity-50 cursor-not-allowed" : ""}`}
                     >
-                      {isSelf ? "Asset Milikmu" : isLoading ? "Memproses..." : `Beli dengan ${NETWORK_CONFIG.tokenSymbol}`}
+                      {isSelf
+                        ? "Asset Milikmu"
+                        : isLoading
+                        ? "Memproses..."
+                        : `Beli dengan ${NETWORK_CONFIG.tokenSymbol}`}
                     </Button>
                   </div>
                 </div>

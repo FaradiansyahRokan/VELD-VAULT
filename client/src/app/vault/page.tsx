@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useStore } from "@/lib/store";
+import { useActivityStore } from "@/lib/activity-store";
 import { encryptAndUpload, decryptFile, uploadPreview, unlockVaultKey } from "@/lib/crypto-engine";
 import {
   Upload, FileText, Send, Trash2, Box, Users, Check, Tag, XCircle,
@@ -22,6 +23,7 @@ export default function VaultPage() {
     transferAsset, sendCopyAsset, confirmTrade, cancelTrade, burnAsset,
   } = useStore();
 
+  const { addActivity } = useActivityStore();
   const [loading, setLoading] = useState(false);
   const [isClient, setIsClient] = useState(false);
   const [modals, setModals] = useState({
@@ -76,6 +78,12 @@ export default function VaultPage() {
       await (await contract!.mintToVault(cid, f.name)).wait();
       toast.dismiss(t);
       toast.success("Asset berhasil di-mint ke vault!");
+      addActivity({
+        type: "upload",
+        title: "Asset di-upload",
+        description: `File "${f.name}" berhasil dienkripsi & di-mint ke vault`,
+        walletAddress: wallet!.address,
+      });
       await syncAll();
     } catch (e: any) {
       toast.dismiss(t);
@@ -126,6 +134,14 @@ export default function VaultPage() {
       }
       await listAssetForSale(activeId, formData.price, formData.desc, previewCid || null, formData.escrow);
       toast.success("Asset berhasil di-listing!");
+      addActivity({
+        type: "list",
+        title: "Asset di-listing",
+        description: `Asset #${activeId} di-listing seharga ${formData.price} ${NETWORK_CONFIG.tokenSymbol}`,
+        walletAddress: wallet!.address,
+        tokenId: activeId,
+        amount: formData.price,
+      });
       closeModal("sell");
     } catch (e: any) {
       toast.error(e.message || "Listing gagal");
@@ -211,6 +227,15 @@ export default function VaultPage() {
                           setTxLoading(prev => ({ ...prev, [sale.tokenId]: true }));
                           await confirmTrade(sale.tokenId);
                           toast.success("Deal dikonfirmasi!");
+                          addActivity({
+                            type: "escrow_confirm",
+                            title: "Trade dikonfirmasi",
+                            description: `Kamu konfirmasi penjualan asset #${sale.tokenId} "${sale.name}" seharga ${sale.price} ${NETWORK_CONFIG.tokenSymbol}`,
+                            walletAddress: wallet!.address,
+                            tokenId: sale.tokenId,
+                            amount: sale.price,
+                            address: sale.buyer,
+                          });
                         }
                         catch (e: any) { toast.error(e.message); }
                         finally { setTxLoading(prev => ({ ...prev, [sale.tokenId]: false })); }
@@ -227,6 +252,14 @@ export default function VaultPage() {
                           // BUG FIX: cancelTrade (bukan cancelListing) — refund buyer
                           await cancelTrade(sale.tokenId);
                           toast.success("Trade dibatalkan, buyer di-refund");
+                          addActivity({
+                            type: "escrow_cancel",
+                            title: "Trade dibatalkan",
+                            description: `Trade asset #${sale.tokenId} "${sale.name}" dibatalkan, buyer di-refund`,
+                            walletAddress: wallet!.address,
+                            tokenId: sale.tokenId,
+                            address: sale.buyer,
+                          });
                         } catch (e: any) { toast.error(e.message); }
                         finally { setTxLoading(prev => ({ ...prev, [sale.tokenId]: false })); }
                       }}
@@ -353,6 +386,13 @@ export default function VaultPage() {
                             try {
                               await cancelTrade(file.id); // ← FIXED: was cancelListing
                               toast.success("Trade dibatalkan, buyer di-refund");
+                              addActivity({
+                                type: "escrow_cancel",
+                                title: "Trade dibatalkan",
+                                description: `Trade asset #${file.id} "${file.name}" dibatalkan, buyer di-refund`,
+                                walletAddress: wallet!.address,
+                                tokenId: file.id,
+                              });
                             } catch (e: any) { toast.error(e.message); }
                           }}
                           className="flex-1 h-12 rounded-[1.5rem] bg-red-500/10 text-red-500 font-bold text-xs hover:bg-red-500 hover:text-white transition-all border border-red-500/20 flex items-center justify-center gap-2"
@@ -383,6 +423,14 @@ export default function VaultPage() {
                               try {
                                 await confirmTrade(file.id);
                                 toast.success("Payment dikonfirmasi!");
+                                addActivity({
+                                  type: "escrow_confirm",
+                                  title: "Payment dikonfirmasi",
+                                  description: `Kamu konfirmasi pembelian asset #${file.id} "${file.name}" seharga ${file.price} ${NETWORK_CONFIG.tokenSymbol}`,
+                                  walletAddress: wallet!.address,
+                                  tokenId: file.id,
+                                  amount: file.price,
+                                });
                               } catch (e: any) { toast.error(e.message); }
                             }}
                             disabled={file.buyerConfirmed}
@@ -398,6 +446,13 @@ export default function VaultPage() {
                               try {
                                 await cancelTrade(file.id);
                                 toast.success("Trade dibatalkan, APEX di-refund");
+                                addActivity({
+                                  type: "escrow_cancel",
+                                  title: "Trade dibatalkan",
+                                  description: `Trade asset #${file.id} "${file.name}" dibatalkan, saldo di-refund`,
+                                  walletAddress: wallet!.address,
+                                  tokenId: file.id,
+                                });
                               } catch (e: any) { toast.error(e.message); }
                             }}
                             className="h-12 w-12 rounded-full bg-background border border-border/50 flex items-center justify-center text-red-500 hover:scale-105 transition-transform"
@@ -411,7 +466,17 @@ export default function VaultPage() {
                     <>
                       <button
                         onClick={async () => {
-                          try { await cancelListing(file.id); toast.success("Listing dibatalkan"); }
+                          try {
+                            await cancelListing(file.id);
+                            toast.success("Listing dibatalkan");
+                            addActivity({
+                              type: "delist",
+                              title: "Listing dibatalkan",
+                              description: `Asset #${file.id} "${file.name}" ditarik dari marketplace`,
+                              walletAddress: wallet!.address,
+                              tokenId: file.id,
+                            });
+                          }
                           catch (e: any) { toast.error(e.message); }
                         }}
                         className="flex-1 h-12 rounded-[1.5rem] bg-red-500/10 text-red-500 font-bold text-xs hover:bg-red-500 hover:text-white transition-all border border-red-500/20"
@@ -615,6 +680,14 @@ export default function VaultPage() {
                         ? await transferAsset(activeId!, formData.address)
                         : await sendCopyAsset(activeId!, formData.address, formData.name, formData.cid);
                     if (success) {
+                      addActivity({
+                        type: formData.mode === "MOVE" ? "transfer_out" : "transfer_out",
+                        title: formData.mode === "MOVE" ? "Asset ditransfer" : "Salinan dikirim",
+                        description: `Asset #${activeId} dikirim ke ${formData.address.slice(0, 6)}...${formData.address.slice(-4)}`,
+                        walletAddress: wallet!.address,
+                        tokenId: activeId!,
+                        address: formData.address,
+                      });
                       toast.success("Transfer berhasil!");
                       closeModal("transfer");
                     }
@@ -647,6 +720,13 @@ export default function VaultPage() {
                     try {
                       await burnAsset(activeId!, formData.cid);
                       toast.success("Asset dihancurkan");
+                      addActivity({
+                        type: "burn",
+                        title: "Asset dihancurkan",
+                        description: `Asset #${activeId} dihapus permanen dari blockchain`,
+                        walletAddress: wallet!.address,
+                        tokenId: activeId!,
+                      });
                       closeModal("burn");
                     } catch (e: any) { toast.error(e.message); }
                   }}

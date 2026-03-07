@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useStore } from "@/lib/store";
 import { useActivityStore, ACTIVITY_META } from "../../lib/activity-store";
@@ -18,6 +18,54 @@ const stagger = {
   item: { initial: { y: 20, opacity: 0 }, animate: { y: 0, opacity: 1 } },
 };
 
+// ✅ FIX 3: Pindah komponen ke luar DashboardPage agar tidak re-create tiap render
+// Ini penyebab utama StatCard & QuickAction "hilang" — Framer Motion kehilangan
+// referensi komponen karena dianggap elemen baru setiap render.
+const StatCard = ({
+  label, value, sub, icon: Icon, color, onClick,
+}: {
+  label: string; value: string | number; sub?: string;
+  icon: any; color: string; onClick?: () => void;
+}) => (
+  <motion.div
+    variants={stagger.item}
+    onClick={onClick}
+    className={`group relative p-5 rounded-[1.75rem] bg-card border border-border/50 overflow-hidden ${onClick ? "cursor-pointer hover:border-primary/30 hover:shadow-lg hover:shadow-black/5 hover:-translate-y-0.5" : ""} transition-all duration-300`}
+  >
+    <div className={`absolute -top-6 -right-6 w-24 h-24 rounded-full ${color} opacity-[0.07] blur-xl group-hover:opacity-[0.12] transition-opacity`} />
+    <div className="flex items-start justify-between mb-3">
+      <div className={`w-9 h-9 rounded-xl ${color} bg-opacity-10 flex items-center justify-center`}>
+        <Icon size={17} className={color.replace("bg-", "text-")} />
+      </div>
+      {onClick && <ChevronRight size={14} className="text-muted-foreground/40 group-hover:text-muted-foreground transition-colors mt-1" />}
+    </div>
+    <div className="text-2xl font-bold text-foreground tracking-tight mb-0.5">{value}</div>
+    <div className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">{label}</div>
+    {sub && <div className="text-[10px] text-muted-foreground/60 mt-1">{sub}</div>}
+  </motion.div>
+);
+
+const QuickAction = ({
+  label, description, icon: Icon, color, onClick,
+}: {
+  label: string; description: string; icon: any; color: string; onClick: () => void;
+}) => (
+  <motion.button
+    variants={stagger.item}
+    onClick={onClick}
+    className="group flex items-center gap-4 p-4 rounded-2xl bg-card border border-border/50 hover:border-primary/20 hover:bg-muted/10 transition-all text-left w-full"
+  >
+    <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${color} shrink-0`}>
+      <Icon size={18} />
+    </div>
+    <div className="flex-1 min-w-0">
+      <p className="font-semibold text-foreground text-sm">{label}</p>
+      <p className="text-[11px] text-muted-foreground truncate">{description}</p>
+    </div>
+    <ArrowUpRight size={14} className="text-muted-foreground/40 group-hover:text-muted-foreground transition-colors shrink-0" />
+  </motion.button>
+);
+
 export default function DashboardPage() {
   const router = useRouter();
   const { contract, wallet, vaultItems, marketItems, salesItems, balance, startAutoRefresh } = useStore();
@@ -25,16 +73,28 @@ export default function DashboardPage() {
   const { contacts } = useContactsStore();
   const [mounted, setMounted] = useState(false);
 
+  // ✅ FIX 1: Pisah useEffect — jangan campur setMounted dengan redirect logic.
+  // Sebelumnya, setMounted(true) dipanggil bahkan ketika langsung redirect ke "/",
+  // menyebabkan flash render sebelum redirect selesai.
   useEffect(() => {
     setMounted(true);
-    if (!contract || !wallet) { router.push("/"); return; }
-    startAutoRefresh();
-  }, [contract, wallet, router, startAutoRefresh]);
+  }, []);
 
+  useEffect(() => {
+    if (!mounted) return;
+    if (!contract || !wallet) {
+      router.push("/");
+      return;
+    }
+    startAutoRefresh();
+  }, [mounted, contract, wallet, router, startAutoRefresh]);
+
+  // ✅ FIX 2: Hapus `mounted` dari dependency array activities.
+  // `mounted` bukan data yang relevan untuk activities — hanya menyebabkan
+  // memo expired saat mount tapi tidak update saat data berubah.
   const activities = useMemo(
     () => (wallet ? getActivities(wallet.address).slice(0, 8) : []),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [wallet?.address, mounted]
+    [wallet?.address, getActivities]
   );
 
   const stats = useMemo(() => {
@@ -49,51 +109,6 @@ export default function DashboardPage() {
   }, [vaultItems, salesItems, wallet]);
 
   if (!mounted || !wallet || !stats) return null;
-
-  const StatCard = ({
-    label, value, sub, icon: Icon, color, onClick,
-  }: {
-    label: string; value: string | number; sub?: string;
-    icon: any; color: string; onClick?: () => void;
-  }) => (
-    <motion.div
-      variants={stagger.item}
-      onClick={onClick}
-      className={`group relative p-5 rounded-[1.75rem] bg-card border border-border/50 overflow-hidden ${onClick ? "cursor-pointer hover:border-primary/30 hover:shadow-lg hover:shadow-black/5 hover:-translate-y-0.5" : ""} transition-all duration-300`}
-    >
-      <div className={`absolute -top-6 -right-6 w-24 h-24 rounded-full ${color} opacity-[0.07] blur-xl group-hover:opacity-[0.12] transition-opacity`} />
-      <div className="flex items-start justify-between mb-3">
-        <div className={`w-9 h-9 rounded-xl ${color} bg-opacity-10 flex items-center justify-center`}>
-          <Icon size={17} className={color.replace("bg-", "text-")} />
-        </div>
-        {onClick && <ChevronRight size={14} className="text-muted-foreground/40 group-hover:text-muted-foreground transition-colors mt-1" />}
-      </div>
-      <div className="text-2xl font-bold text-foreground tracking-tight mb-0.5">{value}</div>
-      <div className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">{label}</div>
-      {sub && <div className="text-[10px] text-muted-foreground/60 mt-1">{sub}</div>}
-    </motion.div>
-  );
-
-  const QuickAction = ({
-    label, description, icon: Icon, color, onClick,
-  }: {
-    label: string; description: string; icon: any; color: string; onClick: () => void;
-  }) => (
-    <motion.button
-      variants={stagger.item}
-      onClick={onClick}
-      className="group flex items-center gap-4 p-4 rounded-2xl bg-card border border-border/50 hover:border-primary/20 hover:bg-muted/10 transition-all text-left w-full"
-    >
-      <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${color} shrink-0`}>
-        <Icon size={18} />
-      </div>
-      <div className="flex-1 min-w-0">
-        <p className="font-semibold text-foreground text-sm">{label}</p>
-        <p className="text-[11px] text-muted-foreground truncate">{description}</p>
-      </div>
-      <ArrowUpRight size={14} className="text-muted-foreground/40 group-hover:text-muted-foreground transition-colors shrink-0" />
-    </motion.button>
-  );
 
   return (
     <div className="min-h-screen pt-36 px-6 pb-24 max-w-[1400px] mx-auto">
@@ -248,7 +263,7 @@ export default function DashboardPage() {
               />
             </div>
 
-            {/* Market snapshot — FIXED: pakai div bukan p untuk wrapper flex */}
+            {/* Market snapshot */}
             <div className="mt-4 p-4 rounded-2xl bg-muted/10 border border-border/40">
               <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-3 flex items-center gap-1.5">
                 <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />

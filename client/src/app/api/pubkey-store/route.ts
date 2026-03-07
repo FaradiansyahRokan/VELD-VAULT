@@ -11,23 +11,23 @@
 import { NextRequest } from "next/server";
 
 // ── OPTION A: In-Memory (dev lokal) ──────────────────────────
-const pubkeyStore = new Map<string, string>();
+// const pubkeyStore = new Map<string, string>();
 
-async function storeGet(address: string): Promise<string | null> {
-  return pubkeyStore.get(address) ?? null;
-}
-async function storeSet(address: string, publicKey: string): Promise<void> {
-  pubkeyStore.set(address, publicKey);
-}
-
-// ── OPTION B: Vercel KV (production) — uncomment kalau deploy
-// import { kv } from "@vercel/kv";
 // async function storeGet(address: string): Promise<string | null> {
-//   return kv.get<string>(`pubkey:${address}`);
+//   return pubkeyStore.get(address) ?? null;
 // }
 // async function storeSet(address: string, publicKey: string): Promise<void> {
-//   await kv.set(`pubkey:${address}`, publicKey, { ex: 60 * 60 * 24 * 30 }); // 30 hari
+//   pubkeyStore.set(address, publicKey);
 // }
+
+// ── OPTION B: Vercel KV (production) — uncomment kalau deploy
+import { kv } from "@vercel/kv";
+async function storeGet(address: string): Promise<string | null> {
+  return kv.get<string>(`pubkey:${address}`);
+}
+async function storeSet(address: string, publicKey: string): Promise<void> {
+  await kv.set(`pubkey:${address}`, publicKey, { ex: 60 * 60 * 24 * 30 }); // 30 hari
+}
 
 // ── Handlers ─────────────────────────────────────────────────
 

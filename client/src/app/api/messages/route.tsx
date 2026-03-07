@@ -22,44 +22,44 @@ interface StoredMessage {
 }
 
 // ── OPTION A: In-Memory (dev) ─────────────────────────────────
-const messages: StoredMessage[] = [];
+// const messages: StoredMessage[] = [];
 
-async function saveMessage(msg: StoredMessage) {
-  messages.push(msg);
-  // Keep last 10k messages in memory
-  if (messages.length > 10000) messages.splice(0, messages.length - 10000);
-}
+// async function saveMessage(msg: StoredMessage) {
+//   messages.push(msg);
+//   // Keep last 10k messages in memory
+//   if (messages.length > 10000) messages.splice(0, messages.length - 10000);
+// }
 
-async function getMessagesForAddress(address: string): Promise<StoredMessage[]> {
-  const normalized = address.toLowerCase();
-  return messages
-    .filter((m) => m.to === normalized || m.from === normalized)
-    .sort((a, b) => b.timestamp - a.timestamp);
-}
+// async function getMessagesForAddress(address: string): Promise<StoredMessage[]> {
+//   const normalized = address.toLowerCase();
+//   return messages
+//     .filter((m) => m.to === normalized || m.from === normalized)
+//     .sort((a, b) => b.timestamp - a.timestamp);
+// }
 
-async function markRead(id: string, reader: string) {
-  const msg = messages.find((m) => m.id === id && m.to === reader.toLowerCase());
-  if (msg) msg.read = true;
-}
+// async function markRead(id: string, reader: string) {
+//   const msg = messages.find((m) => m.id === id && m.to === reader.toLowerCase());
+//   if (msg) msg.read = true;
+// }
 
 // ── OPTION B: Vercel KV / Redis (production) ─────────────────
 // Install: npm install @vercel/kv
 // Uncomment below, comment out OPTION A above.
 //
-// import { kv } from "@vercel/kv";
-// async function saveMessage(msg: StoredMessage) {
-//   await kv.lpush(`msgs:${msg.to}`, JSON.stringify(msg));
-//   await kv.lpush(`msgs:${msg.from}`, JSON.stringify(msg));
-//   await kv.ltrim(`msgs:${msg.to}`, 0, 499);
-//   await kv.ltrim(`msgs:${msg.from}`, 0, 499);
-// }
-// async function getMessagesForAddress(address: string): Promise<StoredMessage[]> {
-//   const raw = await kv.lrange(`msgs:${address.toLowerCase()}`, 0, 499);
-//   return (raw as string[]).map((r) => JSON.parse(r)).sort((a, b) => b.timestamp - a.timestamp);
-// }
-// async function markRead(id: string, reader: string) {
-//   // For simplicity, re-fetch and update — optimize later if needed
-// }
+import { kv } from "@vercel/kv";
+async function saveMessage(msg: StoredMessage) {
+  await kv.lpush(`msgs:${msg.to}`, JSON.stringify(msg));
+  await kv.lpush(`msgs:${msg.from}`, JSON.stringify(msg));
+  await kv.ltrim(`msgs:${msg.to}`, 0, 499);
+  await kv.ltrim(`msgs:${msg.from}`, 0, 499);
+}
+async function getMessagesForAddress(address: string): Promise<StoredMessage[]> {
+  const raw = await kv.lrange(`msgs:${address.toLowerCase()}`, 0, 499);
+  return (raw as string[]).map((r) => JSON.parse(r)).sort((a, b) => b.timestamp - a.timestamp);
+}
+async function markRead(id: string, reader: string) {
+  // For simplicity, re-fetch and update — optimize later if needed
+}
 
 // ── Handlers ─────────────────────────────────────────────────
 

@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useStore } from "@/lib/store";
 import { useRouter, usePathname } from "next/navigation";
-import { Copy, Check, Shield, Fingerprint, Sun, Moon, LogOut, ChevronDown, Command, Wifi, WifiOff, AlertTriangle } from "lucide-react";
+import { Copy, Check, Shield, Fingerprint, Sun, Moon, LogOut, ChevronDown, Command, Wifi, WifiOff, AlertTriangle, Send } from "lucide-react";
 import { toast } from "sonner";
 import { motion, AnimatePresence, LayoutGroup } from "framer-motion";
 import { useTheme } from "next-themes";
@@ -11,11 +11,12 @@ import { NETWORK_CONFIG } from "../lib/constants";
 import NotificationCenter from "../components/NotificationCenter";
 
 const NAV_TABS = [
-  { id: "dashboard", label: "Home", href: "/dashboard" },
-  { id: "vault",     label: "Vault",    href: "/vault" },
-  { id: "market",    label: "Market",   href: "/market" },
-  { id: "messages",  label: "Pesan",    href: "/messages" },
-  { id: "tools",     label: "Tools",    href: "/tools" },
+  { id: "dashboard", label: "Home",    href: "/dashboard" },
+  { id: "vault",     label: "Vault",   href: "/vault" },
+  { id: "market",    label: "Market",  href: "/market" },
+  { id: "messages",  label: "Pesan",   href: "/messages" },
+  { id: "transfer",  label: "Kirim",   href: "/transfer" },
+  { id: "tools",     label: "Tools",   href: "/tools" },
 ] as const;
 
 export default function Navbar() {
@@ -257,9 +258,17 @@ export default function Navbar() {
                       {/* BALANCE */}
                       <div className="p-4 rounded-2xl bg-muted/20 border border-black/5 dark:border-white/5">
                         <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest block mb-1.5">Balance</span>
-                        <div className="flex items-end gap-1.5">
-                          <span className="text-2xl font-bold text-foreground tracking-tight">{displayBalance}</span>
-                          <span className="text-sm font-bold text-muted-foreground mb-0.5">{NETWORK_CONFIG.tokenSymbol}</span>
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-end gap-1.5">
+                            <span className="text-2xl font-bold text-foreground tracking-tight">{displayBalance}</span>
+                            <span className="text-sm font-bold text-muted-foreground mb-0.5">{NETWORK_CONFIG.tokenSymbol}</span>
+                          </div>
+                          <button
+                            onClick={() => { setExpanded(false); router.push("/transfer"); }}
+                            className="flex items-center gap-1.5 h-8 px-3 rounded-xl bg-foreground text-background text-[10px] font-bold hover:opacity-80 transition-opacity"
+                          >
+                            <Send size={11} strokeWidth={2.5} /> Kirim
+                          </button>
                         </div>
                       </div>
 

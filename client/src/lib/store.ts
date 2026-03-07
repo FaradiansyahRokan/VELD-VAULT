@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { ethers } from "ethers";
 import { getTunnelUrls, checkNodeHealth } from "./tunnel-sync";
 import { NETWORK_CONFIG, CONTRACT_ADDRESS } from "./constants";
+import { gasOverride, gasOverrideWithValue, patchProviderFeeData } from "./gas-config";
 import CipherVaultArtifact from "@/abis/CipherVault.json";
 import {
   reEncryptForBuyer,
@@ -29,11 +30,15 @@ let RPC_URL = isBrowser
 function getProvider(url: string): ethers.JsonRpcProvider {
   const req = new ethers.FetchRequest(url);
   req.setHeader("ngrok-skip-browser-warning", "true");
-  return new ethers.JsonRpcProvider(
+  const provider = new ethers.JsonRpcProvider(
     req,
     { chainId: NETWORK_CONFIG.chainId, name: NETWORK_CONFIG.name },
     { staticNetwork: true }
   );
+  // ✅ Override getFeeData agar ethers tidak re-fetch fee dari node.
+  // Tanpa ini, ethers bisa pakai 50+ gwei meskipun kita set 30 gwei di gasOverride.
+  patchProviderFeeData(provider);
+  return provider;
 }
 
 // ============================================================
@@ -548,7 +553,7 @@ export const useStore = create<VaultState>((set, get) => ({
     const { cid } = await encryptAndUpload(file, signer);
 
     // 2. Mint NFT di contract
-    const tx = await contract.mintAsset(file.name, cid);
+    const tx = await contract.mintAsset(file.name, cid, gasOverride("mintAsset"));
     const receipt = await tx.wait();
 
     // 3. Ambil tokenId dari event Transfer
@@ -591,7 +596,8 @@ export const useStore = create<VaultState>((set, get) => ({
         ethers.parseEther(price),
         description,
         previewURI || "",
-        useEscrow
+        useEscrow,
+        gasOverride("listAsset")
       );
       await tx.wait();
       await syncAll();
@@ -611,7 +617,8 @@ export const useStore = create<VaultState>((set, get) => ({
         tokenId,
         ethers.parseEther(newPrice),
         newDesc,
-        useEscrow
+        useEscrow,
+        gasOverride("updateListing")
       );
       await tx.wait();
       await syncAll();
@@ -627,7 +634,7 @@ export const useStore = create<VaultState>((set, get) => ({
   cancelListing: async (tokenId) => {
     const { contract, syncAll } = get();
     try {
-      const tx = await contract!.cancelListing(tokenId);
+      const tx = await contract!.cancelListing(tokenId, gasOverride("cancelListing"));
       await tx.wait();
       await syncAll();
       return true;
@@ -645,9 +652,10 @@ export const useStore = create<VaultState>((set, get) => ({
     try {
       if (!signer || !wallet) throw new Error("Wallet tidak terhubung");
 
-      const tx = await contract!.buyAsset(tokenId, {
-        value: ethers.parseEther(price),
-      });
+      const tx = await contract!.buyAsset(
+        tokenId,
+        gasOverrideWithValue("buyAsset", ethers.parseEther(price))
+      );
       await tx.wait();
 
       // Register public key pembeli agar seller bisa re-encrypt file
@@ -677,7 +685,7 @@ export const useStore = create<VaultState>((set, get) => ({
     const { contract, syncAll } = get();
     try {
       if (!ethers.isAddress(to)) throw new Error("Alamat tujuan tidak valid");
-      const tx = await contract!.transferAsset(tokenId, to);
+      const tx = await contract!.transferAsset(tokenId, to, gasOverride("transferAsset"));
       await tx.wait();
       await syncAll();
       return true;
@@ -693,7 +701,7 @@ export const useStore = create<VaultState>((set, get) => ({
     const { contract, syncAll } = get();
     try {
       if (!ethers.isAddress(to)) throw new Error("Alamat tujuan tidak valid");
-      const tx = await contract!.sendCopy(to, name, encryptedCid);
+      const tx = await contract!.sendCopy(to, name, encryptedCid, gasOverride("sendCopy"));
       await tx.wait();
       await syncAll();
       return true;
@@ -749,13 +757,13 @@ export const useStore = create<VaultState>((set, get) => ({
         // 3. Update CID di contract hanya jika CID benar-benar berubah.
         //    Ini mencegah tx yang sia-sia saat re-try setelah partial failure.
         if (newCid !== item.cid) {
-          const txUpdate = await contract!.updateEncryptedCid(tokenId, newCid);
+          const txUpdate = await contract!.updateEncryptedCid(tokenId, newCid, gasOverride("updateEncryptedCid"));
           await txUpdate.wait();
         }
       }
 
       // 4. Konfirmasi trade (baik seller maupun buyer)
-      const tx = await contract!.confirmTrade(tokenId);
+      const tx = await contract!.confirmTrade(tokenId, gasOverride("confirmTrade"));
       await tx.wait();
 
       await syncAll();
@@ -772,7 +780,7 @@ export const useStore = create<VaultState>((set, get) => ({
   cancelTrade: async (tokenId) => {
     const { contract, syncAll } = get();
     try {
-      const tx = await contract!.cancelTrade(tokenId);
+      const tx = await contract!.cancelTrade(tokenId, gasOverride("cancelTrade"));
       await tx.wait();
       await syncAll();
       return true;
@@ -787,7 +795,7 @@ export const useStore = create<VaultState>((set, get) => ({
   burnAsset: async (tokenId, _cid) => {
     const { contract, syncAll } = get();
     try {
-      const tx = await contract!.burnAsset(tokenId);
+      const tx = await contract!.burnAsset(tokenId, gasOverride("burnAsset"));
       await tx.wait();
       await syncAll();
       return true;

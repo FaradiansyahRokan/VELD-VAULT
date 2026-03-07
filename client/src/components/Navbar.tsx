@@ -7,7 +7,16 @@ import { Copy, Check, Shield, Fingerprint, Sun, Moon, LogOut, ChevronDown, Comma
 import { toast } from "sonner";
 import { motion, AnimatePresence, LayoutGroup } from "framer-motion";
 import { useTheme } from "next-themes";
-import { NETWORK_CONFIG } from "@/lib/constants";
+import { NETWORK_CONFIG } from "../lib/constants";
+import NotificationCenter from "../components/NotificationCenter";
+
+const NAV_TABS = [
+  { id: "dashboard", label: "Home", href: "/dashboard" },
+  { id: "vault",     label: "Vault",    href: "/vault" },
+  { id: "market",    label: "Market",   href: "/market" },
+  { id: "messages",  label: "Pesan",    href: "/messages" },
+  { id: "tools",     label: "Tools",    href: "/tools" },
+] as const;
 
 export default function Navbar() {
   const { wallet, logout, balance, networkStatus } = useStore();
@@ -51,16 +60,16 @@ export default function Navbar() {
 
   const springConfig = { type: "spring", stiffness: 350, damping: 30, mass: 0.8 } as const;
 
-  // Network status config
   const networkConfig = {
-    online: { color: "bg-emerald-400", label: NETWORK_CONFIG.name, pulse: false },
-    offline: { color: "bg-red-500", label: "Offline", pulse: true },
-    "wrong-network": { color: "bg-amber-400", label: "Wrong Network", pulse: true },
-    checking: { color: "bg-zinc-400", label: "Connecting...", pulse: true },
+    online:        { color: "bg-emerald-400", label: NETWORK_CONFIG.name, pulse: false },
+    offline:       { color: "bg-red-500",     label: "Offline",           pulse: true },
+    "wrong-network":{ color: "bg-amber-400",  label: "Wrong Network",     pulse: true },
+    checking:      { color: "bg-zinc-400",    label: "Connecting...",     pulse: true },
   }[networkStatus] ?? { color: "bg-zinc-400", label: "...", pulse: false };
 
-  // Format balance: tampilkan 4 desimal max
   const displayBalance = parseFloat(balance).toFixed(4);
+
+  const activeTab = NAV_TABS.find((t) => pathname.startsWith(t.href));
 
   return (
     <LayoutGroup>
@@ -71,7 +80,7 @@ export default function Navbar() {
           transition={springConfig}
           initial={false}
           animate={{
-            width: expanded ? 440 : 360,
+            width: expanded ? 460 : 560,
             borderRadius: expanded ? 28 : 999,
           }}
           className="
@@ -83,7 +92,7 @@ export default function Navbar() {
         >
           <motion.div layout className="flex flex-col w-full relative z-10">
 
-            {/* === HEADER BAR === */}
+            {/* ── HEADER BAR ── */}
             <div className="grid grid-cols-[auto_1fr_auto] items-center h-[60px] px-2 gap-3 w-full">
 
               {/* LOGO */}
@@ -91,14 +100,14 @@ export default function Navbar() {
                 <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.9 }}
-                  onClick={() => { setExpanded(false); router.push("/vault"); }}
+                  onClick={() => { setExpanded(false); router.push("/dashboard"); }}
                   className="w-10 h-10 bg-gradient-to-br from-foreground to-muted-foreground text-background rounded-full flex items-center justify-center shadow-lg"
                 >
                   <Command size={18} strokeWidth={2} />
                 </motion.button>
               </motion.div>
 
-              {/* TABS */}
+              {/* NAV TABS */}
               <div className="flex justify-center w-full h-full items-center">
                 <AnimatePresence mode="popLayout" initial={false}>
                   {!expanded && (
@@ -108,16 +117,17 @@ export default function Navbar() {
                       exit={{ opacity: 0, scale: 0.9, filter: "blur(10px)", transition: { duration: 0.15 } }}
                       className="flex bg-muted/40 p-1 rounded-full border border-black/5 dark:border-white/5"
                     >
-                      {["vault", "market"].map((item) => {
-                        const isActive = pathname === `/${item}`;
+                      {NAV_TABS.map((item) => {
+                        const isActive = pathname.startsWith(item.href);
                         return (
                           <button
-                            key={item}
-                            onClick={() => router.push(`/${item}`)}
-                            className={`relative px-5 py-1.5 text-[11px] font-bold uppercase tracking-wider rounded-full transition-all duration-300 z-10 ${isActive
+                            key={item.id}
+                            onClick={() => router.push(item.href)}
+                            className={`relative px-3.5 py-1.5 text-[10px] font-bold uppercase tracking-wider rounded-full transition-all duration-300 z-10 ${
+                              isActive
                                 ? "text-foreground"
                                 : "text-muted-foreground hover:text-foreground/80"
-                              }`}
+                            }`}
                           >
                             {isActive && (
                               <motion.div
@@ -126,7 +136,7 @@ export default function Navbar() {
                                 className="absolute inset-0 bg-background shadow-sm rounded-full border border-black/5 dark:border-white/5 -z-10"
                               />
                             )}
-                            {item}
+                            {item.label}
                           </button>
                         );
                       })}
@@ -135,15 +145,17 @@ export default function Navbar() {
                 </AnimatePresence>
               </div>
 
-              {/* WALLET TRIGGER */}
-              <motion.div layout className="flex items-center justify-end pr-1">
+              {/* RIGHT SIDE: Notifications + Wallet */}
+              <motion.div layout className="flex items-center justify-end gap-2 pr-1">
+                {!expanded && <NotificationCenter />}
                 <motion.button
                   whileTap={{ scale: 0.95 }}
                   onClick={() => setExpanded(!expanded)}
-                  className={`h-10 px-4 rounded-full font-bold text-[10px] flex items-center gap-2 transition-all duration-300 border ${expanded
+                  className={`h-10 px-4 rounded-full font-bold text-[10px] flex items-center gap-2 transition-all duration-300 border ${
+                    expanded
                       ? "bg-muted/50 text-foreground border-transparent"
                       : "bg-foreground text-background border-transparent shadow-md hover:opacity-90"
-                    }`}
+                  }`}
                 >
                   {!expanded && (
                     <span className="tracking-wider font-mono text-[9px]">
@@ -152,14 +164,13 @@ export default function Navbar() {
                   )}
                   {expanded && <span className="tracking-[0.15em]">CLOSE</span>}
                   <div
-                    className={`w-1.5 h-1.5 rounded-full ${networkConfig.color} ${networkConfig.pulse ? "animate-pulse" : ""
-                      } shadow-[0_0_8px_currentColor]`}
+                    className={`w-1.5 h-1.5 rounded-full ${networkConfig.color} ${networkConfig.pulse ? "animate-pulse" : ""} shadow-[0_0_8px_currentColor]`}
                   />
                 </motion.button>
               </motion.div>
             </div>
 
-            {/* === EXPANDED PANEL === */}
+            {/* ── EXPANDED PANEL ── */}
             <AnimatePresence>
               {expanded && (
                 <motion.div
@@ -177,7 +188,6 @@ export default function Navbar() {
                       transition={{ delay: 0.08, ...springConfig }}
                       className="flex flex-col gap-3"
                     >
-
                       {/* IDENTITY & THEME */}
                       <div className="flex justify-between items-center px-1">
                         <div className="flex items-center gap-3">
@@ -191,22 +201,46 @@ export default function Navbar() {
                             </span>
                           </div>
                         </div>
-                        <motion.button
-                          whileTap={{ scale: 0.9, rotate: 180 }}
-                          onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-                          className="w-9 h-9 rounded-full bg-muted/30 border border-border flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
-                        >
-                          {theme === "dark" ? <Sun size={15} /> : <Moon size={15} />}
-                        </motion.button>
+                        <div className="flex items-center gap-2">
+                          <NotificationCenter />
+                          <motion.button
+                            whileTap={{ scale: 0.9, rotate: 180 }}
+                            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+                            className="w-9 h-9 rounded-full bg-muted/30 border border-border flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
+                          >
+                            {theme === "dark" ? <Sun size={15} /> : <Moon size={15} />}
+                          </motion.button>
+                        </div>
+                      </div>
+
+                      {/* QUICK NAV (inside expanded panel) */}
+                      <div className="grid grid-cols-5 gap-1.5">
+                        {NAV_TABS.map((t) => {
+                          const isActive = pathname.startsWith(t.href);
+                          return (
+                            <button
+                              key={t.id}
+                              onClick={() => { setExpanded(false); router.push(t.href); }}
+                              className={`py-2 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all ${
+                                isActive
+                                  ? "bg-primary text-primary-foreground"
+                                  : "bg-muted/30 text-muted-foreground hover:bg-muted/60 hover:text-foreground"
+                              }`}
+                            >
+                              {t.label}
+                            </button>
+                          );
+                        })}
                       </div>
 
                       {/* NETWORK STATUS */}
-                      <div className={`flex items-center justify-between p-3 rounded-2xl border text-[10px] font-bold uppercase tracking-wider ${networkStatus === "online"
+                      <div className={`flex items-center justify-between p-3 rounded-2xl border text-[10px] font-bold uppercase tracking-wider ${
+                        networkStatus === "online"
                           ? "bg-emerald-500/5 border-emerald-500/20 text-emerald-600 dark:text-emerald-400"
                           : networkStatus === "offline"
                             ? "bg-red-500/5 border-red-500/20 text-red-500"
                             : "bg-amber-500/5 border-amber-500/20 text-amber-500"
-                        }`}>
+                      }`}>
                         <div className="flex items-center gap-2">
                           {networkStatus === "online"
                             ? <Wifi size={12} />
@@ -220,18 +254,12 @@ export default function Navbar() {
                         </span>
                       </div>
 
-                      {/* BALANCE CARD */}
+                      {/* BALANCE */}
                       <div className="p-4 rounded-2xl bg-muted/20 border border-black/5 dark:border-white/5">
-                        <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest block mb-1.5">
-                          Balance
-                        </span>
+                        <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest block mb-1.5">Balance</span>
                         <div className="flex items-end gap-1.5">
-                          <span className="text-2xl font-bold text-foreground tracking-tight">
-                            {displayBalance}
-                          </span>
-                          <span className="text-sm font-bold text-muted-foreground mb-0.5">
-                            {NETWORK_CONFIG.tokenSymbol}
-                          </span>
+                          <span className="text-2xl font-bold text-foreground tracking-tight">{displayBalance}</span>
+                          <span className="text-sm font-bold text-muted-foreground mb-0.5">{NETWORK_CONFIG.tokenSymbol}</span>
                         </div>
                       </div>
 
@@ -241,9 +269,7 @@ export default function Navbar() {
                         className="group relative flex flex-col gap-1.5 p-4 rounded-2xl bg-muted/20 border border-black/5 dark:border-white/5 hover:bg-muted/40 transition-all cursor-pointer overflow-hidden"
                       >
                         <div className="flex justify-between items-center">
-                          <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">
-                            Public Key
-                          </span>
+                          <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">Public Key</span>
                           <div className="flex items-center gap-1.5">
                             <span className="text-[9px] text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity">COPY</span>
                             {copied
@@ -257,10 +283,11 @@ export default function Navbar() {
                       </div>
 
                       {/* PRIVATE KEY */}
-                      <div className={`rounded-2xl border transition-all duration-300 overflow-hidden ${revealSecret
+                      <div className={`rounded-2xl border transition-all duration-300 overflow-hidden ${
+                        revealSecret
                           ? "bg-red-500/5 border-red-500/20"
                           : "bg-muted/20 border-transparent hover:border-black/5 dark:hover:border-white/5"
-                        }`}>
+                      }`}>
                         <button
                           onClick={() => setRevealSecret(!revealSecret)}
                           className="w-full flex items-center justify-between p-4"
@@ -287,9 +314,7 @@ export default function Navbar() {
                                     {wallet?.privateKey}
                                   </code>
                                 </div>
-                                <p className="text-[9px] text-center text-muted-foreground mt-2">
-                                  ⚠️ Jangan pernah bagikan key ini
-                                </p>
+                                <p className="text-[9px] text-center text-muted-foreground mt-2">⚠️ Jangan pernah bagikan key ini</p>
                               </div>
                             </motion.div>
                           )}
@@ -300,12 +325,11 @@ export default function Navbar() {
                       <motion.button
                         whileHover={{ scale: 1.01 }}
                         whileTap={{ scale: 0.98 }}
-                        onClick={logout}
+                        onClick={() => { logout(); window.location.replace("/"); }}
                         className="w-full py-3 rounded-2xl bg-foreground text-background text-[11px] font-bold uppercase tracking-widest hover:bg-red-600 hover:text-white transition-all shadow-md flex items-center justify-center gap-2"
                       >
                         <LogOut size={13} /> End Session
                       </motion.button>
-
                     </motion.div>
                   </div>
                 </motion.div>

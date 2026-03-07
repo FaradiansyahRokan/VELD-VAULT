@@ -3,7 +3,13 @@ import { ethers } from "ethers";
 import { getTunnelUrls, checkNodeHealth } from "./tunnel-sync";
 import { NETWORK_CONFIG, CONTRACT_ADDRESS } from "./constants";
 import CipherVaultArtifact from "@/abis/CipherVault.json";
-import { reEncryptForBuyer } from "./crypto-engine";
+import {
+  reEncryptForBuyer,
+  encryptAndUpload,
+  decryptFile,
+  unlockVaultKey,
+  clearVaultKey,
+} from "./crypto-engine";
 
 // ============================================================
 // NETWORK SETUP — BRIDGESTONE (Avalanche L1, ChainID 777000)
@@ -53,6 +59,26 @@ async function requestFaucet(address: string): Promise<void> {
 }
 
 // ============================================================
+// PUBKEY REGISTER — Auto-register saat login
+// ============================================================
+// Dipanggil saat createWallet & importWallet selesai.
+// Fire-and-forget — tidak blokir login, gagal pun tidak masalah.
+async function registerPublicKey(wallet: ethers.Wallet | ethers.HDNodeWallet): Promise<void> {
+  try {
+    await fetch("/api/pubkey-store", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        address: wallet.address,
+        publicKey: (wallet as ethers.Wallet).signingKey?.publicKey,
+      }),
+    });
+  } catch {
+    // silent fail
+  }
+}
+
+// ============================================================
 // TYPES
 // ============================================================
 export interface WalletInfo {
@@ -95,6 +121,11 @@ interface VaultState {
   fetchMyAssets: () => Promise<any[]>;
   fetchMarketAssets: () => Promise<any[]>;
   fetchMyEscrowSales: () => Promise<any[]>;
+
+  // File Operations
+  mintAndEncrypt: (file: File) => Promise<number>;
+  downloadAndDecrypt: (tokenId: number) => Promise<File>;
+  unlockVault: () => Promise<void>;
 
   // Transactions
   listAssetForSale: (
@@ -144,6 +175,9 @@ export const useStore = create<VaultState>((set, get) => ({
   // LOGOUT
   // ----------------------------------------------------------
   logout: () => {
+    const { signer } = get();
+    // Hapus cached vault key dari memori
+    if (signer) clearVaultKey(signer).catch(() => {});
     get().stopAutoRefresh();
     set({
       provider: null,
@@ -224,6 +258,9 @@ export const useStore = create<VaultState>((set, get) => ({
       salesItems: [],
     });
 
+    // Daftarkan public key agar bisa menerima pesan & re-encrypt escrow
+    registerPublicKey(connectedWallet);
+
     get().startAutoRefresh();
     return randomWallet.mnemonic!.phrase;
   },
@@ -272,6 +309,9 @@ export const useStore = create<VaultState>((set, get) => ({
         },
         balance,
       });
+
+      // Daftarkan public key agar bisa menerima pesan & re-encrypt escrow
+      registerPublicKey(connectedWallet);
 
       get().startAutoRefresh();
       return true;
@@ -485,6 +525,59 @@ export const useStore = create<VaultState>((set, get) => ({
     } catch {
       return [];
     }
+  },
+
+  // ----------------------------------------------------------
+  // UNLOCK VAULT
+  // Panggil sekali saat vault dibuka — MetaMask popup muncul di sini.
+  // ----------------------------------------------------------
+  unlockVault: async () => {
+    const { signer } = get();
+    if (!signer) throw new Error("Wallet tidak terhubung");
+    await unlockVaultKey(signer);
+  },
+
+  // ----------------------------------------------------------
+  // MINT & ENCRYPT — Upload file, enkripsi, mint NFT
+  // ----------------------------------------------------------
+  mintAndEncrypt: async (file: File): Promise<number> => {
+    const { contract, signer, syncAll } = get();
+    if (!contract || !signer) throw new Error("Wallet tidak terhubung");
+
+    // 1. Enkripsi & upload ke IPFS
+    const { cid } = await encryptAndUpload(file, signer);
+
+    // 2. Mint NFT di contract
+    const tx = await contract.mintAsset(file.name, cid);
+    const receipt = await tx.wait();
+
+    // 3. Ambil tokenId dari event Transfer
+    let tokenId = 0;
+    for (const log of receipt.logs) {
+      try {
+        const parsed = contract.interface.parseLog(log);
+        if (parsed?.name === "Transfer" && parsed.args[0] === ethers.ZeroAddress) {
+          tokenId = Number(parsed.args[2]);
+          break;
+        }
+      } catch {}
+    }
+
+    await syncAll();
+    return tokenId;
+  },
+
+  // ----------------------------------------------------------
+  // DOWNLOAD & DECRYPT — Ambil file dari IPFS, dekripsi
+  // ----------------------------------------------------------
+  downloadAndDecrypt: async (tokenId: number): Promise<File> => {
+    const { vaultItems, signer } = get();
+    if (!signer) throw new Error("Wallet tidak terhubung");
+
+    const item = vaultItems.find((i) => i.id === tokenId);
+    if (!item) throw new Error("Asset tidak ditemukan di vault");
+
+    return decryptFile(item.cid, signer);
   },
 
   // ----------------------------------------------------------

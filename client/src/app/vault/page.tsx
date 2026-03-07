@@ -7,11 +7,15 @@ import { useActivityStore } from "@/lib/activity-store";
 import { decryptFile, uploadPreview, unlockVaultKey } from "@/lib/crypto-engine";
 import {
   Upload, FileText, Send, Trash2, Box, Users, Check, Tag, XCircle,
-  Eye, Lock, ShieldCheck, Clock, CheckCircle2, ImagePlus,
+  Eye, Lock, ShieldCheck, Clock, CheckCircle2, ImagePlus, FolderUp, Link2
 } from "lucide-react";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button, Input, Modal } from "@/components/ui-kits";
+import FilePreviewModal from "@/components/FilePreviewModal";
+import BatchUpload from "@/components/BatchUpload";
+import ShareWithExpiry from "@/components/ShareWithExpiry";
+import PriceHistory from "@/components/PriceHistory";
 import { NETWORK_CONFIG } from "@/lib/constants";
 
 export default function VaultPage() {
@@ -28,7 +32,7 @@ export default function VaultPage() {
   const [loading, setLoading] = useState(false);
   const [isClient, setIsClient] = useState(false);
   const [modals, setModals] = useState({
-    sell: false, edit: false, transfer: false, burn: false, preview: false,
+    sell: false, edit: false, transfer: false, burn: false, preview: false, batchUpload: false, share: false,
   });
   const [activeId, setActiveId] = useState<number | null>(null);
   const [txLoading, setTxLoading] = useState<Record<number, boolean>>({});
@@ -38,6 +42,9 @@ export default function VaultPage() {
     mode: "MOVE" as "MOVE" | "COPY",
     cid: "", name: "", previewUrl: "",
     previewFile: null as File | null,
+    previewObj: null as File | null,
+    previewType: "",
+    previewName: "",
   });
 
   useEffect(() => {
@@ -100,15 +107,17 @@ export default function VaultPage() {
     const t = toast.loading("Mendekripsi...");
     try {
       const file = await decryptFile(cid, signer);
-      const url = URL.createObjectURL(file);
+
       if (mode === "PREVIEW") {
-        setFormData((p) => ({ ...p, previewUrl: url }));
+        setFormData((p) => ({ ...p, previewObj: file, previewUrl: "", previewName: file.name }));
         setModals((p) => ({ ...p, preview: true }));
       } else {
+        const url = URL.createObjectURL(file);
         const a = document.createElement("a");
         a.href = url;
         a.download = file.name;
         a.click();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
       }
       toast.dismiss(t);
     } catch (err: any) {
@@ -169,15 +178,25 @@ export default function VaultPage() {
           </div>
         </motion.div>
 
-        <label className={`cursor-pointer group px-8 py-5 bg-foreground text-background text-sm font-bold rounded-2xl shadow-2xl flex items-center gap-4 hover:opacity-90 transition-all ${loading ? "opacity-70 pointer-events-none" : ""}`}>
-          <div className="flex items-center gap-3">
-            {loading
-              ? <div className="w-5 h-5 border-2 border-background/30 border-t-background rounded-full animate-spin" />
-              : <Upload size={18} strokeWidth={2.5} />}
-            <span className="tracking-wide">{loading ? "ENCRYPTING..." : "UPLOAD ASSET"}</span>
-          </div>
-          <input type="file" className="hidden" onChange={handleUpload} disabled={loading} />
-        </label>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setModals((p) => ({ ...p, batchUpload: true }))}
+            className="group px-6 py-4 bg-muted/60 text-foreground text-sm font-bold rounded-2xl flex items-center gap-3 hover:bg-muted transition-all border border-border/50"
+          >
+            <FolderUp size={18} strokeWidth={2.5} className="text-muted-foreground group-hover:text-foreground transition-colors" />
+            <span className="tracking-wide text-muted-foreground group-hover:text-foreground transition-colors">BATCH UPLOAD</span>
+          </button>
+
+          <label className={`cursor-pointer group px-8 py-4 bg-foreground text-background text-sm font-bold rounded-2xl shadow-2xl flex items-center gap-3 hover:opacity-90 transition-all ${loading ? "opacity-70 pointer-events-none" : ""}`}>
+            <div className="flex items-center gap-3">
+              {loading
+                ? <div className="w-5 h-5 border-2 border-background/30 border-t-background rounded-full animate-spin" />
+                : <Upload size={18} strokeWidth={2.5} />}
+              <span className="tracking-wide">{loading ? "ENCRYPTING..." : "UPLOAD ASSET"}</span>
+            </div>
+            <input type="file" className="hidden" onChange={handleUpload} disabled={loading} />
+          </label>
+        </div>
       </div>
 
       {/* INCOMING OFFERS (Seller Notification) */}
@@ -209,12 +228,13 @@ export default function VaultPage() {
                     </div>
                     <div>
                       <h3 className="font-bold text-foreground">Offer: {sale.name}</h3>
-                      <p className="text-xs text-muted-foreground">
+                      <p className="text-xs text-muted-foreground mb-2">
                         Buyer: {sale.buyer.slice(0, 6)}...{sale.buyer.slice(-4)} ·{" "}
                         <span className="text-foreground font-bold">
                           {sale.price} {NETWORK_CONFIG.tokenSymbol}
                         </span>
                       </p>
+                      <PriceHistory tokenId={sale.tokenId} currentPrice={sale.price} compact />
                     </div>
                   </div>
                   <div className="flex gap-2">
@@ -312,13 +332,12 @@ export default function VaultPage() {
                 <div className="p-6 pb-2">
                   {/* CARD HEADER */}
                   <div className="flex justify-between items-start mb-8">
-                    <div className={`w-14 h-14 rounded-[1.2rem] flex items-center justify-center border ${
-                      file.isCopy
-                        ? "bg-muted/50 border-border text-muted-foreground"
-                        : inEscrow
-                          ? "bg-amber-500/20 text-amber-500 border-amber-500/30"
-                          : "bg-gradient-to-br from-background to-muted border-white/10 text-foreground"
-                    }`}>
+                    <div className={`w-14 h-14 rounded-[1.2rem] flex items-center justify-center border ${file.isCopy
+                      ? "bg-muted/50 border-border text-muted-foreground"
+                      : inEscrow
+                        ? "bg-amber-500/20 text-amber-500 border-amber-500/30"
+                        : "bg-gradient-to-br from-background to-muted border-white/10 text-foreground"
+                      }`}>
                       {inEscrow ? <ShieldCheck size={24} /> : file.isCopy ? <Users size={24} /> : <FileText size={24} />}
                     </div>
 
@@ -329,11 +348,10 @@ export default function VaultPage() {
                         </span>
                       )}
                       {inEscrow && (
-                        <span className={`px-2.5 py-1 rounded-full text-[9px] font-bold border uppercase tracking-wide ${
-                          isSeller
-                            ? "bg-blue-500/10 text-blue-500 border-blue-500/20"
-                            : "bg-purple-500/10 text-purple-500 border-purple-500/20"
-                        }`}>
+                        <span className={`px-2.5 py-1 rounded-full text-[9px] font-bold border uppercase tracking-wide ${isSeller
+                          ? "bg-blue-500/10 text-blue-500 border-blue-500/20"
+                          : "bg-purple-500/10 text-purple-500 border-purple-500/20"
+                          }`}>
                           {isSeller ? "Kamu Seller" : "Kamu Buyer"}
                         </span>
                       )}
@@ -350,9 +368,14 @@ export default function VaultPage() {
                         #{file.id}
                       </span>
                       {(file.isListed || inEscrow) && (
-                        <span className="text-sm font-bold text-foreground">
-                          {file.price} {NETWORK_CONFIG.tokenSymbol}
-                        </span>
+                        <div className="flex flex-col items-start gap-1">
+                          <span className="text-sm font-bold text-foreground">
+                            {file.price} {NETWORK_CONFIG.tokenSymbol}
+                          </span>
+                          {file.isListed && (
+                            <PriceHistory tokenId={file.id} currentPrice={file.price} compact />
+                          )}
+                        </div>
                       )}
                     </div>
                   </div>
@@ -413,6 +436,9 @@ export default function VaultPage() {
                                 setFormData((p) => ({
                                   ...p,
                                   previewUrl: `${NETWORK_CONFIG.ipfsGateway}/ipfs/${file.previewURI}`,
+                                  previewObj: null,
+                                  previewName: file.name + " (Preview)",
+                                  previewType: "image/jpeg",
                                 }));
                                 setModals((p) => ({ ...p, preview: true }));
                               } else {
@@ -439,11 +465,10 @@ export default function VaultPage() {
                               } catch (e: any) { toast.error(e.message); }
                             }}
                             disabled={file.buyerConfirmed}
-                            className={`flex-1 h-12 rounded-[1.5rem] font-bold text-xs transition-all border flex items-center justify-center gap-2 ${
-                              file.buyerConfirmed
-                                ? "bg-muted text-muted-foreground border-border"
-                                : "bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500 hover:text-white border-emerald-500/20"
-                            }`}
+                            className={`flex-1 h-12 rounded-[1.5rem] font-bold text-xs transition-all border flex items-center justify-center gap-2 ${file.buyerConfirmed
+                              ? "bg-muted text-muted-foreground border-border"
+                              : "bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500 hover:text-white border-emerald-500/20"
+                              }`}
                           >
                             {file.buyerConfirmed ? "Menunggu Seller..." : <><Check size={14} /> Konfirmasi Payment</>}
                           </button>
@@ -506,14 +531,23 @@ export default function VaultPage() {
                       {!file.isCopy && (
                         <div className="flex gap-2">
                           <button
+                            onClick={() => openModal("share", file.id, { name: file.name })}
+                            className="h-12 w-12 rounded-full bg-background border border-border/50 flex items-center justify-center text-foreground hover:scale-105 transition-transform shadow-sm"
+                            title="Bagikan via Link"
+                          >
+                            <Link2 size={16} />
+                          </button>
+                          <button
                             onClick={() => openModal("transfer", file.id, { mode: "MOVE", cid: file.cid, name: file.name })}
                             className="h-12 w-12 rounded-full bg-background border border-border/50 flex items-center justify-center text-foreground hover:scale-105 transition-transform shadow-sm"
+                            title="Transfer"
                           >
                             <Send size={16} />
                           </button>
                           <button
                             onClick={() => openModal("sell", file.id)}
                             className="h-12 w-12 rounded-full bg-background border border-border/50 flex items-center justify-center text-foreground hover:scale-105 transition-transform shadow-sm"
+                            title="Jual"
                           >
                             <Tag size={16} />
                           </button>
@@ -538,23 +572,30 @@ export default function VaultPage() {
       <AnimatePresence>
 
         {/* PREVIEW */}
-        {modals.preview && (
-          <Modal key="preview" isOpen onClose={() => closeModal("preview")} title="Secure Preview">
-            <div
-              className="flex justify-center bg-black/90 rounded-3xl overflow-hidden border border-white/10 relative select-none"
-              onContextMenu={(e) => e.preventDefault()}
-            >
-              {formData.previewUrl ? (
-                <img src={formData.previewUrl} className="max-w-full max-h-[60vh] object-contain pointer-events-none" draggable={false} />
-              ) : (
-                <div className="p-10 text-center text-muted-foreground">
-                  <Lock size={40} className="mx-auto mb-4" />Preview Terenkripsi
-                </div>
-              )}
-              <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-10">
-                <h1 className="text-4xl font-bold -rotate-45 text-white">PREVIEW ONLY</h1>
-              </div>
-            </div>
+        <FilePreviewModal
+          isOpen={modals.preview}
+          onClose={() => closeModal("preview")}
+          file={formData.previewObj}
+          url={formData.previewUrl || null}
+          fileName={formData.previewName}
+          fileType={formData.previewType}
+        />
+
+        {/* BATCH UPLOAD */}
+        {modals.batchUpload && (
+          <Modal key="batchUpload" isOpen onClose={() => closeModal("batchUpload")} title="Upload Banyak Asset">
+            <BatchUpload onClose={() => closeModal("batchUpload")} />
+          </Modal>
+        )}
+
+        {/* SHARE */}
+        {modals.share && activeId && (
+          <Modal key="share" isOpen onClose={() => closeModal("share")} title="Bagikan Asset">
+            <ShareWithExpiry
+              tokenId={activeId}
+              fileName={formData.name}
+              onClose={() => closeModal("share")}
+            />
           </Modal>
         )}
 

@@ -13,19 +13,13 @@ import {
   Lock, Loader2, UserCircle2, Check, CheckCheck,
 } from "lucide-react";
 import { toast } from "sonner";
-import {
-  EmojiPhysicsPlayground,
-  RandomVisitorLayer,
-  RoomEventLayer,
-  useChatExtras,
-} from "./chat-extras";
+import { EmojiPhysicsPlayground } from "./chat-extras";
 
 // ══════════════════════════════════════════════════════════════════
 // ✨ EFFECT ENGINE
 // ══════════════════════════════════════════════════════════════════
 
 type EffectType = "hearts" | "coins" | "laugh" | "confetti" | "stars" | "party" | "matrix" | "rain" | null;
-type MascotMood = "idle" | "excited" | "catching" | "sleeping";
 
 function detectEffect(text: string): EffectType {
   const t = text.toLowerCase();
@@ -50,12 +44,12 @@ function detectAmbient(msgs: any[]): string {
 }
 
 const EFFECT_EMOJIS: Record<string, string[]> = {
-  hearts: ["❤️", "💕", "💖", "💗", "🩷", "💝", "🫶"],
-  coins: ["🪙", "💰", "💎", "✨", "💴", "🤑", "💸"],
-  laugh: ["😂", "🤣", "😆", "😹", "💀", "🤭", "😭"],
+  hearts:   ["❤️", "💕", "💖", "💗", "🩷", "💝", "🫶"],
+  coins:    ["🪙", "💰", "💎", "✨", "💴", "🤑", "💸"],
+  laugh:    ["😂", "🤣", "😆", "😹", "💀", "🤭", "😭"],
   confetti: ["🎉", "🎊", "✨", "⭐", "🌟", "💫", "🎈", "🎆"],
-  stars: ["⭐", "🌟", "💫", "✨", "🌙", "🌌", "🌠", "🌃"],
-  party: ["🎉", "🎊", "🎈", "✨", "🦄", "🔥", "💫", "🎁", "🥳", "🍾"],
+  stars:    ["⭐", "🌟", "💫", "✨", "🌙", "🌌", "🌠", "🌃"],
+  party:    ["🎉", "🎊", "🎈", "✨", "🦄", "🔥", "💫", "🎁", "🥳", "🍾"],
 };
 
 interface Particle { id: string; x: number; delay: number; duration: number; size: number; rotate: number; drift: number; emoji: string; }
@@ -183,10 +177,10 @@ function TapSparks({ sparks }: { sparks: TapSpark[] }) {
 function AmbientRoom({ mood }: { mood: string }) {
   const styles: Record<string, string> = {
     romantic: "radial-gradient(ellipse 80% 60% at 50% 80%, rgba(251,113,133,0.13) 0%, transparent 70%)",
-    fun: "radial-gradient(ellipse at 20% 80%, rgba(251,191,36,0.1) 0%, transparent 55%), radial-gradient(ellipse at 80% 20%, rgba(167,139,250,0.1) 0%, transparent 55%)",
-    night: "radial-gradient(ellipse at 50% 0%, rgba(15,23,42,0.55) 0%, transparent 65%)",
-    hype: "radial-gradient(ellipse at 85% 15%, rgba(251,146,60,0.12) 0%, transparent 55%)",
-    default: "none",
+    fun:      "radial-gradient(ellipse at 20% 80%, rgba(251,191,36,0.1) 0%, transparent 55%), radial-gradient(ellipse at 80% 20%, rgba(167,139,250,0.1) 0%, transparent 55%)",
+    night:    "radial-gradient(ellipse at 50% 0%, rgba(15,23,42,0.55) 0%, transparent 65%)",
+    hype:     "radial-gradient(ellipse at 85% 15%, rgba(251,146,60,0.12) 0%, transparent 55%)",
+    default:  "none",
   };
   return (
     <motion.div className="absolute inset-0 pointer-events-none z-0 rounded-[2rem]"
@@ -236,56 +230,6 @@ function TypingIndicator({ name }: { name?: string }) {
   );
 }
 
-function RoomCreature({ mood, msgCount }: { mood: MascotMood; msgCount: number }) {
-  const [sleeping, setSleeping] = useState(false);
-  const [frame, setFrame] = useState(0);
-  const timer = useRef<NodeJS.Timeout | undefined>(undefined);
-  useEffect(() => {
-    setSleeping(false);
-    clearTimeout(timer.current);
-    timer.current = setTimeout(() => setSleeping(true), 25_000);
-    return () => clearTimeout(timer.current);
-  }, [msgCount]);
-  useEffect(() => {
-    const t = setInterval(() => setFrame((f) => (f + 1) % 2), 500);
-    return () => clearInterval(t);
-  }, []);
-  const faces = sleeping
-    ? ["(=ω=)zzz", "(=ω=)zzZ"]
-    : mood === "excited" ? ["(=^▽^=)!", "(=^ω^=)↑"]
-      : mood === "catching" ? ["(ﾐ=^∇^=ﾐ)", "(=^◉ᆺ◉^=)"]
-        : ["(=^･ω･^=)", "(=^･ᆺ･^=)"];
-  const anims = sleeping ? { rotate: [0, 2, 0, -2, 0] }
-    : mood === "excited" ? { y: [0, -14, 0, -9, 0, -5, 0], rotate: [-4, 4, -3, 3, 0] }
-      : mood === "catching" ? { y: [0, -7, 0], scale: [1, 1.12, 1] }
-        : { y: [0, -4, 0] };
-  return (
-    <motion.div className="absolute bottom-[76px] right-4 z-30 select-none cursor-pointer"
-      animate={anims}
-      transition={{ repeat: Infinity, duration: sleeping ? 3.5 : mood === "excited" ? 0.55 : 2.2, ease: "easeInOut" }}
-      onClick={() => { setSleeping(false); clearTimeout(timer.current); }}>
-      <div className="relative">
-        <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.88 }} transition={{ type: "spring", stiffness: 500, damping: 18 }}
-          className="bg-card/85 backdrop-blur-md border border-border/40 rounded-2xl px-3 py-2 shadow-lg text-xs font-mono text-foreground/70 whitespace-nowrap">
-          {faces[frame]}
-        </motion.div>
-        {sleeping && (
-          <motion.span className="absolute -top-3 -right-1 text-sm"
-            animate={{ opacity: [0, 1, 0], y: [0, -5, -10], scale: [0.6, 1, 0.8] }}
-            transition={{ repeat: Infinity, duration: 1.8 }}>
-            💤
-          </motion.span>
-        )}
-        {mood === "catching" && (
-          <motion.span className="absolute -top-4 left-1/2 -translate-x-1/2 text-base"
-            animate={{ y: [0, -8, 0], scale: [0.8, 1.2, 0.8] }} transition={{ repeat: Infinity, duration: 0.5 }}>
-            ❤️
-          </motion.span>
-        )}
-      </div>
-    </motion.div>
-  );
-}
 
 function MessageBubble({ m, isMine, showDate, onTap }: {
   m: any; isMine: boolean; showDate: boolean; onTap?: (x: number, y: number) => void;
@@ -318,7 +262,8 @@ function MessageBubble({ m, isMine, showDate, onTap }: {
             ${isMine
               ? "bg-primary text-primary-foreground rounded-br-md shadow-lg shadow-primary/25"
               : "bg-muted/40 text-foreground border border-border/40 rounded-bl-md"
-            }`}>
+            }`}
+          data-pet-bubble="1">
           {isMine && (
             <motion.div className="absolute inset-0 bg-white/10 -skew-x-12 pointer-events-none"
               initial={{ x: "-110%" }} animate={{ x: "220%" }} transition={{ duration: 1.2, delay: 0.25, ease: "easeOut" }} />
@@ -363,8 +308,6 @@ export default function MessagesPage() {
   const [effect, setEffect] = useState<EffectType>(null);
   const [matrixActive, setMatrixActive] = useState(false);
   const [rainActive, setRainActive] = useState(false);
-  const [mascotMood, setMascotMood] = useState<MascotMood>("idle");
-  const [msgCount, setMsgCount] = useState(0);
   const [ambientMood, setAmbientMood] = useState("default");
   const [tapSparks, setTapSparks] = useState<TapSpark[]>([]);
   const [sendTrigger, setSendTrigger] = useState(0);
@@ -378,7 +321,6 @@ export default function MessagesPage() {
   const sentCacheRef = useRef<Map<string, string>>(new Map());
   const lastTypingNotif = useRef(0);
 
-  const { roomEvent } = useChatExtras(activeAddr);
 
   useEffect(() => {
     setMounted(true);
@@ -392,9 +334,7 @@ export default function MessagesPage() {
     if (!fx) return;
     effectCooldown.current = now;
     if (fx === "matrix") { setMatrixActive(true); setTimeout(() => setMatrixActive(false), 9_000); return; }
-    if (fx === "rain") { setRainActive(true); setTimeout(() => setRainActive(false), 9_000); return; }
-    if (fx === "hearts" || fx === "coins") { setMascotMood("catching"); setTimeout(() => setMascotMood("idle"), 3_000); }
-    else { setMascotMood("excited"); setTimeout(() => setMascotMood("idle"), 2_500); }
+    if (fx === "rain")   { setRainActive(true);  setTimeout(() => setRainActive(false), 9_000);  return; }
     setEffect(fx);
   }, []);
 
@@ -440,7 +380,7 @@ export default function MessagesPage() {
     const now = Date.now();
     if (now - lastTypingNotif.current < 4_000 || !wallet?.address || !activeAddr) return;
     lastTypingNotif.current = now;
-    fetch("/api/typing", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ from: wallet.address, to: activeAddr }) }).catch(() => { });
+    fetch("/api/typing", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ from: wallet.address, to: activeAddr }) }).catch(() => {});
   }, [wallet?.address, activeAddr]);
 
   const fetchMessages = useCallback(async (passive = false) => {
@@ -483,7 +423,6 @@ export default function MessagesPage() {
 
       const incoming = decrypted.filter(m => m.to === wallet.address.toLowerCase());
       if (incoming.length) {
-        setMsgCount(n => n + incoming.length);
         incoming.forEach(m => triggerEffect(m.decrypted || ""));
         if (!passive) incoming.forEach(m => addActivity({ type: "message_received", title: "Pesan diterima", description: `Dari ${shortAddr(m.from)}: ${(m.decrypted || "").slice(0, 40)}`, walletAddress: wallet.address, address: m.from }));
       }
@@ -543,7 +482,6 @@ export default function MessagesPage() {
       });
       setSendTrigger(t => t + 1);
       triggerEffect(text);
-      setMsgCount(n => n + 1);
       await fetch("/api/messages", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ from: wallet.address.toLowerCase(), to: activeAddr.toLowerCase(), ...encrypted }) });
       addActivity({ type: "message_sent", title: "Pesan dikirim", description: `Ke ${shortAddr(activeAddr)}: ${text.slice(0, 40)}`, walletAddress: wallet.address, address: activeAddr });
     } catch (e: any) { toast.error(e.message || "Gagal mengirim"); setInput(text); }
@@ -672,9 +610,6 @@ export default function MessagesPage() {
           <MatrixCanvas active={matrixActive} />
           <RainCanvas active={rainActive} />
           <EffectOverlay effect={effect} onDone={() => setEffect(null)} />
-          {/* ✨ Extras */}
-          {activeAddr && <RandomVisitorLayer containerRef={chatAreaRef} />}
-          {activeAddr && <RoomEventLayer {...roomEvent} />}
 
           {!activeAddr ? (
             <div className="flex-1 flex flex-col items-center justify-center gap-4 text-center px-8 relative z-10">
@@ -748,8 +683,7 @@ export default function MessagesPage() {
                 <div className="h-2" aria-hidden />
               </div>
 
-              {/* Mascot */}
-              <RoomCreature mood={mascotMood} msgCount={msgCount} />
+
               {/* Emoji Physics */}
               <EmojiPhysicsPlayground containerRef={messagesContainerRef} />
 
@@ -774,9 +708,6 @@ export default function MessagesPage() {
                     </motion.button>
                   </div>
                 </div>
-                <p className="text-[9px] text-muted-foreground/35 mt-1.5 ml-1">
-                  ✨ sayang · wkwk · wow · uang · good night · :party: · :rain: · :matrix:
-                </p>
               </div>
             </>
           )}

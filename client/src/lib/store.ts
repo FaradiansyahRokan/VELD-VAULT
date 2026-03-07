@@ -11,6 +11,7 @@ import {
   unlockVaultKey,
   clearVaultKey,
 } from "./crypto-engine";
+import { recordPriceEvent } from "@/components/PriceHistory";
 
 // ============================================================
 // NETWORK SETUP — BRIDGESTONE (Avalanche L1, ChainID 777000)
@@ -590,6 +591,7 @@ export const useStore = create<VaultState>((set, get) => ({
         gasOverride("listAsset")
       );
       await tx.wait();
+      recordPriceEvent(tokenId, { price, event: "listed", timestamp: Date.now() });
       await syncAll();
       return true;
     } catch (error: any) {
@@ -611,6 +613,7 @@ export const useStore = create<VaultState>((set, get) => ({
         gasOverride("updateListing")
       );
       await tx.wait();
+      recordPriceEvent(tokenId, { price: newPrice, event: "relisted", timestamp: Date.now() });
       await syncAll();
       return true;
     } catch (error: any) {
@@ -660,6 +663,7 @@ export const useStore = create<VaultState>((set, get) => ({
         }).catch((err) => console.warn("[buyAsset] Gagal register pubkey:", err));
       }
 
+      recordPriceEvent(tokenId, { price, event: "sold", timestamp: Date.now() });
       await syncAll();
       return true;
     } catch (error: any) {

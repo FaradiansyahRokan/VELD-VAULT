@@ -8,6 +8,7 @@ import { motion } from "framer-motion";
 import { Button } from "@/components/ui-kits";
 import { NETWORK_CONFIG } from "@/lib/constants";
 import { toast } from "sonner";
+import PriceHistory from "@/components/PriceHistory";
 
 export default function MarketPage() {
   const router = useRouter();
@@ -27,7 +28,7 @@ export default function MarketPage() {
   const filtered = marketItems.filter((item: any) =>
     search
       ? item.name?.toLowerCase().includes(search.toLowerCase()) ||
-        String(item.tokenId).includes(search)
+      String(item.tokenId).includes(search)
       : true
   );
 
@@ -136,7 +137,7 @@ export default function MarketPage() {
         <motion.div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-8">
           {filtered.map((item: any, i: number) => {
             const isLoading = loadingId === item.tokenId;
-            const isSelf    = wallet?.address.toLowerCase() === item.seller?.toLowerCase();
+            const isSelf = wallet?.address.toLowerCase() === item.seller?.toLowerCase();
 
             return (
               <motion.div
@@ -214,6 +215,11 @@ export default function MarketPage() {
                         </span>
                       </div>
                     </div>
+
+                    <div className="-mt-2 flex justify-end">
+                      <PriceHistory tokenId={item.tokenId} currentPrice={item.price} compact />
+                    </div>
+
                     <Button
                       onClick={() => handleBuy(item.tokenId, item.price)}
                       disabled={isLoading || isSelf}
@@ -223,8 +229,8 @@ export default function MarketPage() {
                       {isSelf
                         ? "Asset Milikmu"
                         : isLoading
-                        ? "Memproses..."
-                        : `Beli dengan ${NETWORK_CONFIG.tokenSymbol}`}
+                          ? "Memproses..."
+                          : `Beli dengan ${NETWORK_CONFIG.tokenSymbol}`}
                     </Button>
                   </div>
                 </div>

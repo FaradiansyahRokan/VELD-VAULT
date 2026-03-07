@@ -10,6 +10,7 @@ import {
     FolderUp, File, Image, FileText, Music, Video, Pause
 } from "lucide-react";
 import { toast } from "sonner";
+import FilePreviewModal from "@/components/FilePreviewModal";
 
 type FileStatus = "pending" | "encrypting" | "uploading" | "done" | "error";
 
@@ -49,6 +50,9 @@ export default function BatchUpload({ onClose }: { onClose?: () => void }) {
     const [done, setDone] = useState(false);
     const inputRef = useRef<HTMLInputElement>(null);
     const abortRef = useRef(false);
+
+    const [previewFile, setPreviewFile] = useState<File | null>(null);
+    const [isPreviewOpen, setIsPreviewOpen] = useState(false);
 
     const addFiles = (incoming: File[]) => {
         const newItems: FileItem[] = incoming.map((f) => ({
@@ -215,7 +219,13 @@ export default function BatchUpload({ onClose }: { onClose?: () => void }) {
                                         initial={{ opacity: 0, x: -12 }}
                                         animate={{ opacity: 1, x: 0 }}
                                         exit={{ opacity: 0, x: 12 }}
-                                        className="relative flex items-center gap-3 p-3.5 rounded-xl bg-card border border-border/40 overflow-hidden"
+                                        className={`relative flex items-center gap-3 p-3.5 rounded-xl bg-card border border-border/40 overflow-hidden ${item.status === 'pending' || item.status === 'error' ? 'cursor-pointer hover:border-primary/40 transition-colors' : ''}`}
+                                        onClick={() => {
+                                            if (item.status === "pending" || item.status === "error") {
+                                                setPreviewFile(item.file);
+                                                setIsPreviewOpen(true);
+                                            }
+                                        }}
                                     >
                                         {/* Progress background */}
                                         {item.status !== "pending" && item.status !== "error" && (
@@ -227,9 +237,9 @@ export default function BatchUpload({ onClose }: { onClose?: () => void }) {
 
                                         <div className="relative shrink-0">
                                             <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${item.status === "done" ? "bg-emerald-500/10" :
-                                                    item.status === "error" ? "bg-red-500/10" :
-                                                        item.status === "pending" ? "bg-muted/30" :
-                                                            "bg-primary/10"
+                                                item.status === "error" ? "bg-red-500/10" :
+                                                    item.status === "pending" ? "bg-muted/30" :
+                                                        "bg-primary/10"
                                                 }`}>
                                                 {item.status === "done" ? (
                                                     <CheckCircle2 size={16} className="text-emerald-500" />
@@ -264,7 +274,7 @@ export default function BatchUpload({ onClose }: { onClose?: () => void }) {
 
                                         {item.status === "pending" && !running && (
                                             <button
-                                                onClick={() => removeFile(item.id)}
+                                                onClick={(e) => { e.stopPropagation(); removeFile(item.id); }}
                                                 className="relative w-6 h-6 rounded-lg flex items-center justify-center text-muted-foreground hover:text-red-400 transition-colors"
                                             >
                                                 <X size={12} />
@@ -335,6 +345,12 @@ export default function BatchUpload({ onClose }: { onClose?: () => void }) {
                     </div>
                 </div>
             )}
+
+            <FilePreviewModal
+                isOpen={isPreviewOpen}
+                onClose={() => setIsPreviewOpen(false)}
+                file={previewFile}
+            />
         </div>
     );
 }

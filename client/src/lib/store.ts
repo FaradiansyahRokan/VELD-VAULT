@@ -182,7 +182,7 @@ export const useStore = create<VaultState>((set, get) => ({
   logout: () => {
     const { signer } = get();
     // Hapus cached vault key dari memori
-    if (signer) clearVaultKey(signer).catch(() => {});
+    if (signer) clearVaultKey(signer).catch(() => { });
     get().stopAutoRefresh();
     set({
       provider: null,
@@ -242,7 +242,7 @@ export const useStore = create<VaultState>((set, get) => ({
     try {
       const bal = await provider.getBalance(connectedWallet.address);
       balance = ethers.formatEther(bal);
-    } catch {}
+    } catch { }
 
     // Drip VELD otomatis jika wallet baru/kosong
     if (parseFloat(balance) < 0.01) {
@@ -297,7 +297,7 @@ export const useStore = create<VaultState>((set, get) => ({
       try {
         const bal = await provider.getBalance(connectedWallet.address);
         balance = ethers.formatEther(bal);
-      } catch {}
+      } catch { }
 
       // Drip VELD otomatis jika saldo rendah
       if (parseFloat(balance) < 0.01) {
@@ -394,7 +394,7 @@ export const useStore = create<VaultState>((set, get) => ({
             set({ provider, signer: newSigner, contract });
           }
         }
-      } catch {}
+      } catch { }
     }
 
     if (get().refreshInterval) return;
@@ -565,7 +565,7 @@ export const useStore = create<VaultState>((set, get) => ({
           tokenId = Number(parsed.args[2]);
           break;
         }
-      } catch {}
+      } catch { }
     }
 
     await syncAll();

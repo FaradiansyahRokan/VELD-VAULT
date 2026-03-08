@@ -3,12 +3,16 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useStore } from "@/lib/store";
-import { ShoppingBag, Search, ShieldCheck, Lock, Zap } from "lucide-react";
+import { Search, Lock } from "lucide-react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui-kits";
 import { NETWORK_CONFIG } from "@/lib/constants";
 import { toast } from "sonner";
 import PriceHistory from "@/components/PriceHistory";
+
+const SERIF = "'EB Garamond', 'Cormorant Garamond', Georgia, serif";
+const MONO = "'JetBrains Mono', 'Courier New', monospace";
+const ease: [number, number, number, number] = [0.16, 1, 0.3, 1];
 
 export default function MarketPage() {
   const router = useRouter();
@@ -26,224 +30,168 @@ export default function MarketPage() {
   if (!mounted || !contract) return null;
 
   const filtered = marketItems.filter((item: any) =>
-    search
-      ? item.name?.toLowerCase().includes(search.toLowerCase()) ||
-      String(item.tokenId).includes(search)
-      : true
+    search ? item.name?.toLowerCase().includes(search.toLowerCase()) || String(item.tokenId).includes(search) : true
   );
 
   const handleBuy = async (id: number, price: string) => {
     setLoadingId(id);
-    const t = toast.loading("Memproses pembelian...");
-    try {
-      await buyAsset(id, price);
-      toast.dismiss(t);
-      toast.success("Asset berhasil dibeli!");
-    } catch (e: any) {
-      toast.dismiss(t);
-      toast.error(e.message || "Pembelian gagal");
-    }
+    const t = toast.loading("Processing purchase…");
+    try { await buyAsset(id, price); toast.dismiss(t); toast.success("Asset acquired."); }
+    catch (e: any) { toast.dismiss(t); toast.error(e.message || "Purchase failed"); }
     setLoadingId(null);
   };
 
   return (
-    <div
-      className="absolute inset-0 overflow-y-scroll overscroll-y-contain"
-      style={{ WebkitOverflowScrolling: "touch" }}
-    >
-    <div className="pt-40 px-6 pb-32 max-w-[1400px] mx-auto">
+    <div style={{ minHeight: "100vh", background: "var(--cv-bg)", color: "var(--cv-fg)" }}>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;1,400;1,500&display=swap');
+        :root{--cv-bg:#FAFAF8;--cv-fg:#0A0A0A;--cv-muted:#6B6B6B;--cv-border:#D8D4CC;--cv-border-light:#EDEAE4;--cv-card:#FFFFFF;--cv-surface:#F4F2EE;--cv-ink-light:#3A3A3A;}
+        .dark{--cv-bg:#0A0A08;--cv-fg:#F0EDE6;--cv-muted:#8A857C;--cv-border:#2A2820;--cv-border-light:#1E1C18;--cv-card:#111109;--cv-surface:#161410;--cv-ink-light:#C5BFB5;}
+        .cv-market-card{border:1px solid var(--cv-border-light);background:var(--cv-card);transition:border-color 0.4s,transform 0.4s;display:flex;flex-direction:column;}
+        .cv-market-card:hover{border-color:var(--cv-border);transform:translateY(-3px);}
+        .cv-buy-btn{width:100%;background:var(--cv-fg);color:var(--cv-bg);border:1px solid var(--cv-fg);padding:14px;font-family:${SERIF};font-size:10px;letter-spacing:0.18em;text-transform:uppercase;cursor:pointer;transition:all 0.35s;position:relative;overflow:hidden;}
+        .cv-buy-btn::before{content:'';position:absolute;inset:0;background:var(--cv-bg);transform:scaleX(0);transform-origin:right;transition:transform 0.45s cubic-bezier(0.16,1,0.3,1);}
+        .cv-buy-btn:hover::before{transform:scaleX(1);transform-origin:left;}
+        .cv-buy-btn:hover{color:var(--cv-fg);}
+        .cv-buy-btn span{position:relative;z-index:1;}
+        .cv-buy-btn:disabled{background:var(--cv-surface);color:var(--cv-muted);border-color:var(--cv-border-light);cursor:not-allowed;}
+        .cv-buy-btn:disabled::before{display:none;}
+        .cv-search{width:100%;background:transparent;border:none;border-bottom:1px solid var(--cv-border-light);padding:14px 0 14px 28px;font-family:${SERIF};font-size:16px;color:var(--cv-fg);outline:none;transition:border-color 0.3s;font-style:italic;}
+        .cv-search:focus{border-bottom-color:var(--cv-fg);}
+        .cv-search::placeholder{color:var(--cv-muted);}
+      `}</style>
 
-      {/* HEADER */}
-      <div className="flex flex-col lg:flex-row justify-between items-end mb-20 gap-10">
-        <motion.div
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.5 }}
-        >
-          <h1 className="text-7xl md:text-8xl font-bold tracking-tighter bg-clip-text text-transparent bg-gradient-to-br from-foreground to-foreground/40 mb-4">
-            Market.
-          </h1>
-          <p className="text-muted-foreground font-medium text-lg tracking-wide max-w-md leading-relaxed">
-            Temukan dan perdagangkan aset digital terenkripsi. Powered by{" "}
-            <span className="text-foreground font-bold">{NETWORK_CONFIG.name}</span>.
+      <div style={{ maxWidth: "1280px", margin: "0 auto", padding: "120px 48px 96px" }}>
+
+        {/* ── Header ── */}
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, ease }}
+          style={{ paddingBottom: "40px", borderBottom: "1px solid var(--cv-border-light)", marginBottom: "48px" }}>
+          <p style={{ fontSize: "9px", letterSpacing: "0.28em", textTransform: "uppercase", color: "var(--cv-muted)", fontFamily: SERIF, fontStyle: "italic", marginBottom: "16px" }}>
+            Encrypted Digital Assets · {NETWORK_CONFIG.name}
           </p>
-        </motion.div>
 
-        {/* SEARCH */}
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 0.2 }}
-          className="relative group w-full lg:w-[400px]"
-        >
-          <div className="absolute inset-y-0 left-5 flex items-center pointer-events-none">
-            <Search size={20} className="text-muted-foreground group-hover:text-foreground transition-colors" />
+          <div style={{ display: "flex", alignItems: "center", gap: "16px", marginBottom: "16px" }}>
+            <div style={{ flex: 1, height: "1px", background: "var(--cv-border-light)" }} />
+            <div style={{ width: "5px", height: "5px", border: "1px solid var(--cv-border)", transform: "rotate(45deg)", flexShrink: 0 }} />
+            <div style={{ flex: 1, height: "1px", background: "var(--cv-border-light)" }} />
           </div>
-          <input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Cari nama atau ID asset..."
-            className="w-full h-16 pl-14 pr-6 rounded-[2rem] bg-muted/20 border border-border/50 text-foreground placeholder:text-muted-foreground/50 focus:bg-background focus:ring-2 focus:ring-foreground/5 focus:border-foreground/20 transition-all outline-none text-[16px] md:text-base"
-          />
-          {search && (
-            <button
-              onClick={() => setSearch("")}
-              className="absolute right-5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors text-xs font-bold"
-            >
-              CLEAR
-            </button>
+
+          <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", flexWrap: "wrap", gap: "24px" }}>
+            <h1 style={{ fontFamily: SERIF, fontSize: "clamp(52px, 8vw, 80px)", fontWeight: 400, letterSpacing: "-0.03em", lineHeight: 0.9, margin: 0 }}>
+              Marketplace<br /><em style={{ color: "var(--cv-muted)" }}>Exchange.</em>
+            </h1>
+
+            {/* Search */}
+            <div style={{ position: "relative", minWidth: "280px", flex: "0 1 380px" }}>
+              <Search size={13} strokeWidth={1.5} style={{ position: "absolute", left: 0, top: "50%", transform: "translateY(-50%)", color: "var(--cv-muted)" }} />
+              <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search by name or token ID…" className="cv-search" />
+              {search && (
+                <button onClick={() => setSearch("")} style={{ position: "absolute", right: 0, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", fontFamily: SERIF, fontSize: "9px", letterSpacing: "0.18em", color: "var(--cv-muted)", padding: 0 }}>
+                  Clear
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Stats */}
+          {marketItems.length > 0 && (
+            <div style={{ display: "flex", alignItems: "center", gap: "24px", marginTop: "20px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                <span style={{ width: "5px", height: "5px", borderRadius: "50%", background: "#4ade80", display: "inline-block" }} />
+                <span style={{ fontFamily: SERIF, fontSize: "9px", letterSpacing: "0.18em", textTransform: "uppercase", color: "var(--cv-muted)" }}>
+                  {filtered.length} listing{filtered.length !== 1 ? "s" : ""} available
+                </span>
+              </div>
+              <span style={{ fontFamily: SERIF, fontSize: "9px", letterSpacing: "0.14em", color: "var(--cv-muted)", fontStyle: "italic" }}>
+                Live · updates every 4s
+              </span>
+            </div>
           )}
         </motion.div>
-      </div>
 
-      {/* STATS BAR */}
-      {marketItems.length > 0 && (
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="flex items-center gap-4 mb-10"
-        >
-          <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-muted/20 border border-border/30">
-            <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-            <span className="text-xs font-bold text-muted-foreground">
-              {filtered.length} Asset Listed
-            </span>
-          </div>
-          <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-muted/20 border border-border/30">
-            <Zap size={12} className="text-amber-500" />
-            <span className="text-xs font-bold text-muted-foreground">
-              Live · Update tiap 4 detik
-            </span>
-          </div>
-        </motion.div>
-      )}
-
-      {/* GRID */}
-      {filtered.length === 0 ? (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="flex flex-col items-center justify-center py-40 bg-muted/5 rounded-[3rem] border border-dashed border-border/50"
-        >
-          <div className="w-24 h-24 bg-muted/10 rounded-full flex items-center justify-center mb-6">
-            <ShoppingBag size={32} className="text-muted-foreground" />
-          </div>
-          <p className="text-muted-foreground font-medium text-lg mb-2">
-            {search ? "Tidak ada hasil" : "Tidak ada asset di-listing"}
-          </p>
-          {search && (
-            <p className="text-muted-foreground/60 text-sm">
-              Coba kata kunci lain atau kosongkan pencarian
+        {/* ── Grid ── */}
+        {filtered.length === 0 ? (
+          <div style={{ border: "1px solid var(--cv-border-light)", padding: "96px 48px", textAlign: "center" }}>
+            <p style={{ fontFamily: SERIF, fontSize: "28px", fontWeight: 400, color: "var(--cv-fg)", marginBottom: "12px" }}>
+              {search ? "No results found." : "No assets listed."}
             </p>
-          )}
-        </motion.div>
-      ) : (
-        <motion.div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-8">
-          {filtered.map((item: any, i: number) => {
-            const isLoading = loadingId === item.tokenId;
-            const isSelf = wallet?.address.toLowerCase() === item.seller?.toLowerCase();
+            <p style={{ fontFamily: SERIF, fontSize: "13px", fontStyle: "italic", color: "var(--cv-muted)" }}>
+              {search ? "Try a different search term." : "Check back later for new listings."}
+            </p>
+          </div>
+        ) : (
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: "2px" }}>
+            {filtered.map((item: any, i: number) => {
+              const isLoading = loadingId === item.tokenId;
+              const isSelf = wallet?.address.toLowerCase() === item.seller?.toLowerCase();
 
-            return (
-              <motion.div
-                key={`market-${item.tokenId}`}
-                initial={{ y: 30, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                transition={{ delay: i * 0.08 }}
-                className="group flex flex-col bg-card border border-border/50 hover:border-primary/30 rounded-[2.5rem] overflow-hidden transition-all duration-500 hover:shadow-2xl hover:shadow-black/10 hover:-translate-y-2"
-              >
-                {/* THUMBNAIL */}
-                <div className="h-56 bg-muted/30 relative overflow-hidden flex items-center justify-center group-hover:bg-muted/40 transition-colors">
-                  {item.previewURI ? (
-                    <img
-                      // ✅ Pakai NETWORK_CONFIG.ipfsGateway — tidak ada hardcoded 127.0.0.1
-                      src={`${NETWORK_CONFIG.ipfsGateway}/ipfs/${item.previewURI}`}
-                      className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                      onError={(e: any) => { e.target.style.display = "none"; }}
-                      alt={item.name}
-                    />
-                  ) : (
-                    <div className="flex flex-col items-center gap-2 opacity-20 group-hover:opacity-40 transition-opacity">
-                      <Lock size={48} />
-                      <span className="text-xs font-bold tracking-widest uppercase">Encrypted</span>
+              return (
+                <motion.div key={`market-${item.tokenId}`} initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: i * 0.05, ease }}
+                  className="cv-market-card">
+
+                  {/* Thumbnail */}
+                  <div style={{ height: "200px", background: "var(--cv-surface)", position: "relative", overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center", borderBottom: "1px solid var(--cv-border-light)" }}>
+                    {item.previewURI ? (
+                      <img src={`${NETWORK_CONFIG.ipfsGateway}/ipfs/${item.previewURI}`} style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                        onError={(e: any) => { e.target.style.display = "none"; }} alt={item.name} />
+                    ) : (
+                      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "8px", opacity: 0.25 }}>
+                        <Lock size={32} strokeWidth={1} />
+                        <span style={{ fontFamily: SERIF, fontSize: "9px", letterSpacing: "0.2em", textTransform: "uppercase" }}>Encrypted</span>
+                      </div>
+                    )}
+                    {/* Badges */}
+                    <div style={{ position: "absolute", top: "12px", right: "12px", display: "flex", flexDirection: "column", gap: "4px", alignItems: "flex-end" }}>
+                      {item.useEscrow && (
+                        <span style={{ background: "rgba(0,0,0,0.65)", backdropFilter: "blur(8px)", padding: "4px 10px", fontFamily: SERIF, fontSize: "8px", letterSpacing: "0.16em", textTransform: "uppercase", color: "#fff" }}>Escrow</span>
+                      )}
+                      <span style={{ background: "rgba(0,0,0,0.65)", backdropFilter: "blur(8px)", padding: "4px 10px", fontFamily: MONO, fontSize: "9px", color: "#fff" }}>
+                        #{item.tokenId}
+                      </span>
                     </div>
-                  )}
-                  <div className="absolute top-4 right-4 flex flex-col gap-2 items-end">
-                    {item.useEscrow && (
-                      <span className="px-3 py-1.5 rounded-full bg-black/50 backdrop-blur-md border border-white/10 text-white text-[10px] font-bold flex items-center gap-1">
-                        <ShieldCheck size={11} className="text-emerald-400" /> Escrow
+                    {isSelf && (
+                      <span style={{ position: "absolute", bottom: "12px", left: "12px", background: "rgba(0,0,0,0.65)", backdropFilter: "blur(8px)", padding: "4px 10px", fontFamily: SERIF, fontSize: "8px", letterSpacing: "0.16em", textTransform: "uppercase", color: "rgba(255,255,255,0.7)" }}>
+                        Your Asset
                       </span>
                     )}
-                    <span className="px-3 py-1.5 rounded-full bg-black/50 backdrop-blur-md border border-white/10 text-white text-[10px] font-bold">
-                      #{item.tokenId}
-                    </span>
                   </div>
-                  {isSelf && (
-                    <div className="absolute bottom-4 left-4">
-                      <span className="px-3 py-1 rounded-full bg-black/60 backdrop-blur-md text-amber-400 text-[9px] font-bold uppercase tracking-wide">
-                        Milik Kamu
-                      </span>
-                    </div>
-                  )}
-                </div>
 
-                {/* INFO */}
-                <div className="p-5 flex flex-col flex-1">
-                  <div className="flex-1">
-                    <h3 className="text-lg font-bold text-foreground truncate mb-1">
+                  {/* Info */}
+                  <div style={{ padding: "20px 22px", flex: 1, display: "flex", flexDirection: "column" }}>
+                    <p style={{ fontFamily: SERIF, fontSize: "18px", fontWeight: 400, letterSpacing: "-0.01em", color: "var(--cv-fg)", marginBottom: "4px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                       {item.name}
-                    </h3>
+                    </p>
                     {item.description && (
-                      <p className="text-xs text-muted-foreground line-clamp-2 mb-2 leading-relaxed">
+                      <p style={{ fontFamily: SERIF, fontSize: "11px", fontStyle: "italic", color: "var(--cv-muted)", marginBottom: "12px", overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>
                         {item.description}
                       </p>
                     )}
-                    <p className="text-xs text-muted-foreground font-mono flex items-center gap-1">
-                      Seller:{" "}
-                      <span className="bg-muted/50 px-1.5 py-0.5 rounded text-foreground">
-                        {item.seller?.slice(0, 6)}...{item.seller?.slice(-4)}
-                      </span>
+                    <p style={{ fontFamily: MONO, fontSize: "9px", color: "var(--cv-muted)", marginBottom: "auto" }}>
+                      {item.seller?.slice(0, 8)}…{item.seller?.slice(-4)}
                     </p>
-                  </div>
 
-                  <div className="mt-5 pt-5 border-t border-border/50 flex flex-col gap-4">
-                    <div className="flex justify-between items-end">
-                      <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
-                        Harga
-                      </span>
-                      <div className="text-right">
-                        <span className="text-2xl font-bold text-foreground tracking-tight">
-                          {item.price}
-                        </span>
-                        <span className="text-xs font-bold text-muted-foreground ml-1.5">
-                          {NETWORK_CONFIG.tokenSymbol}
-                        </span>
+                    {/* Price row */}
+                    <div style={{ marginTop: "16px", paddingTop: "16px", borderTop: "1px solid var(--cv-border-light)", display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: "14px" }}>
+                      <div>
+                        <p style={{ fontSize: "9px", letterSpacing: "0.18em", textTransform: "uppercase", color: "var(--cv-muted)", fontFamily: SERIF, marginBottom: "4px" }}>Price</p>
+                        <p style={{ fontFamily: SERIF, fontSize: "26px", fontWeight: 400, letterSpacing: "-0.02em", color: "var(--cv-fg)", lineHeight: 1 }}>
+                          {item.price} <em style={{ fontSize: "13px", color: "var(--cv-muted)" }}>{NETWORK_CONFIG.tokenSymbol}</em>
+                        </p>
                       </div>
-                    </div>
-
-                    <div className="-mt-2 flex justify-end">
                       <PriceHistory tokenId={item.tokenId} currentPrice={item.price} compact />
                     </div>
-
-                    <Button
-                      onClick={() => handleBuy(item.tokenId, item.price)}
-                      disabled={isLoading || isSelf}
-                      isLoading={isLoading}
-                      className={`w-full h-14 rounded-[1.2rem] text-sm font-bold ${isSelf ? "opacity-50 cursor-not-allowed" : ""}`}
-                    >
-                      {isSelf
-                        ? "Asset Milikmu"
-                        : isLoading
-                          ? "Memproses..."
-                          : `Beli dengan ${NETWORK_CONFIG.tokenSymbol}`}
-                    </Button>
                   </div>
-                </div>
-              </motion.div>
-            );
-          })}
-        </motion.div>
-      )}
-    </div>
+
+                  {/* Buy button */}
+                  <button className="cv-buy-btn" onClick={() => handleBuy(item.tokenId, item.price)} disabled={isLoading || isSelf}>
+                    <span>{isSelf ? "Your Listing" : isLoading ? "Processing…" : `Acquire · ${item.price} ${NETWORK_CONFIG.tokenSymbol}`}</span>
+                  </button>
+                </motion.div>
+              );
+            })}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

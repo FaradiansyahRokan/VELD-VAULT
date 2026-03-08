@@ -5,30 +5,31 @@ import { useRouter } from "next/navigation";
 import { useStore } from "@/lib/store";
 import { useActivityStore, ACTIVITY_META, type ActivityType } from "@/lib/activity-store";
 import { motion, AnimatePresence } from "framer-motion";
-import {
-  Wrench, Users, FileText, Activity, QrCode, Filter,
-  ChevronRight, Trash2, ExternalLink
-} from "lucide-react";
+import { Trash2, ExternalLink, ChevronRight } from "lucide-react";
 import ContactsBook from "@/components/ContactsBook";
 import DocumentSigner from "@/components/DocumentSigner";
 import QRModal from "@/components/QRModal";
 import { NETWORK_CONFIG } from "@/lib/constants";
 
+const SERIF = "'EB Garamond', 'Cormorant Garamond', Georgia, serif";
+const MONO = "'JetBrains Mono', 'Courier New', monospace";
+const ease: [number, number, number, number] = [0.16, 1, 0.3, 1];
+
 type Tab = "activity" | "contacts" | "signer" | "qr";
 
-const TABS: { id: Tab; label: string; icon: React.ElementType; desc: string }[] = [
-  { id: "activity", label: "Aktivitas", icon: Activity, desc: "Log semua transaksi & aksi" },
-  { id: "contacts", label: "Kontak", icon: Users, desc: "Address book wallet" },
-  { id: "signer", label: "Penanda Tangan", icon: FileText, desc: "Sign & verifikasi dokumen" },
-  { id: "qr", label: "QR Code", icon: QrCode, desc: "Terima pembayaran" },
+const TABS: { id: Tab; label: string; roman: string; desc: string }[] = [
+  { id: "activity", label: "Activity Log", roman: "I", desc: "Transaction & action history" },
+  { id: "contacts", label: "Address Book", roman: "II", desc: "Wallet contacts" },
+  { id: "signer", label: "Document Signer", roman: "III", desc: "Sign & verify documents" },
+  { id: "qr", label: "Receive Payment", roman: "IV", desc: "QR code for your wallet" },
 ];
 
 const FILTER_OPTIONS: { value: ActivityType | "all"; label: string }[] = [
-  { value: "all", label: "Semua" },
+  { value: "all", label: "All" },
   { value: "upload", label: "Upload" },
-  { value: "buy", label: "Beli" },
-  { value: "sell", label: "Jual" },
-  { value: "message_sent", label: "Pesan" },
+  { value: "buy", label: "Buy" },
+  { value: "sell", label: "Sell" },
+  { value: "message_sent", label: "Message" },
   { value: "sign", label: "Sign" },
   { value: "faucet", label: "Faucet" },
 ];
@@ -53,232 +54,170 @@ export default function ToolsPage() {
   const filtered = filter === "all" ? allActivities : allActivities.filter((a) => a.type === filter);
 
   return (
-    <div
-      className="absolute inset-0 overflow-y-scroll overscroll-y-contain"
-      style={{ WebkitOverflowScrolling: "touch" }}
-    >
-    <div className="pt-36 px-6 pb-24 max-w-[1200px] mx-auto">
-      {/* Header */}
-      <motion.div initial={{ opacity: 0, y: -16 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
-        <div className="flex items-center gap-3 mb-2">
-          <Wrench size={18} className="text-muted-foreground" />
-          <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Utilitas</span>
-        </div>
-        <h1 className="text-5xl font-bold tracking-tighter bg-clip-text text-transparent bg-gradient-to-br from-foreground to-foreground/40">
-          Tools.
-        </h1>
-      </motion.div>
+    <div className="min-h-screen" style={{ background: "var(--cv-bg)", color: "var(--cv-fg)" }}>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;1,400;1,500&display=swap');
+        :root{--cv-bg:#FAFAF8;--cv-fg:#0A0A0A;--cv-muted:#6B6B6B;--cv-border:#D8D4CC;--cv-border-light:#EDEAE4;--cv-card:#FFFFFF;--cv-surface:#F4F2EE;--cv-ink-light:#3A3A3A;}
+        .dark{--cv-bg:#0A0A08;--cv-fg:#F0EDE6;--cv-muted:#8A857C;--cv-border:#2A2820;--cv-border-light:#1E1C18;--cv-card:#111109;--cv-surface:#161410;--cv-ink-light:#C5BFB5;}
+        .cv-nav-item{width:100%;background:transparent;border:none;border-bottom:1px solid var(--cv-border-light);padding:16px 20px;display:flex;align-items:center;gap:16px;text-align:left;cursor:pointer;transition:all 0.3s;position:relative;overflow:hidden;font-family:${SERIF};}
+        .cv-nav-item::before{content:'';position:absolute;inset:0;background:var(--cv-fg);transform:scaleX(0);transform-origin:left;transition:transform 0.45s cubic-bezier(0.16,1,0.3,1);z-index:0;}
+        .cv-nav-item.active::before,.cv-nav-item:hover::before{transform:scaleX(1);}
+        .cv-nav-item .nav-content{position:relative;z-index:1;transition:color 0.3s;}
+        .cv-nav-item.active .nav-content, .cv-nav-item:hover .nav-content, .cv-nav-item.active .nav-content *, .cv-nav-item:hover .nav-content *{color:var(--cv-bg)!important;}
+        .cv-filter-btn{background:transparent;border:1px solid var(--cv-border-light);padding:6px 14px;font-family:${SERIF};font-size:9px;letter-spacing:0.18em;text-transform:uppercase;color:var(--cv-muted);cursor:pointer;transition:all 0.25s;}
+        .cv-filter-btn.active,.cv-filter-btn:hover{background:var(--cv-fg);color:var(--cv-bg);border-color:var(--cv-fg);}
+      `}</style>
 
-      <div className="flex flex-col lg:flex-row gap-6">
-        {/* ── Sidebar tabs ── */}
-        <motion.div
-          initial={{ x: -20, opacity: 0 }}
-          animate={{ x: 0, opacity: 1 }}
-          className="lg:w-64 shrink-0"
-        >
-          <div className="flex flex-row lg:flex-col gap-2">
-            {TABS.map((t) => {
-              const Icon = t.icon;
-              const isActive = tab === t.id;
-              return (
-                <button
-                  key={t.id}
-                  onClick={() => t.id === "qr" ? setShowQR(true) : setTab(t.id)}
-                  className={`flex items-center gap-3 p-3.5 rounded-2xl text-left transition-all w-full ${
-                    isActive
-                      ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20"
-                      : "bg-card border border-border/50 text-muted-foreground hover:text-foreground hover:border-border/80"
-                  }`}
-                >
-                  <Icon size={17} />
-                  <div className="hidden lg:block min-w-0 flex-1">
-                    <p className={`text-sm font-bold truncate ${isActive ? "text-primary-foreground" : "text-foreground"}`}>
-                      {t.label}
-                    </p>
-                    <p className={`text-[10px] truncate ${isActive ? "text-primary-foreground/70" : "text-muted-foreground"}`}>
-                      {t.desc}
-                    </p>
-                  </div>
-                  {isActive && <ChevronRight size={14} className="shrink-0 hidden lg:block" />}
-                </button>
-              );
-            })}
-          </div>
+      <div style={{ maxWidth: "1200px", margin: "0 auto", padding: "120px 48px 80px" }}>
 
-          {/* Wallet snapshot */}
-          <div className="hidden lg:block mt-4 p-4 rounded-2xl bg-card border border-border/40">
-            <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest mb-2">Wallet Aktif</p>
-            <code className="text-[10px] font-mono text-foreground break-all leading-relaxed">
-              {wallet.address}
-            </code>
-            <div className="mt-2 pt-2 border-t border-border/40">
-              <p className="text-[9px] text-muted-foreground">{NETWORK_CONFIG.name} · Chain {NETWORK_CONFIG.chainId}</p>
-            </div>
+        {/* ── Header ── */}
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, ease }}
+          style={{ paddingBottom: "40px", borderBottom: "1px solid var(--cv-border-light)", marginBottom: "48px" }}>
+          <p style={{ fontSize: "9px", letterSpacing: "0.28em", textTransform: "uppercase", color: "var(--cv-muted)", fontFamily: SERIF, fontStyle: "italic", marginBottom: "16px" }}>
+            CipherVault · Utilities
+          </p>
+          <div style={{ display: "flex", alignItems: "center", gap: "16px", marginBottom: "16px" }}>
+            <div style={{ flex: 1, height: "1px", background: "var(--cv-border-light)" }} />
+            <div style={{ width: "5px", height: "5px", border: "1px solid var(--cv-border)", transform: "rotate(45deg)", flexShrink: 0 }} />
+            <div style={{ flex: 1, height: "1px", background: "var(--cv-border-light)" }} />
           </div>
+          <h1 style={{ fontFamily: SERIF, fontSize: "clamp(42px, 6vw, 64px)", fontWeight: 400, letterSpacing: "-0.025em", lineHeight: 0.95, margin: 0 }}>
+            Tools<br /><em style={{ color: "var(--cv-muted)" }}>& Utilities.</em>
+          </h1>
         </motion.div>
 
-        {/* ── Main content ── */}
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="flex-1 bg-card border border-border/50 rounded-[2rem] overflow-hidden"
-        >
-          <AnimatePresence mode="wait">
+        <div style={{ display: "flex", gap: "2px", alignItems: "flex-start" }}>
 
-            {/* ── ACTIVITY TAB ── */}
-            {tab === "activity" && (
-              <motion.div
-                key="activity"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="h-full"
-              >
-                {/* Header */}
-                <div className="flex items-center justify-between p-5 border-b border-border/50">
-                  <div>
-                    <h2 className="font-bold text-foreground">Log Aktivitas</h2>
-                    <p className="text-[11px] text-muted-foreground mt-0.5">{allActivities.length} total aktivitas</p>
+          {/* ── Sidebar ── */}
+          <motion.div initial={{ opacity: 0, x: -12 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.7, ease }}
+            style={{ width: "260px", flexShrink: 0 }}>
+            <div style={{ border: "1px solid var(--cv-border-light)" }}>
+              {TABS.map((t) => (
+                <button key={t.id} className={`cv-nav-item ${tab === t.id ? "active" : ""}`}
+                  onClick={() => t.id === "qr" ? setShowQR(true) : setTab(t.id)}>
+                  <span className="nav-content" style={{ fontSize: "9px", letterSpacing: "0.12em", fontStyle: "italic", color: "var(--cv-border)", width: "20px", flexShrink: 0 }}>{t.roman}</span>
+                  <div className="nav-content" style={{ flex: 1, minWidth: 0 }}>
+                    <p style={{ fontFamily: SERIF, fontSize: "14px", color: "var(--cv-fg)", marginBottom: "2px" }}>{t.label}</p>
+                    <p style={{ fontFamily: SERIF, fontSize: "10px", fontStyle: "italic", color: "var(--cv-muted)" }}>{t.desc}</p>
                   </div>
-                  {allActivities.length > 0 && (
-                    <button
-                      onClick={() => {
-                        if (confirm("Hapus semua log aktivitas?")) clearActivities(wallet.address);
-                      }}
-                      className="flex items-center gap-1.5 text-[11px] text-muted-foreground hover:text-red-400 transition-colors"
-                    >
-                      <Trash2 size={12} /> Hapus Semua
-                    </button>
-                  )}
-                </div>
+                  <ChevronRight size={11} strokeWidth={1.5} className="nav-content" style={{ color: "var(--cv-muted)", flexShrink: 0 }} />
+                </button>
+              ))}
+            </div>
 
-                {/* Filter chips */}
-                <div className="flex gap-2 px-5 py-3 border-b border-border/30 overflow-x-auto">
-                  <Filter size={13} className="text-muted-foreground shrink-0 mt-0.5" />
-                  {FILTER_OPTIONS.map((f) => (
-                    <button
-                      key={f.value}
-                      onClick={() => setFilter(f.value)}
-                      className={`shrink-0 px-3 py-1 rounded-full text-[11px] font-bold transition-all ${
-                        filter === f.value
-                          ? "bg-primary text-primary-foreground"
-                          : "bg-muted/30 text-muted-foreground hover:bg-muted/60"
-                      }`}
-                    >
-                      {f.label}
-                    </button>
-                  ))}
-                </div>
+            {/* Wallet info */}
+            <div style={{ border: "1px solid var(--cv-border-light)", borderTop: "none", padding: "16px 20px", background: "var(--cv-surface)" }}>
+              <p style={{ fontSize: "8px", letterSpacing: "0.22em", textTransform: "uppercase", color: "var(--cv-muted)", fontFamily: SERIF, marginBottom: "8px" }}>Active Wallet</p>
+              <p style={{ fontFamily: MONO, fontSize: "9px", color: "var(--cv-ink-light)", wordBreak: "break-all", lineHeight: 1.7 }}>{wallet.address}</p>
+              <p style={{ fontFamily: SERIF, fontSize: "9px", fontStyle: "italic", color: "var(--cv-muted)", marginTop: "8px" }}>
+                {NETWORK_CONFIG.name} · Chain {NETWORK_CONFIG.chainId}
+              </p>
+            </div>
+          </motion.div>
 
-                {/* Activity list */}
-                <div className="overflow-y-auto max-h-[calc(100dvh-22rem)]" style={{ WebkitOverflowScrolling: "touch" }}>
-                  {filtered.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-16 gap-3 text-center">
-                      <Activity size={32} className="text-muted-foreground/20" />
-                      <p className="text-sm text-muted-foreground">Belum ada aktivitas</p>
+          {/* ── Main content ── */}
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.7, ease }}
+            style={{ flex: 1, border: "1px solid var(--cv-border-light)", background: "var(--cv-card)", minHeight: "500px" }}>
+
+            <AnimatePresence mode="wait">
+
+              {/* ACTIVITY */}
+              {tab === "activity" && (
+                <motion.div key="activity" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                  {/* Header */}
+                  <div style={{ padding: "20px 28px", borderBottom: "1px solid var(--cv-border-light)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <div>
+                      <p style={{ fontFamily: SERIF, fontSize: "16px", color: "var(--cv-fg)", marginBottom: "2px" }}>Activity Log</p>
+                      <p style={{ fontFamily: SERIF, fontSize: "10px", fontStyle: "italic", color: "var(--cv-muted)" }}>{allActivities.length} records</p>
                     </div>
-                  ) : (
-                    filtered.map((a, i) => {
-                      const meta = ACTIVITY_META[a.type];
-                      return (
-                        <div
-                          key={a.id}
-                          className="flex items-start gap-3 px-5 py-3.5 border-b border-border/30 last:border-0 hover:bg-muted/10 transition-colors group"
-                        >
-                          {/* Line connector */}
-                          <div className="flex flex-col items-center shrink-0">
-                            <div className="w-8 h-8 rounded-xl bg-muted/30 flex items-center justify-center text-base">
-                            
-                            </div>
-                            {i < filtered.length - 1 && (
-                              <div className="w-px h-full min-h-[16px] bg-border/30 mt-1" />
-                            )}
-                          </div>
+                    {allActivities.length > 0 && (
+                      <button onClick={() => { if (confirm("Clear all activity records?")) clearActivities(wallet.address); }}
+                        style={{ background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: "6px", fontFamily: SERIF, fontSize: "9px", letterSpacing: "0.16em", textTransform: "uppercase", color: "var(--cv-muted)", transition: "color 0.2s" }}
+                        onMouseEnter={(e) => (e.currentTarget.style.color = "#dc2626")}
+                        onMouseLeave={(e) => (e.currentTarget.style.color = "var(--cv-muted)")}>
+                        <Trash2 size={11} strokeWidth={1.5} /> Clear All
+                      </button>
+                    )}
+                  </div>
 
-                          <div className="flex-1 min-w-0 pt-0.5">
-                            <div className="flex items-start justify-between gap-2">
-                              <p className="text-sm font-semibold text-foreground">{a.title}</p>
-                              <span className="text-[10px] text-muted-foreground/60 shrink-0">
-                                {new Date(a.timestamp).toLocaleDateString("id-ID", {
-                                  day: "numeric", month: "short",
-                                  hour: "2-digit", minute: "2-digit",
-                                })}
+                  {/* Filters */}
+                  <div style={{ padding: "14px 28px", borderBottom: "1px solid var(--cv-border-light)", display: "flex", gap: "2px", flexWrap: "wrap" }}>
+                    {FILTER_OPTIONS.map((f) => (
+                      <button key={f.value} onClick={() => setFilter(f.value)} className={`cv-filter-btn ${filter === f.value ? "active" : ""}`}>
+                        {f.label}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* List */}
+                  <div style={{ borderTop: "1px solid var(--cv-border-light)" }}>
+                    {filtered.length === 0 ? (
+                      <div style={{ padding: "64px 48px", textAlign: "center" }}>
+                        <p style={{ fontFamily: SERIF, fontSize: "14px", fontStyle: "italic", color: "var(--cv-muted)" }}>No activity recorded.</p>
+                      </div>
+                    ) : (
+                      filtered.map((a, i) => (
+                        <div key={a.id} style={{ display: "flex", alignItems: "flex-start", gap: "16px", padding: "16px 28px", borderBottom: "1px solid var(--cv-border-light)", transition: "background 0.2s" }}
+                          onMouseEnter={(e) => (e.currentTarget.style.background = "var(--cv-surface)")}
+                          onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}>
+                          <span style={{ fontFamily: SERIF, fontSize: "9px", fontStyle: "italic", color: "var(--cv-border)", flexShrink: 0, paddingTop: "3px", minWidth: "28px" }}>
+                            {String(i + 1).padStart(2, "0")}
+                          </span>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ display: "flex", justifyContent: "space-between", gap: "12px", marginBottom: "3px" }}>
+                              <p style={{ fontFamily: SERIF, fontSize: "14px", color: "var(--cv-fg)" }}>{a.title}</p>
+                              <span style={{ fontFamily: SERIF, fontSize: "9px", fontStyle: "italic", color: "var(--cv-muted)", flexShrink: 0 }}>
+                                {new Date(a.timestamp).toLocaleDateString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
                               </span>
                             </div>
-                            <p className="text-[11px] text-muted-foreground mt-0.5">{a.description}</p>
-                            <div className="flex items-center gap-3 mt-1">
-                              {a.tokenId !== undefined && (
-                                <span className="text-[10px] text-muted-foreground/60">Token #{a.tokenId}</span>
-                              )}
-                              {a.amount && (
-                                <span className="text-[10px] font-bold text-emerald-500">{a.amount} {NETWORK_CONFIG.tokenSymbol}</span>
-                              )}
+                            <p style={{ fontFamily: SERIF, fontSize: "11px", fontStyle: "italic", color: "var(--cv-muted)" }}>{a.description}</p>
+                            <div style={{ display: "flex", gap: "16px", marginTop: "6px" }}>
+                              {a.tokenId !== undefined && <span style={{ fontFamily: MONO, fontSize: "9px", color: "var(--cv-muted)" }}>Token #{a.tokenId}</span>}
+                              {a.amount && <span style={{ fontFamily: MONO, fontSize: "9px", color: "var(--cv-ink-light)" }}>{a.amount} {NETWORK_CONFIG.tokenSymbol}</span>}
                               {a.txHash && (
-                                <a
-                                  href={`${NETWORK_CONFIG.explorerUrl}/tx/${a.txHash}`}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="text-[10px] text-primary flex items-center gap-0.5 hover:underline"
-                                >
-                                  Tx <ExternalLink size={8} />
+                                <a href={`${NETWORK_CONFIG.explorerUrl}/tx/${a.txHash}`} target="_blank" rel="noopener noreferrer"
+                                  style={{ fontFamily: SERIF, fontSize: "9px", letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--cv-muted)", display: "flex", alignItems: "center", gap: "4px", textDecoration: "none" }}>
+                                  View Tx <ExternalLink size={9} strokeWidth={1.5} />
                                 </a>
                               )}
                             </div>
                           </div>
                         </div>
-                      );
-                    })
-                  )}
-                </div>
-              </motion.div>
-            )}
+                      ))
+                    )}
+                  </div>
+                </motion.div>
+              )}
 
-            {/* ── CONTACTS TAB ── */}
-            {tab === "contacts" && (
-              <motion.div
-                key="contacts"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="p-6 overflow-y-auto max-h-[calc(100dvh-18rem)]"
-              style={{ WebkitOverflowScrolling: "touch" }}
-              >
-                <ContactsBook />
-              </motion.div>
-            )}
+              {/* CONTACTS */}
+              {tab === "contacts" && (
+                <motion.div key="contacts" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} style={{ padding: "28px" }}>
+                  <p style={{ fontFamily: SERIF, fontSize: "16px", color: "var(--cv-fg)", marginBottom: "4px" }}>Address Book</p>
+                  <p style={{ fontFamily: SERIF, fontSize: "11px", fontStyle: "italic", color: "var(--cv-muted)", marginBottom: "24px" }}>Manage your wallet contacts.</p>
+                  <div style={{ borderTop: "1px solid var(--cv-border-light)", paddingTop: "20px" }}>
+                    <ContactsBook />
+                  </div>
+                </motion.div>
+              )}
 
-            {/* ── DOCUMENT SIGNER TAB ── */}
-            {tab === "signer" && (
-              <motion.div
-                key="signer"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="p-6 overflow-y-auto max-h-[calc(100dvh-18rem)]"
-              style={{ WebkitOverflowScrolling: "touch" }}
-              >
-                <div className="mb-5">
-                  <h2 className="font-bold text-foreground text-lg">Penanda Tangan Dokumen</h2>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Sign dokumen dengan wallet kamu. Siapapun bisa verifikasi tanpa tahu private key kamu.
+              {/* SIGNER */}
+              {tab === "signer" && (
+                <motion.div key="signer" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} style={{ padding: "28px" }}>
+                  <p style={{ fontFamily: SERIF, fontSize: "16px", color: "var(--cv-fg)", marginBottom: "4px" }}>Document Signer</p>
+                  <p style={{ fontFamily: SERIF, fontSize: "11px", fontStyle: "italic", color: "var(--cv-muted)", marginBottom: "24px", lineHeight: 1.7 }}>
+                    Sign documents with your wallet key. Anyone can verify authenticity without knowing your private key.
                   </p>
-                </div>
-                <DocumentSigner />
-              </motion.div>
-            )}
-
-          </AnimatePresence>
-        </motion.div>
+                  <div style={{ borderTop: "1px solid var(--cv-border-light)", paddingTop: "20px" }}>
+                    <DocumentSigner />
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </motion.div>
+        </div>
       </div>
 
-    </div>
-      {/* QR Modal */}
-      <QRModal
-        isOpen={showQR}
-        onClose={() => setShowQR(false)}
-        address={wallet.address}
-        label="Terima VELD"
-      />
+      <QRModal isOpen={showQR} onClose={() => setShowQR(false)} address={wallet.address} label="Receive VELD" />
     </div>
   );
 }

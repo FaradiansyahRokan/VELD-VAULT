@@ -8,64 +8,248 @@ import { useContactsStore } from "../../lib/contact-store";
 import { NETWORK_CONFIG } from "../../lib/constants";
 import { motion } from "framer-motion";
 import {
-  LayoutDashboard, TrendingUp, Package, ShoppingBag,
+  TrendingUp, Package, ShoppingBag,
   Clock, MessageSquare, Users, Upload, ArrowUpRight,
-  Activity, Zap, Shield, Star, ChevronRight,
+  Activity, Shield, Star, ChevronRight,
 } from "lucide-react";
 
+// ─── Shared serif style injected once ───────────────────────────────────────
+const SERIF = "'EB Garamond', 'Cormorant Garamond', Georgia, serif";
+const MONO = "'JetBrains Mono', 'Courier New', monospace";
+
+const ease: [number, number, number, number] = [0.16, 1, 0.3, 1];
+
 const stagger = {
-  container: { animate: { transition: { staggerChildren: 0.06 } } },
-  item: { initial: { y: 20, opacity: 0 }, animate: { y: 0, opacity: 1 } },
+  container: { animate: { transition: { staggerChildren: 0.055 } } },
+  item: {
+    initial: { y: 16, opacity: 0 },
+    animate: { y: 0, opacity: 1, transition: { duration: 0.7, ease } },
+  },
 };
 
-// ✅ FIX 3: Pindah komponen ke luar DashboardPage agar tidak re-create tiap render
-// Ini penyebab utama StatCard & QuickAction "hilang" — Framer Motion kehilangan
-// referensi komponen karena dianggap elemen baru setiap render.
+// ─── Stat Card ───────────────────────────────────────────────────────────────
 const StatCard = ({
-  label, value, sub, icon: Icon, color, onClick,
+  label, value, sub, roman, onClick,
 }: {
   label: string; value: string | number; sub?: string;
-  icon: any; color: string; onClick?: () => void;
+  roman: string; onClick?: () => void;
 }) => (
   <motion.div
     variants={stagger.item}
     onClick={onClick}
-    className={`group relative p-5 rounded-[1.75rem] bg-card border border-border/50 overflow-hidden ${onClick ? "cursor-pointer hover:border-primary/30 hover:shadow-lg hover:shadow-black/5 hover:-translate-y-0.5" : ""} transition-all duration-300`}
+    style={{
+      background: "var(--cv-card)",
+      border: "1px solid var(--cv-border-light)",
+      padding: "24px 22px",
+      position: "relative",
+      overflow: "hidden",
+      cursor: onClick ? "pointer" : "default",
+      transition: "border-color 0.35s, background 0.35s",
+      fontFamily: SERIF,
+    }}
+    whileHover={onClick ? { y: -2 } : {}}
+    className="cv-stat-card group"
   >
-    <div className={`absolute -top-6 -right-6 w-24 h-24 rounded-full ${color} opacity-[0.07] blur-xl group-hover:opacity-[0.12] transition-opacity`} />
-    <div className="flex items-start justify-between mb-3">
-      <div className={`w-9 h-9 rounded-xl ${color} bg-opacity-10 flex items-center justify-center`}>
-        <Icon size={17} className={color.replace("bg-", "text-")} />
-      </div>
-      {onClick && <ChevronRight size={14} className="text-muted-foreground/40 group-hover:text-muted-foreground transition-colors mt-1" />}
+    {/* Roman numeral watermark */}
+    <span style={{
+      position: "absolute",
+      top: "10px",
+      right: "14px",
+      fontSize: "9px",
+      letterSpacing: "0.18em",
+      color: "var(--cv-border)",
+      fontFamily: SERIF,
+      fontStyle: "italic",
+      userSelect: "none",
+    }}>
+      {roman}
+    </span>
+
+    {/* Value */}
+    <div style={{
+      fontSize: "clamp(28px, 4vw, 38px)",
+      fontWeight: 400,
+      letterSpacing: "-0.02em",
+      lineHeight: 1,
+      color: "var(--cv-fg)",
+      marginBottom: "8px",
+      fontFamily: SERIF,
+    }}>
+      {value}
     </div>
-    <div className="text-2xl font-bold text-foreground tracking-tight mb-0.5">{value}</div>
-    <div className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">{label}</div>
-    {sub && <div className="text-[10px] text-muted-foreground/60 mt-1">{sub}</div>}
+
+    {/* Label */}
+    <div style={{
+      fontSize: "9px",
+      letterSpacing: "0.22em",
+      textTransform: "uppercase",
+      color: "var(--cv-muted)",
+      fontFamily: SERIF,
+    }}>
+      {label}
+    </div>
+
+    {sub && (
+      <div style={{
+        fontSize: "10px",
+        color: "var(--cv-muted)",
+        marginTop: "5px",
+        fontStyle: "italic",
+        fontFamily: SERIF,
+      }}>
+        {sub}
+      </div>
+    )}
+
+    {onClick && (
+      <div style={{
+        position: "absolute",
+        bottom: "14px",
+        right: "14px",
+        opacity: 0,
+        transition: "opacity 0.25s",
+      }}
+        className="cv-arrow"
+      >
+        <ChevronRight size={12} strokeWidth={1.5} color="var(--cv-muted)" />
+      </div>
+    )}
   </motion.div>
 );
 
-const QuickAction = ({
-  label, description, icon: Icon, color, onClick,
+// ─── Quick Action Row ────────────────────────────────────────────────────────
+const ActionRow = ({
+  label, description, numeral, onClick,
 }: {
-  label: string; description: string; icon: any; color: string; onClick: () => void;
+  label: string; description: string; numeral: string; onClick: () => void;
 }) => (
   <motion.button
     variants={stagger.item}
     onClick={onClick}
-    className="group flex items-center gap-4 p-4 rounded-2xl bg-card border border-border/50 hover:border-primary/20 hover:bg-muted/10 transition-all text-left w-full"
+    style={{
+      width: "100%",
+      background: "transparent",
+      border: "none",
+      borderBottom: "1px solid var(--cv-border-light)",
+      padding: "18px 0",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between",
+      textAlign: "left",
+      cursor: "pointer",
+      fontFamily: SERIF,
+      transition: "all 0.3s",
+      position: "relative",
+      overflow: "hidden",
+    }}
+    className="cv-action-row group"
+    whileHover={{ x: 4 }}
   >
-    <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${color} shrink-0`}>
-      <Icon size={18} />
+    <div style={{ display: "flex", alignItems: "baseline", gap: "16px" }}>
+      <span style={{
+        fontSize: "9px",
+        letterSpacing: "0.14em",
+        color: "var(--cv-border)",
+        fontStyle: "italic",
+        flexShrink: 0,
+      }}>
+        {numeral}
+      </span>
+      <div>
+        <p style={{
+          fontSize: "16px",
+          fontWeight: 400,
+          letterSpacing: "-0.01em",
+          color: "var(--cv-fg)",
+          marginBottom: "2px",
+          fontFamily: SERIF,
+          lineHeight: 1.2,
+        }}>
+          {label}
+        </p>
+        <p style={{
+          fontSize: "10px",
+          letterSpacing: "0.04em",
+          color: "var(--cv-muted)",
+          fontStyle: "italic",
+          fontFamily: SERIF,
+        }}>
+          {description}
+        </p>
+      </div>
     </div>
-    <div className="flex-1 min-w-0">
-      <p className="font-semibold text-foreground text-sm">{label}</p>
-      <p className="text-[11px] text-muted-foreground truncate">{description}</p>
-    </div>
-    <ArrowUpRight size={14} className="text-muted-foreground/40 group-hover:text-muted-foreground transition-colors shrink-0" />
+    <ArrowUpRight size={13} strokeWidth={1.5} color="var(--cv-border)" style={{ flexShrink: 0, transition: "all 0.3s" }} />
   </motion.button>
 );
 
+// ─── Activity Entry ──────────────────────────────────────────────────────────
+const ActivityEntry = ({ title, description, timestamp, index }: {
+  title: string; description: string; timestamp: number; index: number;
+}) => (
+  <motion.div
+    variants={stagger.item}
+    style={{
+      display: "flex",
+      alignItems: "flex-start",
+      gap: "16px",
+      padding: "14px 0",
+      borderBottom: "1px solid var(--cv-border-light)",
+      fontFamily: SERIF,
+    }}
+  >
+    {/* Index */}
+    <span style={{
+      fontSize: "9px",
+      letterSpacing: "0.12em",
+      color: "var(--cv-border)",
+      fontStyle: "italic",
+      flexShrink: 0,
+      paddingTop: "2px",
+      minWidth: "20px",
+    }}>
+      {String(index + 1).padStart(2, "0")}
+    </span>
+
+    <div style={{ flex: 1, minWidth: 0 }}>
+      <p style={{
+        fontSize: "14px",
+        fontWeight: 400,
+        color: "var(--cv-fg)",
+        letterSpacing: "-0.01em",
+        marginBottom: "2px",
+        fontFamily: SERIF,
+        overflow: "hidden",
+        textOverflow: "ellipsis",
+        whiteSpace: "nowrap",
+      }}>
+        {title}
+      </p>
+      <p style={{
+        fontSize: "10px",
+        color: "var(--cv-muted)",
+        fontStyle: "italic",
+        overflow: "hidden",
+        textOverflow: "ellipsis",
+        whiteSpace: "nowrap",
+      }}>
+        {description}
+      </p>
+    </div>
+
+    <span style={{
+      fontSize: "9px",
+      letterSpacing: "0.08em",
+      color: "var(--cv-muted)",
+      flexShrink: 0,
+      paddingTop: "2px",
+      fontStyle: "italic",
+    }}>
+      {formatTime(timestamp)}
+    </span>
+  </motion.div>
+);
+
+// ─── Main Component ──────────────────────────────────────────────────────────
 export default function DashboardPage() {
   const router = useRouter();
   const { contract, wallet, vaultItems, marketItems, salesItems, balance, startAutoRefresh } = useStore();
@@ -73,25 +257,14 @@ export default function DashboardPage() {
   const { contacts } = useContactsStore();
   const [mounted, setMounted] = useState(false);
 
-  // ✅ FIX 1: Pisah useEffect — jangan campur setMounted dengan redirect logic.
-  // Sebelumnya, setMounted(true) dipanggil bahkan ketika langsung redirect ke "/",
-  // menyebabkan flash render sebelum redirect selesai.
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  useEffect(() => { setMounted(true); }, []);
 
   useEffect(() => {
     if (!mounted) return;
-    if (!contract || !wallet) {
-      router.push("/");
-      return;
-    }
+    if (!contract || !wallet) { router.push("/"); return; }
     startAutoRefresh();
   }, [mounted, contract, wallet, router, startAutoRefresh]);
 
-  // ✅ FIX 2: Hapus `mounted` dari dependency array activities.
-  // `mounted` bukan data yang relevan untuk activities — hanya menyebabkan
-  // memo expired saat mount tapi tidak update saat data berubah.
   const activities = useMemo(
     () => (wallet ? getActivities(wallet.address).slice(0, 8) : []),
     [wallet?.address, getActivities]
@@ -104,194 +277,550 @@ export default function DashboardPage() {
     const escrowPending = salesItems.length;
     const portfolioValue = listed.reduce((sum, i) => sum + parseFloat(i.price || "0"), 0);
     const totalItems = vaultItems.length;
-    const copies = vaultItems.filter((i) => i.isCopy).length;
-    return { myItems: myItems.length, listed: listed.length, escrowPending, portfolioValue, totalItems, copies };
+    return { myItems: myItems.length, listed: listed.length, escrowPending, portfolioValue, totalItems };
   }, [vaultItems, salesItems, wallet]);
 
   if (!mounted || !wallet || !stats) return null;
 
+  const shortAddr = `${wallet.address.slice(0, 6)}…${wallet.address.slice(-4)}`;
+
   return (
     <div
-      className="absolute inset-0 overflow-y-scroll overscroll-y-contain"
-      style={{ WebkitOverflowScrolling: "touch" }}
+      className="min-h-screen"
+      style={{ background: "var(--cv-bg)" }}
     >
-    <div className="pt-36 px-6 pb-24 max-w-[1400px] mx-auto">
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&display=swap');
 
-      {/* ── Header ── */}
-      <motion.div
-        initial={{ opacity: 0, y: -16 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="mb-10"
-      >
-        <div className="flex items-center gap-3 mb-2">
-          <LayoutDashboard size={18} className="text-muted-foreground" />
-          <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Overview</span>
-        </div>
-        <h1 className="text-5xl md:text-6xl font-bold tracking-tighter bg-clip-text text-transparent bg-gradient-to-br from-foreground to-foreground/40 mb-2">
-          Dashboard.
-        </h1>
-        <p className="text-muted-foreground text-sm">
-          Wallet{" "}
-          <span className="font-mono text-foreground bg-muted/40 px-1.5 py-0.5 rounded-md text-xs">
-            {wallet.address.slice(0, 8)}...{wallet.address.slice(-6)}
-          </span>{" "}
-          · {NETWORK_CONFIG.name}
-        </p>
-      </motion.div>
+        :root {
+          --cv-bg: #FAFAF8;
+          --cv-fg: #0A0A0A;
+          --cv-muted: #6B6B6B;
+          --cv-border: #D8D4CC;
+          --cv-border-light: #EDEAE4;
+          --cv-card: #FFFFFF;
+          --cv-surface: #F4F2EE;
+          --cv-ink-light: #3A3A3A;
+        }
+        .dark {
+          --cv-bg: #0A0A08;
+          --cv-fg: #F0EDE6;
+          --cv-muted: #8A857C;
+          --cv-border: #2A2820;
+          --cv-border-light: #1E1C18;
+          --cv-card: #111109;
+          --cv-surface: #161410;
+          --cv-ink-light: #C5BFB5;
+        }
 
-      <motion.div variants={stagger.container} initial="initial" animate="animate" className="space-y-8">
+        /* Grain */
+        .cv-dashboard::before {
+          content: '';
+          position: fixed;
+          inset: 0;
+          pointer-events: none;
+          z-index: 0;
+          opacity: 0.025;
+          background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='grain'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23grain)' opacity='1'/%3E%3C/svg%3E");
+          background-size: 256px 256px;
+        }
 
-        {/* ── Balance Hero ── */}
-        <motion.div
-          variants={stagger.item}
-          className="relative p-7 rounded-[2rem] bg-gradient-to-br from-card via-card to-primary/5 border border-primary/10 overflow-hidden"
-        >
-          <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full blur-3xl" />
-          <div className="absolute bottom-0 left-0 w-48 h-48 bg-indigo-500/5 rounded-full blur-3xl" />
-          <div className="relative flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-            <div>
-              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-2 flex items-center gap-1.5">
-                <Zap size={10} className="text-amber-400" /> Total Balance
+        /* Stat card hover */
+        .cv-stat-card:hover {
+          border-color: var(--cv-border) !important;
+          background: var(--cv-surface) !important;
+        }
+        .cv-stat-card:hover .cv-arrow {
+          opacity: 1 !important;
+        }
+
+        /* Action row hover */
+        .cv-action-row:hover p:first-child {
+          text-decoration: underline;
+          text-underline-offset: 3px;
+        }
+
+        /* Balance value */
+        .cv-balance {
+          font-variant-numeric: tabular-nums;
+          font-feature-settings: "tnum";
+        }
+      `}</style>
+
+      <div className="cv-dashboard" style={{ position: "relative" }}>
+        <div style={{ maxWidth: "1280px", margin: "0 auto", padding: "0 48px 96px", position: "relative", zIndex: 1 }}>
+
+          {/* ── Masthead / Header ──────────────────────────────────── */}
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.9, ease }}
+            style={{
+              paddingTop: "120px",
+              paddingBottom: "40px",
+              borderBottom: "1px solid var(--cv-border-light)",
+              marginBottom: "48px",
+            }}
+          >
+            {/* Top meta line */}
+            <div style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              marginBottom: "20px",
+            }}>
+              <p style={{
+                fontSize: "9px",
+                letterSpacing: "0.28em",
+                textTransform: "uppercase",
+                color: "var(--cv-muted)",
+                fontFamily: SERIF,
+                fontStyle: "italic",
+              }}>
+                CipherVault · {NETWORK_CONFIG.name} · {NETWORK_CONFIG.tokenSymbol}
               </p>
-              <div className="flex items-end gap-2.5">
-                <span className="text-5xl font-bold tracking-tighter text-foreground">
-                  {parseFloat(balance).toFixed(4)}
-                </span>
-                <span className="text-xl font-bold text-muted-foreground mb-1">{NETWORK_CONFIG.tokenSymbol}</span>
+
+              {/* Live indicator */}
+              <div style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+                fontSize: "9px",
+                letterSpacing: "0.2em",
+                textTransform: "uppercase",
+                color: "var(--cv-muted)",
+                fontFamily: SERIF,
+              }}>
+                <span style={{
+                  width: "5px", height: "5px",
+                  borderRadius: "50%",
+                  background: "#4ade80",
+                  boxShadow: "0 0 0 2px rgba(74,222,128,0.2)",
+                  display: "inline-block",
+                  animation: "pulse 2s infinite",
+                }} />
+                Live
               </div>
-              <p className="text-xs text-muted-foreground mt-1">Available for transactions</p>
             </div>
-            <div className="flex flex-col gap-2 text-right">
-              <div className="px-4 py-2 rounded-xl bg-muted/20 border border-border/40">
-                <p className="text-[9px] text-muted-foreground uppercase tracking-wider mb-0.5">Portfolio Listed</p>
-                <p className="text-lg font-bold text-foreground">
-                  {stats.portfolioValue.toFixed(2)} <span className="text-sm text-muted-foreground">{NETWORK_CONFIG.tokenSymbol}</span>
+
+            {/* Thin rule + diamond */}
+            <div style={{ display: "flex", alignItems: "center", gap: "16px", marginBottom: "28px" }}>
+              <div style={{ flex: 1, height: "1px", background: "var(--cv-border-light)" }} />
+              <div style={{
+                width: "5px", height: "5px",
+                border: "1px solid var(--cv-border)",
+                transform: "rotate(45deg)",
+                flexShrink: 0,
+              }} />
+              <div style={{ flex: 1, height: "1px", background: "var(--cv-border-light)" }} />
+            </div>
+
+            {/* Title + wallet */}
+            <div style={{
+              display: "flex",
+              alignItems: "flex-end",
+              justifyContent: "space-between",
+              flexWrap: "wrap",
+              gap: "16px",
+            }}>
+              <h1 style={{
+                fontFamily: SERIF,
+                fontSize: "clamp(42px, 6vw, 72px)",
+                fontWeight: 400,
+                letterSpacing: "-0.03em",
+                lineHeight: 0.92,
+                color: "var(--cv-fg)",
+                margin: 0,
+              }}>
+                Portfolio<br />
+                <em style={{ color: "var(--cv-muted)", fontWeight: 400 }}>Overview.</em>
+              </h1>
+
+              {/* Wallet address block */}
+              <div style={{
+                border: "1px solid var(--cv-border-light)",
+                padding: "14px 18px",
+                background: "var(--cv-surface)",
+                textAlign: "right",
+              }}>
+                <p style={{
+                  fontSize: "8px",
+                  letterSpacing: "0.24em",
+                  textTransform: "uppercase",
+                  color: "var(--cv-muted)",
+                  marginBottom: "6px",
+                  fontFamily: SERIF,
+                }}>
+                  Active Vault
+                </p>
+                <p style={{
+                  fontFamily: MONO,
+                  fontSize: "12px",
+                  letterSpacing: "0.06em",
+                  color: "var(--cv-fg)",
+                }}>
+                  {shortAddr}
                 </p>
               </div>
             </div>
-          </div>
-        </motion.div>
+          </motion.div>
 
-        {/* ── Stats Grid ── */}
-        <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
-          <StatCard label="Total Asset" value={stats.totalItems} icon={Package}
-            color="bg-blue-500" onClick={() => router.push("/vault")} />
-          <StatCard label="Di Vault" value={stats.myItems} icon={Shield}
-            color="bg-violet-500" onClick={() => router.push("/vault")} />
-          <StatCard label="Di-Listing" value={stats.listed}
-            sub={`${stats.portfolioValue.toFixed(2)} ${NETWORK_CONFIG.tokenSymbol}`}
-            icon={Star} color="bg-amber-500" onClick={() => router.push("/market")} />
-          <StatCard label="Escrow Aktif" value={stats.escrowPending} icon={Clock}
-            color="bg-orange-500" onClick={() => router.push("/vault")} />
-          <StatCard label="Contacts" value={contacts.length} icon={Users}
-            color="bg-emerald-500" />
-          <StatCard label="Aktivitas" value={activities.length} icon={Activity}
-            color="bg-pink-500" />
-        </div>
+          <motion.div
+            variants={stagger.container}
+            initial="initial"
+            animate="animate"
+          >
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            {/* ── Balance Hero ──────────────────────────────────────── */}
+            <motion.div
+              variants={stagger.item}
+              style={{
+                border: "1px solid var(--cv-border-light)",
+                padding: "40px 44px",
+                marginBottom: "2px",
+                display: "flex",
+                alignItems: "flex-end",
+                justifyContent: "space-between",
+                flexWrap: "wrap",
+                gap: "24px",
+                background: "var(--cv-card)",
+                position: "relative",
+                overflow: "hidden",
+              }}
+            >
+              {/* Subtle watermark text */}
+              <span style={{
+                position: "absolute",
+                right: "32px",
+                top: "50%",
+                transform: "translateY(-50%)",
+                fontSize: "72px",
+                fontFamily: SERIF,
+                fontStyle: "italic",
+                fontWeight: 300,
+                color: "var(--cv-border-light)",
+                userSelect: "none",
+                letterSpacing: "-0.04em",
+                lineHeight: 1,
+                pointerEvents: "none",
+              }}>
+                Balance
+              </span>
 
-          {/* ── Activity Feed ── */}
-          <div>
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="font-bold text-foreground flex items-center gap-2">
-                <Activity size={16} className="text-muted-foreground" /> Aktivitas Terbaru
-              </h2>
-            </div>
-            <div className="space-y-2">
-              {activities.length === 0 ? (
-                <div className="p-8 rounded-2xl bg-muted/10 border border-dashed border-border/50 text-center">
-                  <p className="text-sm text-muted-foreground">Belum ada aktivitas</p>
+              <div style={{ position: "relative" }}>
+                <p style={{
+                  fontSize: "9px",
+                  letterSpacing: "0.26em",
+                  textTransform: "uppercase",
+                  color: "var(--cv-muted)",
+                  marginBottom: "12px",
+                  fontFamily: SERIF,
+                }}>
+                  Total Balance
+                </p>
+                <div style={{ display: "flex", alignItems: "baseline", gap: "10px" }}>
+                  <span className="cv-balance" style={{
+                    fontFamily: SERIF,
+                    fontSize: "clamp(44px, 7vw, 72px)",
+                    fontWeight: 400,
+                    letterSpacing: "-0.035em",
+                    lineHeight: 1,
+                    color: "var(--cv-fg)",
+                  }}>
+                    {parseFloat(balance).toFixed(4)}
+                  </span>
+                  <span style={{
+                    fontFamily: SERIF,
+                    fontSize: "20px",
+                    fontWeight: 400,
+                    color: "var(--cv-muted)",
+                    fontStyle: "italic",
+                    marginBottom: "4px",
+                  }}>
+                    {NETWORK_CONFIG.tokenSymbol}
+                  </span>
                 </div>
-              ) : (
-                activities.map((a) => {
-                  const meta = ACTIVITY_META[a.type];
-                  return (
-                    <motion.div
-                      key={a.id}
-                      variants={stagger.item}
-                      className="flex items-center gap-3 p-3.5 rounded-2xl bg-card border border-border/40 hover:border-border/70 transition-colors"
-                    >
-                      <div className="w-8 h-8 rounded-xl bg-muted/30 flex items-center justify-center text-base shrink-0">
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold text-foreground truncate">{a.title}</p>
-                        <p className="text-[11px] text-muted-foreground truncate">{a.description}</p>
-                      </div>
-                      <div className="text-[10px] text-muted-foreground/60 shrink-0">
-                        {formatTime(a.timestamp)}
-                      </div>
-                    </motion.div>
-                  );
-                })
-              )}
-            </div>
-          </div>
+                <p style={{
+                  fontSize: "10px",
+                  color: "var(--cv-muted)",
+                  marginTop: "8px",
+                  fontStyle: "italic",
+                  fontFamily: SERIF,
+                }}>
+                  Available for transactions
+                </p>
+              </div>
 
-          {/* ── Quick Actions ── */}
-          <div>
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="font-bold text-foreground flex items-center gap-2">
-                <Zap size={16} className="text-muted-foreground" /> Aksi Cepat
-              </h2>
-            </div>
-            <div className="flex flex-col gap-2.5">
-              <QuickAction
-                label="Upload & Enkripsi File"
-                description="Simpan file terenkripsi ke vault"
-                icon={Upload}
-                color="bg-blue-500/10 text-blue-400"
-                onClick={() => router.push("/vault")}
-              />
-              <QuickAction
-                label="Jual Asset"
-                description="Listing asset ke marketplace"
-                icon={ShoppingBag}
-                color="bg-amber-500/10 text-amber-400"
-                onClick={() => router.push("/market")}
-              />
-              <QuickAction
-                label="Kirim Pesan"
-                description="Chat terenkripsi ke wallet manapun"
-                icon={MessageSquare}
-                color="bg-emerald-500/10 text-emerald-400"
-                onClick={() => router.push("/messages")}
-              />
-              <QuickAction
-                label="Lihat Portfolio"
-                description={`${stats.listed} asset listed · ${stats.portfolioValue.toFixed(2)} ${NETWORK_CONFIG.tokenSymbol}`}
-                icon={TrendingUp}
-                color="bg-violet-500/10 text-violet-400"
-                onClick={() => router.push("/vault")}
-              />
+              {/* Portfolio value */}
+              <div style={{
+                textAlign: "right",
+                position: "relative",
+                borderLeft: "1px solid var(--cv-border-light)",
+                paddingLeft: "40px",
+              }}>
+                <p style={{
+                  fontSize: "9px",
+                  letterSpacing: "0.22em",
+                  textTransform: "uppercase",
+                  color: "var(--cv-muted)",
+                  marginBottom: "8px",
+                  fontFamily: SERIF,
+                }}>
+                  Portfolio Listed
+                </p>
+                <p className="cv-balance" style={{
+                  fontFamily: SERIF,
+                  fontSize: "32px",
+                  fontWeight: 400,
+                  letterSpacing: "-0.025em",
+                  color: "var(--cv-fg)",
+                }}>
+                  {stats.portfolioValue.toFixed(2)}
+                  <span style={{ fontSize: "14px", color: "var(--cv-muted)", marginLeft: "6px", fontStyle: "italic" }}>
+                    {NETWORK_CONFIG.tokenSymbol}
+                  </span>
+                </p>
+              </div>
+            </motion.div>
+
+            {/* ── Stats Grid ───────────────────────────────────────── */}
+            <div style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(6, 1fr)",
+              gap: "2px",
+              marginBottom: "48px",
+              marginTop: "2px",
+            }}>
+              <StatCard label="Total Assets" value={stats.totalItems} roman="I"
+                onClick={() => router.push("/vault")} />
+              <StatCard label="In Vault" value={stats.myItems} roman="II"
+                onClick={() => router.push("/vault")} />
+              <StatCard label="Listed" value={stats.listed} roman="III"
+                sub={`${stats.portfolioValue.toFixed(2)} ${NETWORK_CONFIG.tokenSymbol}`}
+                onClick={() => router.push("/market")} />
+              <StatCard label="Escrow Active" value={stats.escrowPending} roman="IV"
+                onClick={() => router.push("/vault")} />
+              <StatCard label="Contacts" value={contacts.length} roman="V" />
+              <StatCard label="Activities" value={activities.length} roman="VI" />
             </div>
 
-            {/* Market snapshot */}
-            <div className="mt-4 p-4 rounded-2xl bg-muted/10 border border-border/40">
-              <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-3 flex items-center gap-1.5">
-                <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                Market Sekarang
+            {/* ── Two-Column ───────────────────────────────────────── */}
+            <div style={{
+              display: "grid",
+              gridTemplateColumns: "1fr 1fr",
+              gap: "48px",
+              alignItems: "start",
+            }}>
+
+              {/* Activity Feed */}
+              <div>
+                {/* Section header */}
+                <div style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "14px",
+                  marginBottom: "20px",
+                }}>
+                  <div style={{ width: "24px", height: "1px", background: "var(--cv-fg)" }} />
+                  <p style={{
+                    fontSize: "9px",
+                    letterSpacing: "0.26em",
+                    textTransform: "uppercase",
+                    color: "var(--cv-muted)",
+                    fontFamily: SERIF,
+                  }}>
+                    Recent Activity
+                  </p>
+                </div>
+
+                {activities.length === 0 ? (
+                  <div style={{
+                    padding: "48px 24px",
+                    border: "1px solid var(--cv-border-light)",
+                    textAlign: "center",
+                  }}>
+                    <p style={{
+                      fontSize: "13px",
+                      fontStyle: "italic",
+                      color: "var(--cv-muted)",
+                      fontFamily: SERIF,
+                    }}>
+                      No activity recorded yet.
+                    </p>
+                  </div>
+                ) : (
+                  <div style={{ borderTop: "1px solid var(--cv-border-light)" }}>
+                    {activities.map((a, i) => (
+                      <ActivityEntry
+                        key={a.id}
+                        title={a.title}
+                        description={a.description}
+                        timestamp={a.timestamp}
+                        index={i}
+                      />
+                    ))}
+                  </div>
+                )}
               </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">Total listing</span>
-                <span className="font-bold text-foreground">{marketItems.length} asset</span>
-              </div>
-              <div className="flex items-center justify-between mt-1">
-                <span className="text-sm text-muted-foreground">Update</span>
-                <span className="text-xs text-muted-foreground">Tiap 4 detik</span>
+
+              {/* Quick Actions + Market Snapshot */}
+              <div>
+                {/* Section header */}
+                <div style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "14px",
+                  marginBottom: "20px",
+                }}>
+                  <div style={{ width: "24px", height: "1px", background: "var(--cv-fg)" }} />
+                  <p style={{
+                    fontSize: "9px",
+                    letterSpacing: "0.26em",
+                    textTransform: "uppercase",
+                    color: "var(--cv-muted)",
+                    fontFamily: SERIF,
+                  }}>
+                    Operations
+                  </p>
+                </div>
+
+                <div style={{ borderTop: "1px solid var(--cv-border-light)" }}>
+                  <ActionRow
+                    label="Upload & Encrypt File"
+                    description="Store encrypted asset to vault"
+                    numeral="01"
+                    onClick={() => router.push("/vault")}
+                  />
+                  <ActionRow
+                    label="List Asset for Sale"
+                    description="Place asset on marketplace"
+                    numeral="02"
+                    onClick={() => router.push("/market")}
+                  />
+                  <ActionRow
+                    label="Send Encrypted Message"
+                    description="Encrypted chat to any wallet"
+                    numeral="03"
+                    onClick={() => router.push("/messages")}
+                  />
+                  <ActionRow
+                    label="View Full Portfolio"
+                    description={`${stats.listed} listed · ${stats.portfolioValue.toFixed(2)} ${NETWORK_CONFIG.tokenSymbol}`}
+                    numeral="04"
+                    onClick={() => router.push("/vault")}
+                  />
+                </div>
+
+                {/* Market snapshot — editorial infobox */}
+                <div style={{
+                  marginTop: "32px",
+                  padding: "24px 26px",
+                  background: "var(--cv-surface)",
+                  border: "1px solid var(--cv-border-light)",
+                }}>
+                  <div style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "10px",
+                    marginBottom: "16px",
+                  }}>
+                    <span style={{
+                      width: "5px", height: "5px",
+                      borderRadius: "50%",
+                      background: "#4ade80",
+                      flexShrink: 0,
+                      boxShadow: "0 0 0 2px rgba(74,222,128,0.2)",
+                    }} />
+                    <p style={{
+                      fontSize: "8px",
+                      letterSpacing: "0.26em",
+                      textTransform: "uppercase",
+                      color: "var(--cv-muted)",
+                      fontFamily: SERIF,
+                    }}>
+                      Market · Live
+                    </p>
+                  </div>
+
+                  <div style={{ height: "1px", background: "var(--cv-border-light)", marginBottom: "16px" }} />
+
+                  {[
+                    { label: "Total Listings", value: `${marketItems.length} assets` },
+                    { label: "Refresh Interval", value: "Every 4s" },
+                    { label: "Network", value: NETWORK_CONFIG.name },
+                  ].map(({ label, value }) => (
+                    <div key={label} style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "baseline",
+                      marginBottom: "10px",
+                    }}>
+                      <span style={{
+                        fontSize: "10px",
+                        color: "var(--cv-muted)",
+                        fontFamily: SERIF,
+                        fontStyle: "italic",
+                      }}>
+                        {label}
+                      </span>
+                      <span style={{
+                        fontSize: "12px",
+                        fontFamily: SERIF,
+                        fontWeight: 500,
+                        color: "var(--cv-fg)",
+                        letterSpacing: "0.01em",
+                      }}>
+                        {value}
+                      </span>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
-          </div>
+
+            {/* ── Footer colophon ──────────────────────────────────── */}
+            <motion.div
+              variants={stagger.item}
+              style={{
+                marginTop: "64px",
+                paddingTop: "20px",
+                borderTop: "1px solid var(--cv-border-light)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+              }}
+            >
+              <p style={{
+                fontSize: "9px",
+                letterSpacing: "0.2em",
+                textTransform: "uppercase",
+                color: "var(--cv-muted)",
+                fontFamily: SERIF,
+              }}>
+                CipherVault · Non-custodial · End-to-end encrypted
+              </p>
+              <p style={{
+                fontSize: "9px",
+                letterSpacing: "0.14em",
+                color: "var(--cv-muted)",
+                fontFamily: SERIF,
+                fontStyle: "italic",
+              }}>
+                {new Date().getFullYear()}
+              </p>
+            </motion.div>
+
+          </motion.div>
         </div>
-      </motion.div>
-    </div></div>
+      </div>
+    </div>
   );
 }
 
 function formatTime(timestamp: number): string {
   const diff = Date.now() - timestamp;
-  if (diff < 60_000) return "baru saja";
-  if (diff < 3_600_000) return `${Math.floor(diff / 60_000)}m lalu`;
-  if (diff < 86_400_000) return `${Math.floor(diff / 3_600_000)}j lalu`;
-  return new Date(timestamp).toLocaleDateString("id-ID", { day: "numeric", month: "short" });
+  if (diff < 60_000) return "just now";
+  if (diff < 3_600_000) return `${Math.floor(diff / 60_000)}m ago`;
+  if (diff < 86_400_000) return `${Math.floor(diff / 3_600_000)}h ago`;
+  return new Date(timestamp).toLocaleDateString("en-GB", { day: "numeric", month: "short" });
 }

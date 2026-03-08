@@ -5,10 +5,7 @@ import { useRouter } from "next/navigation";
 import { useStore } from "@/lib/store";
 import { useActivityStore } from "@/lib/activity-store";
 import { decryptFile, uploadPreview, unlockVaultKey } from "@/lib/crypto-engine";
-import {
-  Upload, FileText, Send, Trash2, Box, Users, Check, Tag, XCircle,
-  Eye, Lock, ShieldCheck, Clock, CheckCircle2, ImagePlus, FolderUp, Link2
-} from "lucide-react";
+import { Upload, FileText, Send, Trash2, Users, Check, Tag, XCircle, Eye, ShieldCheck, Clock, CheckCircle2, ImagePlus, FolderUp, Link2 } from "lucide-react";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button, Input, Modal } from "@/components/ui-kits";
@@ -19,902 +16,451 @@ import PriceHistory from "@/components/PriceHistory";
 import { NETWORK_CONFIG } from "@/lib/constants";
 import { useContactsStore } from "@/lib/contact-store";
 
+const SERIF = "'EB Garamond', 'Cormorant Garamond', Georgia, serif";
+const MONO = "'JetBrains Mono', 'Courier New', monospace";
+const ease: [number, number, number, number] = [0.16, 1, 0.3, 1];
+
 export default function VaultPage() {
   const router = useRouter();
-  const {
-    contract, wallet, signer, ensureGas, syncAll, startAutoRefresh,
-    vaultItems, salesItems,
-    mintAndEncrypt,
-    listAssetForSale, updateListing, cancelListing,
-    transferAsset, sendCopyAsset, confirmTrade, cancelTrade, burnAsset,
+  const { contract, wallet, signer, ensureGas, syncAll, startAutoRefresh,
+    vaultItems, salesItems, mintAndEncrypt, listAssetForSale, updateListing,
+    cancelListing, transferAsset, sendCopyAsset, confirmTrade, cancelTrade, burnAsset,
   } = useStore();
-
   const { addActivity } = useActivityStore();
   const { contacts, getByAddress } = useContactsStore();
+
   const [showContactPicker, setShowContactPicker] = useState(false);
   const [contactSearch, setContactSearch] = useState("");
   const [loading, setLoading] = useState(false);
   const [isClient, setIsClient] = useState(false);
-  const [modals, setModals] = useState({
-    sell: false, edit: false, transfer: false, burn: false, preview: false, batchUpload: false, share: false,
-  });
+  const [modals, setModals] = useState({ sell: false, edit: false, transfer: false, burn: false, preview: false, batchUpload: false, share: false });
   const [activeId, setActiveId] = useState<number | null>(null);
   const [txLoading, setTxLoading] = useState<Record<number, boolean>>({});
-
-  const [formData, setFormData] = useState({
-    price: "", desc: "", escrow: true, address: "",
-    mode: "MOVE" as "MOVE" | "COPY",
-    cid: "", name: "", previewUrl: "",
-    previewFile: null as File | null,
-    previewObj: null as File | null,
-    previewType: "",
-    previewName: "",
-  });
+  const [formData, setFormData] = useState({ price: "", desc: "", escrow: true, address: "", mode: "MOVE" as "MOVE" | "COPY", cid: "", name: "", previewUrl: "", previewFile: null as File | null, previewObj: null as File | null, previewType: "", previewName: "" });
 
   useEffect(() => {
     setIsClient(true);
     if (!contract || !wallet) { router.push("/"); return; }
     startAutoRefresh();
-    // Unlock vault key ONCE — satu-satunya titik sign untuk enkripsi.
-    if (signer) {
-      unlockVaultKey(signer).catch(() => {
-        toast.error("Gagal membuka kunci vault. Coba refresh.");
-      });
-    }
+    if (signer) unlockVaultKey(signer).catch(() => toast.error("Failed to unlock vault key."));
   }, [contract, wallet, router, startAutoRefresh]);
 
   const openModal = (type: keyof typeof modals, id: number | null = null, extra: any = {}) => {
-    setActiveId(id);
-    setModals({ ...modals, [type]: true });
-    setFormData((prev) => ({ ...prev, ...extra }));
+    setActiveId(id); setModals({ ...modals, [type]: true }); setFormData((prev) => ({ ...prev, ...extra }));
   };
-  const closeModal = (type: keyof typeof modals) => {
-    setModals({ ...modals, [type]: false });
-    setActiveId(null);
-  };
+  const closeModal = (type: keyof typeof modals) => { setModals({ ...modals, [type]: false }); setActiveId(null); };
 
-  // ──────────────────────────────────────────
-  // UPLOAD & ENCRYPT
-  // FIX: Pakai mintAndEncrypt dari store (bukan contract.mintToVault langsung).
-  // mintAndEncrypt sudah include gas override, urutan arg yang benar, dan syncAll.
-  // ──────────────────────────────────────────
   const handleUpload = async (e: any) => {
     const f: File = e.target.files[0];
     if (!f || !signer) return;
     setLoading(true);
-    const t = toast.loading("Mengenkripsi & mengupload...");
+    const t = toast.loading("Encrypting & uploading…");
     try {
       await ensureGas();
-      const tokenId = await mintAndEncrypt(f); // ← FIXED: was contract!.mintToVault(cid, f.name) — arg terbalik & tanpa gas override
-      toast.dismiss(t);
-      toast.success(`Asset #${tokenId} berhasil di-mint ke vault!`);
-      addActivity({
-        type: "upload",
-        title: "Asset di-upload",
-        description: `File "${f.name}" berhasil dienkripsi & di-mint ke vault`,
-        walletAddress: wallet!.address,
-        tokenId,
-      });
-    } catch (e: any) {
-      toast.dismiss(t);
-      toast.error(e.message || "Upload gagal");
-    }
-    setLoading(false);
-    e.target.value = "";
+      const tokenId = await mintAndEncrypt(f);
+      toast.dismiss(t); toast.success(`Asset #${tokenId} minted.`);
+      addActivity({ type: "upload", title: "Asset uploaded", description: `"${f.name}" encrypted & minted to vault`, walletAddress: wallet!.address, tokenId });
+    } catch (e: any) { toast.dismiss(t); toast.error(e.message || "Upload failed"); }
+    setLoading(false); e.target.value = "";
   };
 
-  // ──────────────────────────────────────────
-  // DECRYPT & PREVIEW / DOWNLOAD
-  // ──────────────────────────────────────────
   const handleDecrypt = async (cid: string, mode: "PREVIEW" | "DOWNLOAD") => {
     if (!wallet || !signer) return;
-    const t = toast.loading("Mendekripsi...");
+    const t = toast.loading("Decrypting…");
     try {
       const file = await decryptFile(cid, signer);
-
       if (mode === "PREVIEW") {
         setFormData((p) => ({ ...p, previewObj: file, previewUrl: "", previewName: file.name }));
         setModals((p) => ({ ...p, preview: true }));
       } else {
         const url = URL.createObjectURL(file);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = file.name;
-        a.click();
+        const a = document.createElement("a"); a.href = url; a.download = file.name; a.click();
         setTimeout(() => URL.revokeObjectURL(url), 1000);
       }
       toast.dismiss(t);
-    } catch (err: any) {
-      toast.dismiss(t);
-      toast.error(err.message || "Dekripsi gagal");
-    }
+    } catch (err: any) { toast.dismiss(t); toast.error(err.message || "Decryption failed"); }
   };
 
-  // ──────────────────────────────────────────
-  // LIST FOR SALE (with optional preview)
-  // ──────────────────────────────────────────
   const handleListForSale = async () => {
     if (!formData.price || !activeId) return;
     setLoading(true);
     try {
-      await ensureGas(); // ← FIXED: pastikan gas cukup sebelum listing
+      await ensureGas();
       let previewCid = "";
       if (formData.previewFile) {
-        const t = toast.loading("Mengupload preview...");
-        previewCid = await uploadPreview(formData.previewFile);
-        toast.dismiss(t);
+        const t = toast.loading("Uploading preview…");
+        previewCid = await uploadPreview(formData.previewFile); toast.dismiss(t);
       }
       await listAssetForSale(activeId, formData.price, formData.desc, previewCid || null, true);
-      toast.success("Asset berhasil di-listing!");
-      addActivity({
-        type: "list",
-        title: "Asset di-listing",
-        description: `Asset #${activeId} di-listing seharga ${formData.price} ${NETWORK_CONFIG.tokenSymbol}`,
-        walletAddress: wallet!.address,
-        tokenId: activeId,
-        amount: formData.price,
-      });
+      toast.success("Asset listed.");
+      addActivity({ type: "list", title: "Asset listed", description: `Asset #${activeId} listed at ${formData.price} ${NETWORK_CONFIG.tokenSymbol}`, walletAddress: wallet!.address, tokenId: activeId, amount: formData.price });
       closeModal("sell");
-    } catch (e: any) {
-      toast.error(e.message || "Listing gagal");
-    }
+    } catch (e: any) { toast.error(e.message || "Listing failed"); }
     setLoading(false);
   };
 
   if (!isClient || !contract) return null;
 
   return (
-    <div className="min-h-screen pt-40 px-6 pb-32 max-w-[1400px] mx-auto transition-colors duration-700">
+    <div style={{ minHeight: "100vh", background: "var(--cv-bg)", color: "var(--cv-fg)" }}>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;1,400;1,500&display=swap');
+        :root{--cv-bg:#FAFAF8;--cv-fg:#0A0A0A;--cv-muted:#6B6B6B;--cv-border:#D8D4CC;--cv-border-light:#EDEAE4;--cv-card:#FFFFFF;--cv-surface:#F4F2EE;--cv-ink-light:#3A3A3A;}
+        .dark{--cv-bg:#0A0A08;--cv-fg:#F0EDE6;--cv-muted:#8A857C;--cv-border:#2A2820;--cv-border-light:#1E1C18;--cv-card:#111109;--cv-surface:#161410;--cv-ink-light:#C5BFB5;}
+        .cv-asset-card{border:1px solid var(--cv-border-light);background:var(--cv-card);transition:border-color 0.35s,transform 0.35s;}
+        .cv-asset-card:hover{border-color:var(--cv-border);transform:translateY(-2px);}
+        .cv-asset-card.escrow{border-color:var(--cv-border);background:var(--cv-surface);}
+        .cv-action-btn{background:transparent;border:1px solid var(--cv-border-light);padding:10px 16px;font-family:${SERIF};font-size:9px;letter-spacing:0.18em;text-transform:uppercase;color:var(--cv-muted);cursor:pointer;transition:all 0.25s;display:flex;align-items:center;justify-content:center;gap:8px;}
+        .cv-action-btn:hover{border-color:var(--cv-fg);color:var(--cv-fg);}
+        .cv-action-btn.danger:hover{border-color:#dc2626;color:#dc2626;}
+        .cv-action-btn.primary{background:var(--cv-fg);color:var(--cv-bg);border-color:var(--cv-fg);}
+        .cv-action-btn.primary:hover{opacity:0.85;}
+        .cv-badge{font-family:${SERIF};font-size:8px;letter-spacing:0.2em;text-transform:uppercase;padding:4px 10px;border:1px solid var(--cv-border-light);color:var(--cv-muted);}
+      `}</style>
 
-      {/* HEADER */}
-      <div className="flex flex-col md:flex-row justify-between items-end mb-20 gap-8">
-        <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="mb-4">
-          <h1 className="text-7xl md:text-8xl font-bold tracking-tighter bg-clip-text text-transparent bg-gradient-to-b from-foreground to-foreground/50 mb-4">
-            Vault.
-          </h1>
-          <div className="flex items-center gap-4 flex-wrap">
-            <span className="px-3 py-1 rounded-full border border-border/50 bg-muted/20 text-[10px] uppercase tracking-widest font-bold text-muted-foreground">
+      <div style={{ maxWidth: "1280px", margin: "0 auto", padding: "120px 48px 96px" }}>
+
+        {/* ── Header ── */}
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, ease }}
+          style={{ paddingBottom: "40px", borderBottom: "1px solid var(--cv-border-light)", marginBottom: "48px", display: "flex", alignItems: "flex-end", justifyContent: "space-between", flexWrap: "wrap", gap: "24px" }}>
+          <div>
+            <p style={{ fontSize: "9px", letterSpacing: "0.28em", textTransform: "uppercase", color: "var(--cv-muted)", fontFamily: SERIF, fontStyle: "italic", marginBottom: "16px" }}>
               Encrypted · {NETWORK_CONFIG.name}
-            </span>
-            <span className="text-muted-foreground text-sm font-medium">
-              {vaultItems.length} Asset{vaultItems.length !== 1 && "s"} Secured
-            </span>
+            </p>
+            <h1 style={{ fontFamily: SERIF, fontSize: "clamp(52px, 8vw, 80px)", fontWeight: 400, letterSpacing: "-0.03em", lineHeight: 0.9, margin: 0 }}>
+              Vault<br /><em style={{ color: "var(--cv-muted)" }}>Repository.</em>
+            </h1>
+            <p style={{ fontFamily: SERIF, fontSize: "12px", color: "var(--cv-muted)", fontStyle: "italic", marginTop: "12px" }}>
+              {vaultItems.length} asset{vaultItems.length !== 1 ? "s" : ""} secured
+            </p>
+          </div>
+
+          <div style={{ display: "flex", gap: "2px" }}>
+            <button onClick={() => setModals((p) => ({ ...p, batchUpload: true }))}
+              style={{ background: "var(--cv-surface)", border: "1px solid var(--cv-border-light)", padding: "14px 24px", fontFamily: SERIF, fontSize: "9px", letterSpacing: "0.2em", textTransform: "uppercase", color: "var(--cv-muted)", cursor: "pointer", display: "flex", alignItems: "center", gap: "10px", transition: "all 0.25s" }}
+              onMouseEnter={(e) => { e.currentTarget.style.borderColor = "var(--cv-border)"; e.currentTarget.style.color = "var(--cv-fg)"; }}
+              onMouseLeave={(e) => { e.currentTarget.style.borderColor = "var(--cv-border-light)"; e.currentTarget.style.color = "var(--cv-muted)"; }}>
+              <FolderUp size={13} strokeWidth={1.5} /> Batch Upload
+            </button>
+
+            <label style={{ background: "var(--cv-fg)", border: "1px solid var(--cv-fg)", padding: "14px 28px", fontFamily: SERIF, fontSize: "9px", letterSpacing: "0.2em", textTransform: "uppercase", color: "var(--cv-bg)", cursor: loading ? "not-allowed" : "pointer", display: "flex", alignItems: "center", gap: "10px", opacity: loading ? 0.6 : 1, transition: "opacity 0.25s" }}>
+              <Upload size={13} strokeWidth={1.5} />
+              {loading ? "Encrypting…" : "Upload Asset"}
+              <input type="file" style={{ display: "none" }} onChange={handleUpload} disabled={loading} />
+            </label>
           </div>
         </motion.div>
 
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => setModals((p) => ({ ...p, batchUpload: true }))}
-            className="group px-6 py-4 bg-muted/60 text-foreground text-sm font-bold rounded-2xl flex items-center gap-3 hover:bg-muted transition-all border border-border/50"
-          >
-            <FolderUp size={18} strokeWidth={2.5} className="text-muted-foreground group-hover:text-foreground transition-colors" />
-            <span className="tracking-wide text-muted-foreground group-hover:text-foreground transition-colors">BATCH UPLOAD</span>
-          </button>
-
-          <label className={`cursor-pointer group px-8 py-4 bg-foreground text-background text-sm font-bold rounded-2xl shadow-2xl flex items-center gap-3 hover:opacity-90 transition-all ${loading ? "opacity-70 pointer-events-none" : ""}`}>
-            <div className="flex items-center gap-3">
-              {loading
-                ? <div className="w-5 h-5 border-2 border-background/30 border-t-background rounded-full animate-spin" />
-                : <Upload size={18} strokeWidth={2.5} />}
-              <span className="tracking-wide">{loading ? "ENCRYPTING..." : "UPLOAD ASSET"}</span>
-            </div>
-            <input type="file" className="hidden" onChange={handleUpload} disabled={loading} />
-          </label>
-        </div>
-      </div>
-
-      {/* INCOMING OFFERS (Seller Notification) */}
-      <AnimatePresence>
-        {salesItems.length > 0 && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto" }}
-            exit={{ opacity: 0, height: 0 }}
-            className="mb-16 overflow-hidden"
-          >
-            <div className="flex items-center gap-2 mb-4 px-2">
-              <div className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
-              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
-                Incoming Offers — Perlu Konfirmasi
-              </span>
-            </div>
-            <div className="grid gap-3">
-              {salesItems.map((sale: any, i: number) => (
-                <motion.div
-                  key={`sale-${i}`}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  className="bg-card/50 border border-amber-500/30 p-6 rounded-3xl flex justify-between items-center shadow-lg"
-                >
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-xl bg-amber-500/20 text-amber-500 flex items-center justify-center">
-                      <Users size={20} />
-                    </div>
+        {/* ── Incoming Offers ── */}
+        <AnimatePresence>
+          {salesItems.length > 0 && (
+            <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }}
+              style={{ marginBottom: "40px", overflow: "hidden" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "16px" }}>
+                <div style={{ width: "24px", height: "1px", background: "var(--cv-fg)" }} />
+                <p style={{ fontSize: "9px", letterSpacing: "0.26em", textTransform: "uppercase", color: "var(--cv-muted)", fontFamily: SERIF }}>
+                  Pending Offers — Awaiting Confirmation
+                </p>
+                <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#f59e0b", display: "inline-block", animation: "pulse 2s infinite" }} />
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
+                {salesItems.map((sale: any, i: number) => (
+                  <div key={`sale-${i}`} style={{ border: "1px solid var(--cv-border-light)", padding: "20px 28px", display: "flex", justifyContent: "space-between", alignItems: "center", background: "var(--cv-surface)" }}>
                     <div>
-                      <h3 className="font-bold text-foreground">Offer: {sale.name}</h3>
-                      <p className="text-xs text-muted-foreground mb-2">
-                        Buyer: {sale.buyer.slice(0, 6)}...{sale.buyer.slice(-4)} ·{" "}
-                        <span className="text-foreground font-bold">
-                          {sale.price} {NETWORK_CONFIG.tokenSymbol}
-                        </span>
+                      <p style={{ fontFamily: SERIF, fontSize: "16px", color: "var(--cv-fg)", marginBottom: "4px" }}>{sale.name}</p>
+                      <p style={{ fontFamily: MONO, fontSize: "10px", color: "var(--cv-muted)" }}>
+                        Buyer: {sale.buyer.slice(0, 6)}…{sale.buyer.slice(-4)} · <span style={{ color: "var(--cv-fg)" }}>{sale.price} {NETWORK_CONFIG.tokenSymbol}</span>
                       </p>
-                      <PriceHistory tokenId={sale.tokenId} currentPrice={sale.price} compact />
                     </div>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button
-                      isLoading={txLoading[sale.tokenId]}
-                      disabled={txLoading[sale.tokenId]}
-                      onClick={async () => {
-                        try {
-                          setTxLoading(prev => ({ ...prev, [sale.tokenId]: true }));
-                          await confirmTrade(sale.tokenId);
-                          toast.success("Deal dikonfirmasi!");
-                          addActivity({
-                            type: "escrow_confirm",
-                            title: "Trade dikonfirmasi",
-                            description: `Kamu konfirmasi penjualan asset #${sale.tokenId} "${sale.name}" seharga ${sale.price} ${NETWORK_CONFIG.tokenSymbol}`,
-                            walletAddress: wallet!.address,
-                            tokenId: sale.tokenId,
-                            amount: sale.price,
-                            address: sale.buyer,
-                          });
-                        } catch (e: any) {
-                          toast.error(e.message);
-                        } finally {
-                          setTxLoading(prev => ({ ...prev, [sale.tokenId]: false }));
-                        }
-                      }}
-                      className="h-10 text-xs px-6 bg-emerald-500 hover:bg-emerald-600 text-white"
-                    >
-                      Terima
-                    </Button>
-                    <Button
-                      disabled={txLoading[sale.tokenId]}
-                      onClick={async () => {
-                        try {
-                          setTxLoading(prev => ({ ...prev, [sale.tokenId]: true }));
-                          await cancelTrade(sale.tokenId);
-                          toast.success("Trade dibatalkan, buyer di-refund");
-                          addActivity({
-                            type: "escrow_cancel",
-                            title: "Trade dibatalkan",
-                            description: `Trade asset #${sale.tokenId} "${sale.name}" dibatalkan, buyer di-refund`,
-                            walletAddress: wallet!.address,
-                            tokenId: sale.tokenId,
-                            address: sale.buyer,
-                          });
-                        } catch (e: any) {
-                          toast.error(e.message);
-                        } finally {
-                          setTxLoading(prev => ({ ...prev, [sale.tokenId]: false }));
-                        }
-                      }}
-                      variant="danger"
-                      className="h-10 w-10 p-0 rounded-full flex items-center justify-center shrink-0"
-                    >
-                      <XCircle size={18} />
-                    </Button>
-                  </div>
-                </motion.div>
-              ))}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* VAULT GRID */}
-      {vaultItems.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-40 bg-muted/5 border border-dashed border-border/50 rounded-[3rem]">
-          <div className="w-28 h-28 bg-muted/10 rounded-full flex items-center justify-center mb-8 border border-white/5">
-            <Box size={40} className="text-muted-foreground/50" />
-          </div>
-          <h3 className="text-xl font-bold text-foreground mb-2">Vault Kosong</h3>
-          <p className="text-muted-foreground text-sm max-w-xs text-center leading-relaxed">
-            Upload file pertama untuk mengamankannya di blockchain.
-          </p>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {vaultItems.map((file: any, i: number) => {
-            const isSeller = wallet?.address.toLowerCase() === file.seller?.toLowerCase();
-            const isBuyer = wallet?.address.toLowerCase() === file.buyer?.toLowerCase();
-            const inEscrow = file.isEscrowActive;
-
-            const cardStyle = inEscrow
-              ? "bg-amber-500/5 border-amber-500/30 shadow-[0_0_30px_rgba(245,158,11,0.1)]"
-              : "bg-card/40 border-border/50 hover:bg-card/80 hover:border-primary/20 hover:shadow-2xl";
-
-            return (
-              <motion.div
-                key={file.id}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.05 }}
-                className={`group relative backdrop-blur-md border rounded-[2.5rem] p-2 transition-all duration-500 ${cardStyle}`}
-              >
-                <div className="p-6 pb-2">
-                  {/* CARD HEADER */}
-                  <div className="flex justify-between items-start mb-8">
-                    <div className={`w-14 h-14 rounded-[1.2rem] flex items-center justify-center border ${file.isCopy
-                      ? "bg-muted/50 border-border text-muted-foreground"
-                      : inEscrow
-                        ? "bg-amber-500/20 text-amber-500 border-amber-500/30"
-                        : "bg-gradient-to-br from-background to-muted border-white/10 text-foreground"
-                      }`}>
-                      {inEscrow ? <ShieldCheck size={24} /> : file.isCopy ? <Users size={24} /> : <FileText size={24} />}
-                    </div>
-
-                    <div className="flex flex-col items-end gap-1.5">
-                      {file.isListed && !inEscrow && (
-                        <span className="px-2.5 py-1 rounded-full text-[9px] font-bold bg-muted text-muted-foreground border border-border uppercase tracking-wide">
-                          On Sale
-                        </span>
-                      )}
-                      {inEscrow && (
-                        <span className={`px-2.5 py-1 rounded-full text-[9px] font-bold border uppercase tracking-wide ${isSeller
-                          ? "bg-blue-500/10 text-blue-500 border-blue-500/20"
-                          : "bg-purple-500/10 text-purple-500 border-purple-500/20"
-                          }`}>
-                          {isSeller ? "Kamu Seller" : "Kamu Buyer"}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* INFO */}
-                  <div className="mb-6">
-                    <h3 className="text-xl font-bold text-foreground truncate tracking-tight mb-2">
-                      {file.name}
-                    </h3>
-                    <div className="flex items-center gap-3">
-                      <span className="text-[10px] font-bold text-muted-foreground/60 font-mono bg-muted/30 px-2 py-1 rounded-md">
-                        #{file.id}
-                      </span>
-                      {(file.isListed || inEscrow) && (
-                        <div className="flex flex-col items-start gap-1">
-                          <span className="text-sm font-bold text-foreground">
-                            {file.price} {NETWORK_CONFIG.tokenSymbol}
-                          </span>
-                          {file.isListed && (
-                            <PriceHistory tokenId={file.id} currentPrice={file.price} compact />
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* ESCROW STATUS */}
-                  {inEscrow && (
-                    <div className="bg-background/50 rounded-2xl p-4 border border-border/50 mb-2">
-                      <div className="flex justify-between items-center text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-3">
-                        <span>Seller</span>
-                        <span>Buyer</span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <div className={`flex items-center gap-2 ${file.sellerConfirmed ? "text-emerald-500" : "text-muted-foreground"}`}>
-                          {file.sellerConfirmed ? <CheckCircle2 size={18} /> : <Clock size={18} />}
-                          <span className="font-bold text-xs">{file.sellerConfirmed ? "OK" : "Pending"}</span>
-                        </div>
-                        <div className="h-[1px] flex-1 bg-border mx-4" />
-                        <div className={`flex items-center gap-2 ${file.buyerConfirmed ? "text-emerald-500" : "text-muted-foreground"}`}>
-                          <span className="font-bold text-xs">{file.buyerConfirmed ? "OK" : "Pending"}</span>
-                          {file.buyerConfirmed ? <CheckCircle2 size={18} /> : <Clock size={18} />}
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* ACTION BAR */}
-                <div className="bg-muted/30 rounded-[2rem] p-2 mt-2 gap-2 flex items-center justify-between border border-white/5">
-
-                  {inEscrow ? (
-                    <>
-                      {isSeller ? (
-                        // SELLER: hanya bisa batalkan trade (refund buyer)
-                        <button
-                          onClick={async () => {
-                            try {
-                              await cancelTrade(file.id);
-                              toast.success("Trade dibatalkan, buyer di-refund");
-                              addActivity({
-                                type: "escrow_cancel",
-                                title: "Trade dibatalkan",
-                                description: `Trade asset #${file.id} "${file.name}" dibatalkan, buyer di-refund`,
-                                walletAddress: wallet!.address,
-                                tokenId: file.id,
-                              });
-                            } catch (e: any) { toast.error(e.message); }
-                          }}
-                          className="flex-1 h-12 rounded-[1.5rem] bg-red-500/10 text-red-500 font-bold text-xs hover:bg-red-500 hover:text-white transition-all border border-red-500/20 flex items-center justify-center gap-2"
-                        >
-                          <XCircle size={14} /> Batalkan & Refund Buyer
-                        </button>
-                      ) : (
-                        // BUYER: Preview + Confirm + Cancel
-                        <>
-                          <button
-                            onClick={() => {
-                              if (file.previewURI) {
-                                setFormData((p) => ({
-                                  ...p,
-                                  previewUrl: `${NETWORK_CONFIG.ipfsGateway}/ipfs/${file.previewURI}`,
-                                  previewObj: null,
-                                  previewName: file.name + " (Preview)",
-                                  previewType: "image/jpeg",
-                                }));
-                                setModals((p) => ({ ...p, preview: true }));
-                              } else {
-                                toast.error("Tidak ada preview tersedia");
-                              }
-                            }}
-                            className="h-12 w-12 rounded-full bg-background border border-border/50 flex items-center justify-center text-blue-500 hover:scale-105 transition-transform"
-                          >
-                            <Eye size={18} />
-                          </button>
-                          <button
-                            onClick={async () => {
-                              try {
-                                await confirmTrade(file.id);
-                                toast.success("Payment dikonfirmasi!");
-                                addActivity({
-                                  type: "escrow_confirm",
-                                  title: "Payment dikonfirmasi",
-                                  description: `Kamu konfirmasi pembelian asset #${file.id} "${file.name}" seharga ${file.price} ${NETWORK_CONFIG.tokenSymbol}`,
-                                  walletAddress: wallet!.address,
-                                  tokenId: file.id,
-                                  amount: file.price,
-                                });
-                              } catch (e: any) { toast.error(e.message); }
-                            }}
-                            disabled={file.buyerConfirmed}
-                            className={`flex-1 h-12 rounded-[1.5rem] font-bold text-xs transition-all border flex items-center justify-center gap-2 ${file.buyerConfirmed
-                              ? "bg-muted text-muted-foreground border-border"
-                              : "bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500 hover:text-white border-emerald-500/20"
-                              }`}
-                          >
-                            {file.buyerConfirmed ? "Menunggu Seller..." : <><Check size={14} /> Konfirmasi Payment</>}
-                          </button>
-                          <button
-                            onClick={async () => {
-                              try {
-                                await cancelTrade(file.id);
-                                toast.success("Trade dibatalkan, saldo di-refund");
-                                addActivity({
-                                  type: "escrow_cancel",
-                                  title: "Trade dibatalkan",
-                                  description: `Trade asset #${file.id} "${file.name}" dibatalkan, saldo di-refund`,
-                                  walletAddress: wallet!.address,
-                                  tokenId: file.id,
-                                });
-                              } catch (e: any) { toast.error(e.message); }
-                            }}
-                            className="h-12 w-12 rounded-full bg-background border border-border/50 flex items-center justify-center text-red-500 hover:scale-105 transition-transform"
-                          >
-                            <XCircle size={18} />
-                          </button>
-                        </>
-                      )}
-                    </>
-                  ) : file.isListed ? (
-                    <>
-                      <button
+                    <div style={{ display: "flex", gap: "2px" }}>
+                      <button className="cv-action-btn primary" disabled={txLoading[sale.tokenId]}
                         onClick={async () => {
                           try {
-                            await cancelListing(file.id);
-                            toast.success("Listing dibatalkan");
-                            addActivity({
-                              type: "delist",
-                              title: "Listing dibatalkan",
-                              description: `Asset #${file.id} "${file.name}" ditarik dari marketplace`,
-                              walletAddress: wallet!.address,
-                              tokenId: file.id,
-                            });
+                            setTxLoading(prev => ({ ...prev, [sale.tokenId]: true }));
+                            await confirmTrade(sale.tokenId); toast.success("Trade confirmed.");
+                            addActivity({ type: "escrow_confirm", title: "Trade confirmed", description: `Confirmed sale of asset #${sale.tokenId} "${sale.name}" for ${sale.price} ${NETWORK_CONFIG.tokenSymbol}`, walletAddress: wallet!.address, tokenId: sale.tokenId, amount: sale.price, address: sale.buyer });
                           } catch (e: any) { toast.error(e.message); }
-                        }}
-                        className="flex-1 h-12 rounded-[1.5rem] bg-red-500/10 text-red-500 font-bold text-xs hover:bg-red-500 hover:text-white transition-all border border-red-500/20"
-                      >
-                        Cancel Listing
+                          finally { setTxLoading(prev => ({ ...prev, [sale.tokenId]: false })); }
+                        }}>
+                        Confirm
                       </button>
-                      <button
-                        onClick={() => openModal("edit", file.id, { price: file.price, desc: file.description, escrow: true })}
-                        className="h-12 w-12 rounded-full bg-background border border-border/50 flex items-center justify-center text-foreground hover:scale-105 transition-transform"
-                      >
-                        <Tag size={16} />
+                      <button className="cv-action-btn danger" disabled={txLoading[sale.tokenId]}
+                        onClick={async () => {
+                          try {
+                            setTxLoading(prev => ({ ...prev, [sale.tokenId]: true }));
+                            await cancelTrade(sale.tokenId); toast.success("Trade cancelled, buyer refunded.");
+                            addActivity({ type: "escrow_cancel", title: "Trade cancelled", description: `Trade for asset #${sale.tokenId} cancelled, buyer refunded`, walletAddress: wallet!.address, tokenId: sale.tokenId, address: sale.buyer });
+                          } catch (e: any) { toast.error(e.message); }
+                          finally { setTxLoading(prev => ({ ...prev, [sale.tokenId]: false })); }
+                        }}>
+                        Decline
                       </button>
-                    </>
-                  ) : (
-                    <>
-                      <button
-                        onClick={() => handleDecrypt(file.cid, "PREVIEW")}
-                        className="flex-1 h-12 rounded-[1.5rem] bg-background text-foreground font-bold text-xs shadow-sm hover:bg-foreground hover:text-background transition-all border border-border/50"
-                      >
-                        Buka File
-                      </button>
-                      {!file.isCopy && (
-                        <div className="flex gap-2">
-                          <button
-                            onClick={() => openModal("share", file.id, { name: file.name })}
-                            className="h-12 w-12 rounded-full bg-background border border-border/50 flex items-center justify-center text-foreground hover:scale-105 transition-transform shadow-sm"
-                            title="Bagikan via Link"
-                          >
-                            <Link2 size={16} />
-                          </button>
-                          <button
-                            onClick={() => openModal("transfer", file.id, { mode: "MOVE", cid: file.cid, name: file.name })}
-                            className="h-12 w-12 rounded-full bg-background border border-border/50 flex items-center justify-center text-foreground hover:scale-105 transition-transform shadow-sm"
-                            title="Transfer"
-                          >
-                            <Send size={16} />
-                          </button>
-                          <button
-                            onClick={() => openModal("sell", file.id)}
-                            className="h-12 w-12 rounded-full bg-background border border-border/50 flex items-center justify-center text-foreground hover:scale-105 transition-transform shadow-sm"
-                            title="Jual"
-                          >
-                            <Tag size={16} />
-                          </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* ── Asset Grid ── */}
+        {vaultItems.length === 0 ? (
+          <div style={{ border: "1px solid var(--cv-border-light)", padding: "96px 48px", textAlign: "center" }}>
+            <p style={{ fontFamily: SERIF, fontSize: "28px", fontWeight: 400, color: "var(--cv-fg)", marginBottom: "12px" }}>Vault is empty.</p>
+            <p style={{ fontFamily: SERIF, fontSize: "13px", fontStyle: "italic", color: "var(--cv-muted)" }}>Upload a file to secure it on the blockchain.</p>
+          </div>
+        ) : (
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: "2px" }}>
+            {vaultItems.map((file: any, i: number) => {
+              const isSeller = wallet?.address.toLowerCase() === file.seller?.toLowerCase();
+              const isBuyer = wallet?.address.toLowerCase() === file.buyer?.toLowerCase();
+              const inEscrow = file.isEscrowActive;
+
+              return (
+                <motion.div key={file.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04, ease }}
+                  className={`cv-asset-card ${inEscrow ? "escrow" : ""}`}>
+                  <div style={{ padding: "24px 24px 0" }}>
+                    {/* Card header */}
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "20px" }}>
+                      <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+                        {file.isListed && !inEscrow && <span className="cv-badge">On Sale</span>}
+                        {inEscrow && <span className="cv-badge">{isSeller ? "Seller" : "Buyer"}</span>}
+                        {file.isCopy && <span className="cv-badge">Copy</span>}
+                      </div>
+                      <span style={{ fontFamily: MONO, fontSize: "9px", color: "var(--cv-border)", letterSpacing: "0.1em" }}>#{file.id}</span>
+                    </div>
+
+                    {/* File name */}
+                    <p style={{ fontFamily: SERIF, fontSize: "20px", fontWeight: 400, letterSpacing: "-0.01em", color: "var(--cv-fg)", marginBottom: "6px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      {file.name}
+                    </p>
+
+                    {(file.isListed || inEscrow) && (
+                      <p style={{ fontFamily: SERIF, fontSize: "13px", color: "var(--cv-muted)", fontStyle: "italic", marginBottom: "16px" }}>
+                        {file.price} {NETWORK_CONFIG.tokenSymbol}
+                        {file.isListed && <PriceHistory tokenId={file.id} currentPrice={file.price} compact />}
+                      </p>
+                    )}
+
+                    {/* Escrow status */}
+                    {inEscrow && (
+                      <div style={{ border: "1px solid var(--cv-border-light)", padding: "14px 16px", marginBottom: "16px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: "8px", color: file.sellerConfirmed ? "#16a34a" : "var(--cv-muted)" }}>
+                          {file.sellerConfirmed ? <CheckCircle2 size={13} strokeWidth={1.5} /> : <Clock size={13} strokeWidth={1.5} />}
+                          <span style={{ fontFamily: SERIF, fontSize: "10px", letterSpacing: "0.1em" }}>Seller {file.sellerConfirmed ? "✓" : "Pending"}</span>
                         </div>
-                      )}
-                      <button
-                        onClick={() => openModal("burn", file.id, { cid: file.cid })}
-                        className="h-12 w-12 rounded-full bg-background border border-border/50 flex items-center justify-center text-muted-foreground hover:text-red-500 hover:border-red-500/30 transition-all shadow-sm"
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                    </>
-                  )}
-                </div>
-              </motion.div>
-            );
-          })}
-        </div>
-      )}
+                        <div style={{ flex: 1, height: "1px", background: "var(--cv-border-light)", margin: "0 16px" }} />
+                        <div style={{ display: "flex", alignItems: "center", gap: "8px", color: file.buyerConfirmed ? "#16a34a" : "var(--cv-muted)" }}>
+                          <span style={{ fontFamily: SERIF, fontSize: "10px", letterSpacing: "0.1em" }}>Buyer {file.buyerConfirmed ? "✓" : "Pending"}</span>
+                          {file.buyerConfirmed ? <CheckCircle2 size={13} strokeWidth={1.5} /> : <Clock size={13} strokeWidth={1.5} />}
+                        </div>
+                      </div>
+                    )}
+                  </div>
 
-      {/* ======= MODALS ======= */}
+                  {/* Action bar */}
+                  <div style={{ display: "flex", gap: "1px", padding: "1px", background: "var(--cv-border-light)", margin: "0 1px 1px" }}>
+                    {inEscrow ? (
+                      isSeller ? (
+                        <button className="cv-action-btn danger" style={{ flex: 1 }}
+                          onClick={async () => {
+                            try { await cancelTrade(file.id); toast.success("Trade cancelled."); } catch (e: any) { toast.error(e.message); }
+                          }}>
+                          <XCircle size={11} strokeWidth={1.5} /> Cancel Trade
+                        </button>
+                      ) : (
+                        <>
+                          {file.previewURI && (
+                            <button className="cv-action-btn" onClick={() => {
+                              setFormData((p) => ({ ...p, previewUrl: `${NETWORK_CONFIG.ipfsGateway}/ipfs/${file.previewURI}`, previewObj: null, previewName: file.name + " (Preview)", previewType: "image/jpeg" }));
+                              setModals((p) => ({ ...p, preview: true }));
+                            }}>
+                              <Eye size={11} strokeWidth={1.5} />
+                            </button>
+                          )}
+                          <button className="cv-action-btn primary" disabled={file.buyerConfirmed} style={{ flex: 1 }}
+                            onClick={async () => {
+                              try {
+                                await confirmTrade(file.id); toast.success("Payment confirmed.");
+                                addActivity({ type: "escrow_confirm", title: "Payment confirmed", description: `Confirmed purchase of asset #${file.id} "${file.name}"`, walletAddress: wallet!.address, tokenId: file.id, amount: file.price });
+                              } catch (e: any) { toast.error(e.message); }
+                            }}>
+                            {file.buyerConfirmed ? "Awaiting seller…" : <><Check size={11} strokeWidth={1.5} /> Confirm Payment</>}
+                          </button>
+                          <button className="cv-action-btn danger"
+                            onClick={async () => {
+                              try { await cancelTrade(file.id); toast.success("Trade cancelled."); } catch (e: any) { toast.error(e.message); }
+                            }}>
+                            <XCircle size={11} strokeWidth={1.5} />
+                          </button>
+                        </>
+                      )
+                    ) : file.isListed ? (
+                      <>
+                        <button className="cv-action-btn danger" style={{ flex: 1 }}
+                          onClick={async () => {
+                            try { await cancelListing(file.id); toast.success("Listing cancelled."); } catch (e: any) { toast.error(e.message); }
+                          }}>
+                          Cancel Listing
+                        </button>
+                        <button className="cv-action-btn" onClick={() => openModal("edit", file.id, { price: file.price, desc: file.description, escrow: true })}>
+                          <Tag size={11} strokeWidth={1.5} />
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <button className="cv-action-btn primary" style={{ flex: 1 }} onClick={() => handleDecrypt(file.cid, "PREVIEW")}>
+                          Open File
+                        </button>
+                        {!file.isCopy && (
+                          <>
+                            <button className="cv-action-btn" title="Share" onClick={() => openModal("share", file.id, { name: file.name })}>
+                              <Link2 size={11} strokeWidth={1.5} />
+                            </button>
+                            <button className="cv-action-btn" title="Transfer" onClick={() => openModal("transfer", file.id, { mode: "MOVE", cid: file.cid, name: file.name })}>
+                              <Send size={11} strokeWidth={1.5} />
+                            </button>
+                            <button className="cv-action-btn" title="List for sale" onClick={() => openModal("sell", file.id)}>
+                              <Tag size={11} strokeWidth={1.5} />
+                            </button>
+                          </>
+                        )}
+                        <button className="cv-action-btn danger" title="Destroy" onClick={() => openModal("burn", file.id, { cid: file.cid })}>
+                          <Trash2 size={11} strokeWidth={1.5} />
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </motion.div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* ══ MODALS ══ */}
       <AnimatePresence>
+        <FilePreviewModal isOpen={modals.preview} onClose={() => closeModal("preview")} file={formData.previewObj} url={formData.previewUrl || null} fileName={formData.previewName} fileType={formData.previewType} />
+        {modals.batchUpload && (<Modal key="batchUpload" isOpen onClose={() => closeModal("batchUpload")} title="Batch Upload"><BatchUpload onClose={() => closeModal("batchUpload")} /></Modal>)}
+        {modals.share && activeId && (<Modal key="share" isOpen onClose={() => closeModal("share")} title="Share Asset"><ShareWithExpiry tokenId={activeId} fileName={formData.name} onClose={() => closeModal("share")} /></Modal>)}
 
-        {/* PREVIEW */}
-        <FilePreviewModal
-          isOpen={modals.preview}
-          onClose={() => closeModal("preview")}
-          file={formData.previewObj}
-          url={formData.previewUrl || null}
-          fileName={formData.previewName}
-          fileType={formData.previewType}
-        />
-
-        {/* BATCH UPLOAD */}
-        {modals.batchUpload && (
-          <Modal key="batchUpload" isOpen onClose={() => closeModal("batchUpload")} title="Upload Banyak Asset">
-            <BatchUpload onClose={() => closeModal("batchUpload")} />
-          </Modal>
-        )}
-
-        {/* SHARE */}
-        {modals.share && activeId && (
-          <Modal key="share" isOpen onClose={() => closeModal("share")} title="Bagikan Asset">
-            <ShareWithExpiry
-              tokenId={activeId}
-              fileName={formData.name}
-              onClose={() => closeModal("share")}
-            />
-          </Modal>
-        )}
-
-        {/* SELL — with preview upload */}
         {modals.sell && (
-          <Modal key="sell" isOpen onClose={() => closeModal("sell")} title="List Asset untuk Dijual">
-            <div className="space-y-5 pt-2">
-              <Input
-                label={`Harga (${NETWORK_CONFIG.tokenSymbol})`}
-                type="number"
-                min="0"
-                step="0.001"
-                value={formData.price}
-                onChange={(e: any) => setFormData({ ...formData, price: e.target.value })}
-                placeholder="0.1"
-              />
-              <div className="space-y-2">
-                <label className="text-[10px] uppercase font-bold text-muted-foreground ml-3">Deskripsi</label>
-                <textarea
-                  value={formData.desc}
-                  onChange={(e) => setFormData({ ...formData, desc: e.target.value })}
-                  className="w-full bg-muted/30 p-4 rounded-3xl outline-none text-sm h-24 resize-none border border-transparent focus:border-border transition-all text-foreground"
-                  placeholder="Jelaskan asset ini..."
-                />
+          <Modal key="sell" isOpen onClose={() => closeModal("sell")} title="List Asset for Sale">
+            <div style={{ display: "flex", flexDirection: "column", gap: "20px", paddingTop: "8px" }}>
+              <Input label={`Price (${NETWORK_CONFIG.tokenSymbol})`} type="number" min="0" step="0.001" value={formData.price} onChange={(e: any) => setFormData({ ...formData, price: e.target.value })} placeholder="0.100" />
+              <div>
+                <label style={{ display: "block", fontSize: "9px", letterSpacing: "0.22em", textTransform: "uppercase", color: "var(--cv-muted)", fontFamily: SERIF, marginBottom: "8px" }}>Description</label>
+                <textarea value={formData.desc} onChange={(e) => setFormData({ ...formData, desc: e.target.value })} style={{ width: "100%", background: "var(--cv-surface)", border: "1px solid var(--cv-border-light)", padding: "14px 16px", fontFamily: SERIF, fontSize: "13px", color: "var(--cv-fg)", resize: "none", outline: "none", height: "80px" }} placeholder="Describe this asset…" />
               </div>
-
-              {/* Preview upload */}
-              <div className="space-y-2">
-                <label className="text-[10px] uppercase font-bold text-muted-foreground ml-3">
-                  Preview Image (opsional, tidak terenkripsi)
+              <div>
+                <label style={{ display: "block", fontSize: "9px", letterSpacing: "0.22em", textTransform: "uppercase", color: "var(--cv-muted)", fontFamily: SERIF, marginBottom: "8px" }}>
+                  Preview Image <em style={{ fontStyle: "italic", textTransform: "none", letterSpacing: 0 }}>(optional, unencrypted)</em>
                 </label>
-                <label className="flex items-center gap-3 p-4 bg-muted/30 rounded-2xl cursor-pointer hover:bg-muted/50 border border-dashed border-border transition-all">
-                  <ImagePlus size={18} className="text-muted-foreground" />
-                  <span className="text-sm text-muted-foreground">
-                    {formData.previewFile ? formData.previewFile.name : "Pilih gambar thumbnail..."}
-                  </span>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={(e) => setFormData({ ...formData, previewFile: e.target.files?.[0] || null })}
-                  />
+                <label style={{ display: "flex", alignItems: "center", gap: "12px", padding: "14px 16px", border: "1px solid var(--cv-border-light)", cursor: "pointer", background: "var(--cv-surface)" }}>
+                  <ImagePlus size={14} strokeWidth={1.5} style={{ color: "var(--cv-muted)" }} />
+                  <span style={{ fontFamily: SERIF, fontSize: "12px", fontStyle: "italic", color: "var(--cv-muted)" }}>{formData.previewFile ? formData.previewFile.name : "Select thumbnail image…"}</span>
+                  <input type="file" accept="image/*" style={{ display: "none" }} onChange={(e) => setFormData({ ...formData, previewFile: e.target.files?.[0] || null })} />
                 </label>
               </div>
-
-              {/* Escrow wajib aktif */}
-              <div className="flex items-center gap-4 p-5 bg-muted/30 rounded-3xl border border-transparent">
-                <div className="w-6 h-6 rounded-full border flex items-center justify-center bg-foreground border-foreground">
-                  <Check size={12} className="text-background" />
-                </div>
-                <div>
-                  <span className="text-sm font-bold text-foreground">Escrow Aktif (Wajib)</span>
-                  <p className="text-xs text-muted-foreground">Buyer & seller harus konfirmasi untuk proses serah terima dan re-enkripsi file</p>
-                </div>
-              </div>
-
-              <Button
-                onClick={handleListForSale}
-                isLoading={loading}
-                disabled={!formData.price || loading}
-                className="w-full h-14 rounded-[1.2rem] text-base"
-              >
-                Konfirmasi Listing
-              </Button>
+              <Button onClick={handleListForSale} isLoading={loading} disabled={!formData.price || loading} className="w-full h-12 rounded-none">Confirm Listing</Button>
             </div>
           </Modal>
         )}
 
-        {/* EDIT */}
         {modals.edit && (
           <Modal key="edit" isOpen onClose={() => closeModal("edit")} title="Update Listing">
-            <div className="space-y-5 pt-2">
-              <Input
-                label={`Harga Baru (${NETWORK_CONFIG.tokenSymbol})`}
-                type="number"
-                value={formData.price}
-                onChange={(e: any) => setFormData({ ...formData, price: e.target.value })}
-              />
-              <Button
-                onClick={async () => {
-                  try {
-                    await updateListing(activeId!, formData.price, formData.desc, true);
-                    toast.success("Listing diupdate!");
-                    closeModal("edit");
-                  } catch (e: any) { toast.error(e.message); }
-                }}
-                className="w-full h-14 rounded-[1.2rem]"
-              >
-                Update
-              </Button>
+            <div style={{ display: "flex", flexDirection: "column", gap: "20px", paddingTop: "8px" }}>
+              <Input label={`New Price (${NETWORK_CONFIG.tokenSymbol})`} type="number" value={formData.price} onChange={(e: any) => setFormData({ ...formData, price: e.target.value })} />
+              <Button onClick={async () => { try { await updateListing(activeId!, formData.price, formData.desc, true); toast.success("Listing updated."); closeModal("edit"); } catch (e: any) { toast.error(e.message); } }} className="w-full h-12 rounded-none">Update</Button>
             </div>
           </Modal>
         )}
 
-        {/* TRANSFER */}
         {modals.transfer && (
           <Modal key="transfer" isOpen onClose={() => { closeModal("transfer"); setShowContactPicker(false); setContactSearch(""); }} title="Transfer Asset">
-            <div className="space-y-5 pt-2">
-              {/* Mode MOVE / COPY */}
-              <div className="flex bg-muted/30 p-1.5 rounded-[1.5rem]">
+            <div style={{ display: "flex", flexDirection: "column", gap: "20px", paddingTop: "8px" }}>
+              <div style={{ display: "flex", gap: "1px", background: "var(--cv-border-light)", padding: "1px" }}>
                 {(["MOVE", "COPY"] as const).map((m) => (
-                  <button
-                    key={m}
-                    onClick={() => setFormData({ ...formData, mode: m })}
-                    className={`flex-1 h-10 text-xs font-bold rounded-[1.2rem] transition-all ${formData.mode === m ? "bg-background shadow-md text-foreground" : "text-muted-foreground"}`}
-                  >
-                    {m === "MOVE" ? "Pindah (NFT)" : "Kirim Salinan"}
+                  <button key={m} onClick={() => setFormData({ ...formData, mode: m })}
+                    style={{ flex: 1, padding: "10px", fontFamily: SERIF, fontSize: "9px", letterSpacing: "0.18em", textTransform: "uppercase", background: formData.mode === m ? "var(--cv-fg)" : "var(--cv-surface)", color: formData.mode === m ? "var(--cv-bg)" : "var(--cv-muted)", border: "none", cursor: "pointer", transition: "all 0.25s" }}>
+                    {m === "MOVE" ? "Move NFT" : "Send Copy"}
                   </button>
                 ))}
               </div>
-
               {formData.mode === "COPY" && (
-                <div className="p-3 bg-amber-500/5 border border-amber-500/20 rounded-2xl">
-                  <p className="text-xs text-amber-600 dark:text-amber-400 leading-relaxed">
-                    ⚠️ Salinan memakai CID yang sama. Penerima bisa decrypt file ini.
-                  </p>
-                </div>
+                <p style={{ fontFamily: SERIF, fontSize: "11px", fontStyle: "italic", color: "var(--cv-muted)", padding: "12px 16px", border: "1px solid var(--cv-border-light)", background: "var(--cv-surface)" }}>
+                  Copies share the same CID. The recipient will be able to decrypt this file.
+                </p>
               )}
-
-              {/* Address input + Contact Picker toggle */}
-              <div className="space-y-2">
-                <div className="flex items-center justify-between px-1">
-                  <label className="text-[10px] uppercase font-bold text-muted-foreground">Alamat Penerima</label>
+              <div>
+                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "8px" }}>
+                  <label style={{ fontSize: "9px", letterSpacing: "0.22em", textTransform: "uppercase", color: "var(--cv-muted)", fontFamily: SERIF }}>Recipient Address</label>
                   {contacts.length > 0 && (
-                    <button
-                      onClick={() => { setShowContactPicker((p) => !p); setContactSearch(""); }}
-                      className="text-[10px] font-bold text-primary hover:underline flex items-center gap-1"
-                    >
-                      <Users size={11} />
-                      {showContactPicker ? "Tutup Kontak" : "Pilih dari Kontak"}
+                    <button onClick={() => { setShowContactPicker((p) => !p); setContactSearch(""); }} style={{ background: "none", border: "none", cursor: "pointer", fontSize: "9px", letterSpacing: "0.14em", color: "var(--cv-muted)", fontFamily: SERIF, fontStyle: "italic" }}>
+                      {showContactPicker ? "Close" : "Select contact"}
                     </button>
                   )}
                 </div>
-
-                {/* Contact Picker */}
                 <AnimatePresence>
                   {showContactPicker && (
-                    <motion.div
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: "auto" }}
-                      exit={{ opacity: 0, height: 0 }}
-                      className="overflow-hidden"
-                    >
-                      <div className="bg-muted/20 border border-border/50 rounded-2xl overflow-hidden">
-                        {/* Search dalam kontak */}
-                        <div className="p-3 border-b border-border/30">
-                          <input
-                            value={contactSearch}
-                            onChange={(e) => setContactSearch(e.target.value)}
-                            placeholder="Cari nama atau alamat..."
-                            className="w-full bg-background/50 px-3 py-2 rounded-xl text-xs outline-none border border-border/30 focus:border-primary/30 text-foreground placeholder:text-muted-foreground/50"
-                          />
-                        </div>
-
-                        {/* List kontak */}
-                        <div className="max-h-48 overflow-y-auto">
-                          {contacts
-                            .filter((c) => {
-                              const q = contactSearch.toLowerCase();
-                              return !q || c.name.toLowerCase().includes(q) || c.address.toLowerCase().includes(q);
-                            })
-                            .map((contact) => {
-                              const isSelected = formData.address.toLowerCase() === contact.address.toLowerCase();
-                              return (
-                                <button
-                                  key={contact.id}
-                                  onClick={() => {
-                                    setFormData((p) => ({ ...p, address: contact.address }));
-                                    setShowContactPicker(false);
-                                    setContactSearch("");
-                                  }}
-                                  className={`w-full flex items-center gap-3 px-4 py-3 hover:bg-muted/40 transition-colors text-left border-b border-border/20 last:border-0 ${isSelected ? "bg-primary/5" : ""}`}
-                                >
-                                  {/* Avatar emoji */}
-                                  <div className={`w-9 h-9 rounded-full flex items-center justify-center text-base shrink-0 border ${isSelected ? "border-primary/30 bg-primary/10" : "border-border/40 bg-muted/30"}`}>
-                                    {contact.emoji}
-                                  </div>
-                                  <div className="flex-1 min-w-0">
-                                    <p className="text-sm font-bold text-foreground truncate">{contact.name}</p>
-                                    <p className="text-[10px] font-mono text-muted-foreground">
-                                      {contact.address.slice(0, 8)}...{contact.address.slice(-6)}
-                                    </p>
-                                  </div>
-                                  {isSelected && (
-                                    <Check size={14} className="text-primary shrink-0" />
-                                  )}
-                                </button>
-                              );
-                            })}
-
-                          {contacts.filter((c) => {
-                            const q = contactSearch.toLowerCase();
-                            return !q || c.name.toLowerCase().includes(q) || c.address.toLowerCase().includes(q);
-                          }).length === 0 && (
-                            <div className="py-6 text-center text-xs text-muted-foreground">
-                              Tidak ada kontak ditemukan
-                            </div>
-                          )}
+                    <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} style={{ overflow: "hidden", marginBottom: "8px" }}>
+                      <div style={{ border: "1px solid var(--cv-border-light)", background: "var(--cv-surface)" }}>
+                        <input value={contactSearch} onChange={(e) => setContactSearch(e.target.value)} placeholder="Search contacts…"
+                          style={{ width: "100%", background: "transparent", border: "none", borderBottom: "1px solid var(--cv-border-light)", padding: "10px 14px", fontFamily: SERIF, fontSize: "12px", color: "var(--cv-fg)", outline: "none" }} />
+                        <div style={{ maxHeight: "180px", overflowY: "auto" }}>
+                          {contacts.filter((c) => { const q = contactSearch.toLowerCase(); return !q || c.name.toLowerCase().includes(q) || c.address.toLowerCase().includes(q); }).map((contact) => (
+                            <button key={contact.id} onClick={() => { setFormData((p) => ({ ...p, address: contact.address })); setShowContactPicker(false); setContactSearch(""); }}
+                              style={{ width: "100%", background: formData.address.toLowerCase() === contact.address.toLowerCase() ? "var(--cv-border-light)" : "transparent", border: "none", borderBottom: "1px solid var(--cv-border-light)", padding: "12px 14px", display: "flex", alignItems: "center", gap: "12px", cursor: "pointer", textAlign: "left" }}>
+                              <span style={{ fontSize: "16px" }}>{contact.emoji}</span>
+                              <div style={{ flex: 1, minWidth: 0 }}>
+                                <p style={{ fontFamily: SERIF, fontSize: "13px", color: "var(--cv-fg)", marginBottom: "2px" }}>{contact.name}</p>
+                                <p style={{ fontFamily: MONO, fontSize: "9px", color: "var(--cv-muted)", overflow: "hidden", textOverflow: "ellipsis" }}>{contact.address.slice(0, 12)}…{contact.address.slice(-6)}</p>
+                              </div>
+                            </button>
+                          ))}
                         </div>
                       </div>
                     </motion.div>
                   )}
                 </AnimatePresence>
-
-                {/* Input manual dengan preview nama kontak */}
-                <div className="relative">
-                  <input
-                    value={formData.address}
-                    onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                    placeholder="0x..."
-                    className="w-full bg-muted/30 px-4 py-3.5 rounded-2xl text-sm font-mono outline-none border border-transparent focus:border-border transition-all text-foreground placeholder:text-muted-foreground/50 pr-10"
-                  />
-                  {/* Tampilkan nama kontak kalau address cocok */}
-                  {formData.address && getByAddress(formData.address) && (
-                    <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                      <span className="text-base" title={getByAddress(formData.address)?.name}>
-                        {getByAddress(formData.address)?.emoji}
-                      </span>
-                    </div>
-                  )}
-                </div>
-
-                {/* Badge nama kontak di bawah input */}
+                <input value={formData.address} onChange={(e) => setFormData({ ...formData, address: e.target.value })} placeholder="0x…"
+                  style={{ width: "100%", background: "transparent", border: "none", borderBottom: "1px solid var(--cv-border)", padding: "12px 0", fontFamily: MONO, fontSize: "13px", color: "var(--cv-fg)", outline: "none" }} />
                 {formData.address && getByAddress(formData.address) && (
-                  <motion.div
-                    initial={{ opacity: 0, y: -4 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="flex items-center gap-2 px-3"
-                  >
-                    <Check size={11} className="text-emerald-500" />
-                    <span className="text-[11px] text-emerald-500 font-bold">
-                      {getByAddress(formData.address)?.name}
-                    </span>
-                    {getByAddress(formData.address)?.note && (
-                      <span className="text-[11px] text-muted-foreground">
-                        · {getByAddress(formData.address)?.note}
-                      </span>
-                    )}
-                  </motion.div>
+                  <p style={{ fontFamily: SERIF, fontSize: "10px", fontStyle: "italic", color: "var(--cv-muted)", marginTop: "6px" }}>
+                    {getByAddress(formData.address)?.emoji} {getByAddress(formData.address)?.name}
+                  </p>
                 )}
               </div>
-
-              <Button
-                onClick={async () => {
-                  if (!formData.address) return toast.error("Masukkan alamat penerima");
-                  try {
-                    const success =
-                      formData.mode === "MOVE"
-                        ? await transferAsset(activeId!, formData.address)
-                        : await sendCopyAsset(activeId!, formData.address, formData.name, formData.cid);
-                    if (success) {
-                      const contactName = getByAddress(formData.address)?.name;
-                      addActivity({
-                        type: "transfer_out",
-                        title: formData.mode === "MOVE" ? "Asset ditransfer" : "Salinan dikirim",
-                        description: `Asset #${activeId} dikirim ke ${contactName ?? `${formData.address.slice(0, 6)}...${formData.address.slice(-4)}`}`,
-                        walletAddress: wallet!.address,
-                        tokenId: activeId!,
-                        address: formData.address,
-                      });
-                      toast.success("Transfer berhasil!");
-                      closeModal("transfer");
-                      setShowContactPicker(false);
-                      setContactSearch("");
-                    }
-                  } catch (e: any) { toast.error(e.message); }
-                }}
-                disabled={!formData.address}
-                className="w-full h-14 rounded-[1.2rem]"
-              >
-                Konfirmasi Transfer
-              </Button>
+              <Button onClick={async () => {
+                if (!formData.address) return toast.error("Enter recipient address");
+                try {
+                  const success = formData.mode === "MOVE" ? await transferAsset(activeId!, formData.address) : await sendCopyAsset(activeId!, formData.address, formData.name, formData.cid);
+                  if (success) { addActivity({ type: "transfer_out", title: formData.mode === "MOVE" ? "Asset transferred" : "Copy sent", description: `Asset #${activeId} sent to ${getByAddress(formData.address)?.name ?? formData.address.slice(0, 8) + "…"}`, walletAddress: wallet!.address, tokenId: activeId!, address: formData.address }); toast.success("Transfer complete."); closeModal("transfer"); setShowContactPicker(false); }
+                } catch (e: any) { toast.error(e.message); }
+              }} disabled={!formData.address} className="w-full h-12 rounded-none">Confirm Transfer</Button>
             </div>
           </Modal>
         )}
 
-        {/* BURN */}
         {modals.burn && (
-          <Modal key="burn" isOpen onClose={() => closeModal("burn")} title="Hancurkan Asset">
-            <div className="text-center space-y-6 pt-4">
-              <div className="w-24 h-24 bg-red-500/5 rounded-full flex items-center justify-center mx-auto text-red-500 border border-red-500/10">
-                <Trash2 size={48} />
+          <Modal key="burn" isOpen onClose={() => closeModal("burn")} title="Destroy Asset">
+            <div style={{ textAlign: "center", padding: "20px 0" }}>
+              <div style={{ width: "60px", height: "60px", border: "1px solid var(--cv-border-light)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 20px" }}>
+                <Trash2 size={22} strokeWidth={1.5} style={{ color: "var(--cv-muted)" }} />
               </div>
-              <p className="text-muted-foreground px-4 leading-relaxed">
-                Aksi ini <strong>permanen</strong>. Asset akan dihapus dari blockchain.
+              <p style={{ fontFamily: SERIF, fontSize: "13px", fontStyle: "italic", color: "var(--cv-muted)", lineHeight: 1.7, marginBottom: "24px", padding: "0 20px" }}>
+                This action is <strong style={{ fontStyle: "normal", color: "var(--cv-fg)" }}>permanent</strong>. The asset will be removed from the blockchain and cannot be recovered.
               </p>
-              <div className="flex gap-3">
-                <Button onClick={() => closeModal("burn")} variant="secondary" className="flex-1 h-14 rounded-[1.2rem]">
-                  Batal
-                </Button>
-                <Button
-                  onClick={async () => {
-                    try {
-                      await burnAsset(activeId!, formData.cid);
-                      toast.success("Asset dihancurkan");
-                      addActivity({
-                        type: "burn",
-                        title: "Asset dihancurkan",
-                        description: `Asset #${activeId} dihapus permanen dari blockchain`,
-                        walletAddress: wallet!.address,
-                        tokenId: activeId!,
-                      });
-                      closeModal("burn");
-                    } catch (e: any) { toast.error(e.message); }
-                  }}
-                  variant="danger"
-                  className="flex-1 h-14 rounded-[1.2rem]"
-                >
-                  Hancurkan
-                </Button>
+              <div style={{ display: "flex", gap: "2px" }}>
+                <Button onClick={() => closeModal("burn")} variant="secondary" className="flex-1 h-12 rounded-none">Cancel</Button>
+                <Button onClick={async () => {
+                  try { await burnAsset(activeId!, formData.cid); toast.success("Asset destroyed."); addActivity({ type: "burn", title: "Asset destroyed", description: `Asset #${activeId} permanently removed`, walletAddress: wallet!.address, tokenId: activeId! }); closeModal("burn"); }
+                  catch (e: any) { toast.error(e.message); }
+                }} variant="danger" className="flex-1 h-12 rounded-none">Destroy</Button>
               </div>
             </div>
           </Modal>
         )}
-
       </AnimatePresence>
     </div>
   );

@@ -9,40 +9,27 @@ import { NETWORK_CONFIG } from "@/lib/constants";
 import { ethers } from "ethers";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
-import {
-  ArrowLeft, Send, Search, Check, X, AlertTriangle,
-  UserCircle2, Wallet, Clock, ChevronRight, Zap,
-  ArrowUpRight, Users, QrCode,
-} from "lucide-react";
+import { ArrowRight, Search, Check, X, ChevronLeft, UserCircle2 } from "lucide-react";
 import QRModal from "@/components/QRModal";
 
-// ── Recent transfers (localStorage) ──────────────────────────
+const SERIF = "'EB Garamond', 'Cormorant Garamond', Georgia, serif";
+const MONO = "'JetBrains Mono', 'Courier New', monospace";
+const ease: [number, number, number, number] = [0.16, 1, 0.3, 1];
+
 const RECENT_KEY = "cv_recent_transfers";
-
-interface RecentEntry {
-  address: string;
-  amount: string;
-  timestamp: number;
-}
-
+interface RecentEntry { address: string; amount: string; timestamp: number; }
 function loadRecent(): RecentEntry[] {
   if (typeof window === "undefined") return [];
   try { return JSON.parse(localStorage.getItem(RECENT_KEY) || "[]"); } catch { return []; }
 }
-
 function saveRecent(address: string, amount: string) {
   const prev = loadRecent().filter((r) => r.address.toLowerCase() !== address.toLowerCase());
   const next = [{ address: address.toLowerCase(), amount, timestamp: Date.now() }, ...prev].slice(0, 8);
-  try { localStorage.setItem(RECENT_KEY, JSON.stringify(next)); } catch {}
+  try { localStorage.setItem(RECENT_KEY, JSON.stringify(next)); } catch { }
 }
 
-// ── Steps ─────────────────────────────────────────────────────
 type Step = "input" | "confirm" | "success";
 
-// ── Stagger helper ────────────────────────────────────────────
-const item = { initial: { y: 16, opacity: 0 }, animate: { y: 0, opacity: 1 } };
-
-// ─────────────────────────────────────────────────────────────
 export default function TransferPage() {
   const router = useRouter();
   const { wallet, signer, balance, refreshBalance } = useStore();
@@ -67,44 +54,35 @@ export default function TransferPage() {
     setRecent(loadRecent());
   }, [wallet, router, refreshBalance]);
 
-  // ── Validation ────────────────────────────────────────────
   const balanceNum = parseFloat(balance) || 0;
-  const amountNum  = parseFloat(amount || "0");
-
-  // Estimasi gas: 21000 gas × 30 gwei
+  const amountNum = parseFloat(amount || "0");
   const GAS_COST = parseFloat(ethers.formatEther(BigInt(21_000) * ethers.parseUnits("30", "gwei")));
   const maxSendable = Math.max(0, balanceNum - GAS_COST);
-
   const isValidAddress = ethers.isAddress(toAddress.trim());
   const isSelf = toAddress.trim().toLowerCase() === wallet?.address.toLowerCase();
 
   const addressError = useMemo(() => {
     if (!toAddress) return null;
-    if (!isValidAddress) return "Format address tidak valid";
-    if (isSelf) return "Tidak bisa transfer ke wallet sendiri";
+    if (!isValidAddress) return "Invalid address format";
+    if (isSelf) return "Cannot transfer to your own wallet";
     return null;
   }, [toAddress, isValidAddress, isSelf]);
 
   const amountError = useMemo(() => {
     if (!amount) return null;
-    if (amountNum <= 0) return "Jumlah harus lebih dari 0";
-    if (amountNum > maxSendable)
-      return `Tidak cukup (maks ${maxSendable.toFixed(4)} ${NETWORK_CONFIG.tokenSymbol})`;
+    if (amountNum <= 0) return "Amount must be greater than 0";
+    if (amountNum > maxSendable) return `Insufficient funds (max ${maxSendable.toFixed(4)} ${NETWORK_CONFIG.tokenSymbol})`;
     return null;
   }, [amount, amountNum, maxSendable]);
 
   const canContinue = isValidAddress && !isSelf && amountNum > 0 && !amountError;
 
-  // ── Filtered contacts ─────────────────────────────────────
   const filteredContacts = search
-    ? contacts.filter(
-        (c) =>
-          c.name.toLowerCase().includes(search.toLowerCase()) ||
-          c.address.toLowerCase().includes(search.toLowerCase())
-      )
+    ? contacts.filter((c) =>
+      c.name.toLowerCase().includes(search.toLowerCase()) ||
+      c.address.toLowerCase().includes(search.toLowerCase()))
     : contacts;
 
-  // ── Send ─────────────────────────────────────────────────
   const handleSend = async () => {
     if (!signer || !wallet || !canContinue) return;
     setSending(true);
@@ -116,596 +94,322 @@ export default function TransferPage() {
         maxPriorityFeePerGas: ethers.parseUnits("1", "gwei"),
         gasLimit: 21_000,
       });
-
       setTxHash(tx.hash);
       await tx.wait();
-
       saveRecent(toAddress.trim(), amount);
       setRecent(loadRecent());
-
       addActivity({
         type: "transfer_out",
-        title: "Token dikirim",
+        title: "Transfer executed",
         description: `${amount} ${NETWORK_CONFIG.tokenSymbol} → ${toAddress.trim().slice(0, 6)}...${toAddress.trim().slice(-4)}`,
-        walletAddress: wallet.address,
-        amount,
-        address: toAddress.trim(),
+        walletAddress: wallet.address, amount, address: toAddress.trim(),
       });
-
       await refreshBalance();
       setStep("success");
     } catch (e: any) {
-      const msg = e?.message || "Transfer gagal";
-      toast.error(msg.length > 120 ? "Transfer gagal. Cek konsol untuk detail." : msg);
-      console.error(e);
-    } finally {
-      setSending(false);
-    }
+      const msg = e?.message || "Transfer failed";
+      toast.error(msg.length > 120 ? "Transfer failed. Check console for details." : msg);
+    } finally { setSending(false); }
   };
 
-  const handleReset = () => {
-    setStep("input");
-    setToAddress("");
-    setAmount("");
-    setTxHash("");
-  };
-
+  const handleReset = () => { setStep("input"); setToAddress(""); setAmount(""); setTxHash(""); };
   const contact = getByAddress(toAddress.trim());
 
   if (!mounted || !wallet) return null;
 
   return (
-    <div className="min-h-screen pt-32 pb-24 px-4">
-      <div className="max-w-lg mx-auto">
+    <div className="min-h-screen" style={{ background: "var(--cv-bg)", color: "var(--cv-fg)" }}>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;1,400;1,500&display=swap');
+        :root { --cv-bg:#FAFAF8;--cv-fg:#0A0A0A;--cv-muted:#6B6B6B;--cv-border:#D8D4CC;--cv-border-light:#EDEAE4;--cv-card:#FFFFFF;--cv-surface:#F4F2EE;--cv-ink-light:#3A3A3A; }
+        .dark { --cv-bg:#0A0A08;--cv-fg:#F0EDE6;--cv-muted:#8A857C;--cv-border:#2A2820;--cv-border-light:#1E1C18;--cv-card:#111109;--cv-surface:#161410;--cv-ink-light:#C5BFB5; }
+        .cv-input { width:100%;background:transparent;border:none;border-bottom:1px solid var(--cv-border);padding:14px 0;font-family:${MONO};font-size:13px;letter-spacing:0.04em;color:var(--cv-fg);outline:none;transition:border-color 0.3s; }
+        .cv-input:focus { border-bottom-color:var(--cv-fg); }
+        .cv-input::placeholder { color:var(--cv-muted);font-style:italic;font-family:${SERIF}; }
+        .cv-input.error { border-bottom-color:#dc2626; }
+        .cv-input.valid { border-bottom-color:#16a34a; }
+        .cv-btn { background:var(--cv-fg);color:var(--cv-bg);border:1px solid var(--cv-fg);font-family:${SERIF};letter-spacing:0.12em;text-transform:uppercase;font-size:11px;font-weight:400;padding:14px 32px;transition:all 0.35s cubic-bezier(0.16,1,0.3,1);position:relative;overflow:hidden;width:100%;display:flex;align-items:center;justify-content:center;gap:12px; }
+        .cv-btn::before { content:'';position:absolute;inset:0;background:var(--cv-bg);transform:scaleX(0);transform-origin:right;transition:transform 0.45s cubic-bezier(0.16,1,0.3,1); }
+        .cv-btn:hover::before { transform:scaleX(1);transform-origin:left; }
+        .cv-btn:hover { color:var(--cv-fg); }
+        .cv-btn span { position:relative;z-index:1; }
+        .cv-btn:disabled { background:var(--cv-border);color:var(--cv-muted);border-color:var(--cv-border);cursor:not-allowed; }
+        .cv-btn:disabled::before { display:none; }
+        .cv-ghost { background:transparent;color:var(--cv-muted);border:none;font-family:${SERIF};letter-spacing:0.14em;text-transform:uppercase;font-size:10px;padding:8px 0;cursor:pointer;transition:color 0.25s; }
+        .cv-ghost:hover { color:var(--cv-fg); }
+        .cv-contact-row { width:100%;background:transparent;border:none;border-bottom:1px solid var(--cv-border-light);padding:14px 0;display:flex;align-items:center;gap:14px;text-align:left;cursor:pointer;transition:all 0.3s;font-family:${SERIF}; }
+        .cv-contact-row:hover { padding-left:8px; }
+        .cv-tab { flex:1;background:transparent;border:none;padding:10px 0;font-family:${SERIF};font-size:9px;letter-spacing:0.22em;text-transform:uppercase;color:var(--cv-muted);cursor:pointer;transition:all 0.25s;border-bottom:1px solid transparent; }
+        .cv-tab.active { color:var(--cv-fg);border-bottom-color:var(--cv-fg); }
+      `}</style>
 
-        {/* ── Page header ────────────────────────────── */}
-        <motion.div
-          initial={{ opacity: 0, y: -12 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mb-8"
-        >
-          <button
-            onClick={() => router.back()}
-            className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors text-sm mb-6"
-          >
-            <ArrowLeft size={14} /> Kembali
+      <div style={{ maxWidth: "520px", margin: "0 auto", padding: "120px 32px 80px" }}>
+
+        {/* ── Masthead ── */}
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, ease }}>
+          <button onClick={() => router.back()} style={{ background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: "8px", fontSize: "9px", letterSpacing: "0.22em", textTransform: "uppercase", color: "var(--cv-muted)", fontFamily: SERIF, marginBottom: "40px", padding: 0 }}>
+            <ChevronLeft size={12} strokeWidth={1.5} /> Back
           </button>
 
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-11 h-11 rounded-[1.2rem] bg-foreground flex items-center justify-center">
-                <Send size={18} className="text-background" strokeWidth={2.5} />
-              </div>
-              <div>
-                <h1 className="text-2xl font-bold tracking-tight text-foreground leading-tight">Kirim Token</h1>
-                <p className="text-xs text-muted-foreground">
-                  {NETWORK_CONFIG.name} · {NETWORK_CONFIG.tokenSymbol}
-                </p>
-              </div>
-            </div>
-
-            {/* QR button — receive own address */}
-            <button
-              onClick={() => setShowQR(true)}
-              className="flex items-center gap-2 h-9 px-3.5 rounded-xl border border-border/50 bg-muted/20 text-muted-foreground hover:text-foreground hover:border-border/80 transition-all text-xs font-bold"
-            >
-              <QrCode size={13} /> Terima
-            </button>
+          <p style={{ fontSize: "9px", letterSpacing: "0.28em", textTransform: "uppercase", color: "var(--cv-muted)", fontFamily: SERIF, fontStyle: "italic", marginBottom: "16px" }}>
+            CipherVault · {NETWORK_CONFIG.name} · {NETWORK_CONFIG.tokenSymbol}
+          </p>
+          <div style={{ display: "flex", alignItems: "center", gap: "16px", marginBottom: "16px" }}>
+            <div style={{ flex: 1, height: "1px", background: "var(--cv-border-light)" }} />
+            <div style={{ width: "5px", height: "5px", border: "1px solid var(--cv-border)", transform: "rotate(45deg)", flexShrink: 0 }} />
+            <div style={{ flex: 1, height: "1px", background: "var(--cv-border-light)" }} />
+          </div>
+          <h1 style={{ fontFamily: SERIF, fontSize: "clamp(40px, 8vw, 56px)", fontWeight: 400, letterSpacing: "-0.02em", lineHeight: 0.95, marginBottom: "8px" }}>
+            Transfer<br /><em style={{ color: "var(--cv-muted)" }}>Funds.</em>
+          </h1>
+          <div style={{ display: "flex", alignItems: "center", gap: "16px", marginTop: "16px", marginBottom: "40px" }}>
+            <div style={{ flex: 1, height: "1px", background: "var(--cv-border-light)" }} />
+            <div style={{ width: "5px", height: "5px", border: "1px solid var(--cv-border)", transform: "rotate(45deg)", flexShrink: 0 }} />
+            <div style={{ flex: 1, height: "1px", background: "var(--cv-border-light)" }} />
           </div>
         </motion.div>
 
-        {/* ══════════════════════════════════════════════
-            STEP: INPUT
-        ══════════════════════════════════════════════ */}
         <AnimatePresence mode="wait">
+
+          {/* ══ INPUT ══ */}
           {step === "input" && (
-            <motion.div
-              key="input"
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 20 }}
-              transition={{ duration: 0.2 }}
-              className="space-y-5"
-            >
+            <motion.div key="input" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.55, ease }}>
 
-              {/* Balance card */}
-              <motion.div variants={item} initial="initial" animate="animate"
-                className="p-5 rounded-[1.75rem] bg-card border border-border/50 flex items-center justify-between"
-              >
+              {/* Balance block */}
+              <div style={{ border: "1px solid var(--cv-border-light)", padding: "24px 28px", background: "var(--cv-surface)", marginBottom: "32px", display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
                 <div>
-                  <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1.5 flex items-center gap-1.5">
-                    <Wallet size={9} /> Saldo Kamu
-                  </p>
-                  <div className="flex items-end gap-1.5">
-                    <span className="text-3xl font-bold tracking-tighter text-foreground leading-none">
-                      {balanceNum.toFixed(4)}
-                    </span>
-                    <span className="text-sm font-bold text-muted-foreground mb-0.5">
-                      {NETWORK_CONFIG.tokenSymbol}
-                    </span>
-                  </div>
-                  <p className="text-[10px] text-muted-foreground/60 mt-1.5">
-                    Maks kirim: <span className="font-semibold text-muted-foreground">{maxSendable.toFixed(4)}</span> (setelah gas)
+                  <p style={{ fontSize: "9px", letterSpacing: "0.24em", textTransform: "uppercase", color: "var(--cv-muted)", fontFamily: SERIF, marginBottom: "10px" }}>Available Balance</p>
+                  <p style={{ fontFamily: SERIF, fontSize: "36px", fontWeight: 400, letterSpacing: "-0.025em", lineHeight: 1, color: "var(--cv-fg)" }}>
+                    {balanceNum.toFixed(4)} <em style={{ fontSize: "16px", color: "var(--cv-muted)" }}>{NETWORK_CONFIG.tokenSymbol}</em>
                   </p>
                 </div>
-                <div className="w-12 h-12 rounded-2xl bg-muted/20 flex items-center justify-center">
-                  <Zap size={20} className="text-amber-400" />
+                <div>
+                  <p style={{ fontSize: "9px", letterSpacing: "0.16em", color: "var(--cv-muted)", fontFamily: SERIF, fontStyle: "italic", textAlign: "right", marginBottom: "4px" }}>Max sendable</p>
+                  <p style={{ fontFamily: MONO, fontSize: "11px", color: "var(--cv-ink-light)", textAlign: "right" }}>{maxSendable.toFixed(4)}</p>
                 </div>
-              </motion.div>
+              </div>
 
-              {/* To address */}
-              <motion.div variants={item} initial="initial" animate="animate" transition={{ delay: 0.05 }}
-                className="space-y-2"
-              >
-                <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest ml-1">
-                  Kirim ke
-                </label>
-
-                <div className="relative">
-                  <input
-                    value={toAddress}
-                    onChange={(e) => setToAddress(e.target.value)}
-                    placeholder="0x... atau pilih kontak di bawah"
-                    spellCheck={false}
-                    className={`w-full h-14 px-4 pr-12 rounded-2xl bg-muted/40 border text-sm font-mono text-foreground placeholder:text-muted-foreground/40 outline-none focus:ring-2 transition-all ${
-                      addressError
-                        ? "border-red-500/40 focus:ring-red-500/15"
-                        : toAddress && !addressError
-                        ? "border-emerald-500/40 focus:ring-emerald-500/15"
-                        : "border-transparent focus:border-primary/20 focus:ring-primary/10"
-                    }`}
-                  />
-                  <div className="absolute right-4 top-1/2 -translate-y-1/2">
-                    {toAddress && (
-                      addressError
-                        ? <X size={14} className="text-red-400" />
-                        : <Check size={14} className="text-emerald-400" />
-                    )}
-                  </div>
+              {/* Recipient */}
+              <div style={{ marginBottom: "28px" }}>
+                <label style={{ display: "block", fontSize: "9px", letterSpacing: "0.24em", textTransform: "uppercase", color: "var(--cv-muted)", fontFamily: SERIF, marginBottom: "10px" }}>Recipient Address</label>
+                <div style={{ position: "relative" }}>
+                  <input value={toAddress} onChange={(e) => setToAddress(e.target.value)} placeholder="0x…" spellCheck={false}
+                    className={`cv-input ${addressError ? "error" : toAddress && !addressError ? "valid" : ""}`} />
+                  {toAddress && (
+                    <div style={{ position: "absolute", right: 0, bottom: "14px" }}>
+                      {addressError ? <X size={12} color="#dc2626" strokeWidth={1.5} /> : <Check size={12} color="#16a34a" strokeWidth={1.5} />}
+                    </div>
+                  )}
                 </div>
-
-                {/* Contact name badge */}
                 <AnimatePresence>
                   {contact && !addressError && (
-                    <motion.div
-                      initial={{ opacity: 0, y: -6 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -6 }}
-                      className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-emerald-500/8 border border-emerald-500/20"
-                    >
-                      <span className="text-base leading-none">{contact.emoji}</span>
-                      <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">{contact.name}</span>
-                    </motion.div>
+                    <motion.p initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+                      style={{ fontSize: "10px", fontStyle: "italic", color: "var(--cv-muted)", fontFamily: SERIF, marginTop: "8px" }}>
+                      {contact.emoji} {contact.name}
+                    </motion.p>
+                  )}
+                  {addressError && (
+                    <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+                      style={{ fontSize: "10px", color: "#dc2626", fontFamily: SERIF, fontStyle: "italic", marginTop: "8px" }}>
+                      {addressError}
+                    </motion.p>
                   )}
                 </AnimatePresence>
-
-                {addressError && (
-                  <p className="text-xs text-red-400 flex items-center gap-1.5 ml-1">
-                    <AlertTriangle size={11} /> {addressError}
-                  </p>
-                )}
-              </motion.div>
+              </div>
 
               {/* Amount */}
-              <motion.div variants={item} initial="initial" animate="animate" transition={{ delay: 0.08 }}
-                className="space-y-2"
-              >
-                <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest ml-1">
-                  Jumlah ({NETWORK_CONFIG.tokenSymbol})
-                </label>
-
-                <div className="relative">
-                  <input
-                    type="number"
-                    value={amount}
-                    onChange={(e) => setAmount(e.target.value)}
-                    placeholder="0.0"
-                    min="0"
-                    step="0.0001"
-                    className={`w-full h-14 px-4 pr-24 rounded-2xl bg-muted/40 border text-2xl font-bold text-foreground placeholder:text-muted-foreground/25 outline-none focus:ring-2 transition-all [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none ${
-                      amountError
-                        ? "border-red-500/40 focus:ring-red-500/15"
-                        : amount && !amountError
-                        ? "border-emerald-500/40 focus:ring-emerald-500/15"
-                        : "border-transparent focus:border-primary/20 focus:ring-primary/10"
-                    }`}
-                  />
-                  <button
-                    onClick={() => setAmount(maxSendable.toFixed(6))}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 px-3 py-1.5 rounded-lg bg-foreground/10 text-foreground text-[10px] font-bold hover:bg-foreground/20 transition-colors"
-                  >
-                    MAKS
+              <div style={{ marginBottom: "32px" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "10px" }}>
+                  <label style={{ fontSize: "9px", letterSpacing: "0.24em", textTransform: "uppercase", color: "var(--cv-muted)", fontFamily: SERIF }}>
+                    Amount ({NETWORK_CONFIG.tokenSymbol})
+                  </label>
+                  <button onClick={() => setAmount(maxSendable.toFixed(6))} style={{ background: "none", border: "none", cursor: "pointer", fontSize: "9px", letterSpacing: "0.18em", textTransform: "uppercase", color: "var(--cv-muted)", fontFamily: SERIF, padding: 0, transition: "color 0.2s" }}
+                    onMouseEnter={(e) => (e.currentTarget.style.color = "var(--cv-fg)")}
+                    onMouseLeave={(e) => (e.currentTarget.style.color = "var(--cv-muted)")}>
+                    Max
                   </button>
                 </div>
-
+                <input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0.0000" min="0" step="0.0001"
+                  className={`cv-input ${amountError ? "error" : amount && !amountError ? "valid" : ""}`}
+                  style={{ fontSize: "28px", fontFamily: SERIF, letterSpacing: "-0.02em" }} />
                 {amountError && (
-                  <p className="text-xs text-red-400 flex items-center gap-1.5 ml-1">
-                    <AlertTriangle size={11} /> {amountError}
-                  </p>
+                  <p style={{ fontSize: "10px", color: "#dc2626", fontFamily: SERIF, fontStyle: "italic", marginTop: "8px" }}>{amountError}</p>
                 )}
                 {amount && !amountError && (
-                  <p className="text-[10px] text-muted-foreground/60 ml-1 flex items-center gap-1">
-                    <Zap size={9} className="text-amber-400" />
-                    Estimasi gas: ~{GAS_COST.toFixed(5)} {NETWORK_CONFIG.tokenSymbol}
+                  <p style={{ fontSize: "10px", color: "var(--cv-muted)", fontFamily: SERIF, fontStyle: "italic", marginTop: "8px" }}>
+                    Est. gas: ~{GAS_COST.toFixed(5)} {NETWORK_CONFIG.tokenSymbol}
                   </p>
                 )}
-              </motion.div>
+              </div>
 
-              {/* Continue CTA */}
-              <motion.div variants={item} initial="initial" animate="animate" transition={{ delay: 0.1 }}>
-                <button
-                  onClick={() => setStep("confirm")}
-                  disabled={!canContinue}
-                  className="w-full h-14 rounded-2xl bg-foreground text-background font-bold text-sm flex items-center justify-center gap-2 hover:opacity-90 disabled:opacity-25 disabled:cursor-not-allowed transition-all"
-                >
-                  Review Transfer <ArrowUpRight size={16} />
-                </button>
-              </motion.div>
+              <button onClick={() => setStep("confirm")} disabled={!canContinue} className="cv-btn" style={{ marginBottom: "40px" }}>
+                <span>Review Transfer</span>
+                <ArrowRight size={12} strokeWidth={1.5} style={{ position: "relative", zIndex: 1 }} />
+              </button>
 
-              {/* ── Contact Picker ──────────────────── */}
+              {/* Contact Picker */}
               {(contacts.length > 0 || recent.length > 0) && (
-                <motion.div variants={item} initial="initial" animate="animate" transition={{ delay: 0.13 }}
-                  className="space-y-3 pt-2"
-                >
+                <div style={{ borderTop: "1px solid var(--cv-border-light)", paddingTop: "28px" }}>
                   {/* Tabs */}
-                  <div className="flex bg-muted/30 p-1 rounded-[1.2rem]">
-                    {([
-                      { id: "contacts", label: "Kontak", icon: Users, count: contacts.length },
-                      { id: "recent",   label: "Terakhir", icon: Clock, count: recent.length },
-                    ] as const).map((tab) => (
-                      <button
-                        key={tab.id}
-                        onClick={() => setContactTab(tab.id)}
-                        className={`flex-1 flex items-center justify-center gap-1.5 h-9 rounded-[1rem] text-xs font-bold transition-all ${
-                          contactTab === tab.id
-                            ? "bg-background text-foreground shadow-sm"
-                            : "text-muted-foreground hover:text-foreground"
-                        }`}
-                      >
-                        <tab.icon size={11} />
-                        {tab.label}
-                        {tab.count > 0 && (
-                          <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-bold ${
-                            contactTab === tab.id
-                              ? "bg-primary/10 text-primary"
-                              : "bg-muted text-muted-foreground"
-                          }`}>
-                            {tab.count}
-                          </span>
-                        )}
-                      </button>
-                    ))}
+                  <div style={{ display: "flex", borderBottom: "1px solid var(--cv-border-light)", marginBottom: "20px" }}>
+                    <button className={`cv-tab ${contactTab === "contacts" ? "active" : ""}`} onClick={() => setContactTab("contacts")}>
+                      Contacts · {contacts.length}
+                    </button>
+                    <button className={`cv-tab ${contactTab === "recent" ? "active" : ""}`} onClick={() => setContactTab("recent")}>
+                      Recent · {recent.length}
+                    </button>
                   </div>
 
-                  {/* Search (contacts only) */}
+                  {/* Search */}
                   {contactTab === "contacts" && contacts.length > 3 && (
-                    <div className="relative">
-                      <Search size={12} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                      <input
-                        value={search}
-                        onChange={(e) => setSearch(e.target.value)}
-                        placeholder="Cari nama atau address..."
-                        className="w-full h-9 pl-8 pr-4 rounded-xl bg-muted/20 border border-border/30 text-xs text-foreground placeholder:text-muted-foreground/40 outline-none"
-                      />
+                    <div style={{ position: "relative", marginBottom: "16px" }}>
+                      <Search size={11} style={{ position: "absolute", left: 0, top: "50%", transform: "translateY(-50%)", color: "var(--cv-muted)" }} />
+                      <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search name or address…"
+                        style={{ width: "100%", background: "transparent", border: "none", borderBottom: "1px solid var(--cv-border-light)", padding: "10px 0 10px 20px", fontFamily: SERIF, fontSize: "12px", color: "var(--cv-fg)", outline: "none" }} />
                     </div>
                   )}
 
-                  {/* Contact list */}
                   <AnimatePresence mode="wait">
                     {contactTab === "contacts" && (
-                      <motion.div
-                        key="contacts-tab"
-                        initial={{ opacity: 0, y: 4 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -4 }}
-                        className="space-y-1.5"
-                      >
-                        {filteredContacts.length === 0 ? (
-                          <p className="text-center text-xs text-muted-foreground py-6">
-                            {search ? "Tidak ada yang cocok" : "Belum ada kontak"}
-                          </p>
-                        ) : (
-                          filteredContacts.map((c) => {
+                      <motion.div key="contacts" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                        {filteredContacts.length === 0
+                          ? <p style={{ fontSize: "11px", fontStyle: "italic", color: "var(--cv-muted)", fontFamily: SERIF, padding: "20px 0" }}>{search ? "No matching contacts." : "No contacts yet."}</p>
+                          : filteredContacts.map((c) => {
                             const selected = toAddress.toLowerCase() === c.address.toLowerCase();
                             return (
-                              <button
-                                key={c.id}
-                                onClick={() => setToAddress(c.address)}
-                                className={`w-full flex items-center gap-3 p-3.5 rounded-2xl border transition-all text-left ${
-                                  selected
-                                    ? "bg-primary/5 border-primary/30"
-                                    : "bg-card border-border/40 hover:border-border/70"
-                                }`}
-                              >
-                                <div className="w-10 h-10 rounded-xl bg-muted/30 flex items-center justify-center text-xl shrink-0">
-                                  {c.emoji}
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                  <p className="text-sm font-semibold text-foreground truncate">{c.name}</p>
-                                  <p className="text-[10px] font-mono text-muted-foreground truncate">
-                                    {c.address.slice(0, 12)}...{c.address.slice(-8)}
+                              <button key={c.id} onClick={() => setToAddress(c.address)} className="cv-contact-row"
+                                style={{ background: selected ? "var(--cv-surface)" : "transparent" }}>
+                                <span style={{ fontSize: "18px", flexShrink: 0 }}>{c.emoji}</span>
+                                <div style={{ flex: 1, minWidth: 0 }}>
+                                  <p style={{ fontFamily: SERIF, fontSize: "14px", color: "var(--cv-fg)", marginBottom: "2px" }}>{c.name}</p>
+                                  <p style={{ fontFamily: MONO, fontSize: "10px", color: "var(--cv-muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                                    {c.address.slice(0, 12)}…{c.address.slice(-8)}
                                   </p>
                                 </div>
-                                {selected
-                                  ? <Check size={14} className="text-primary shrink-0" />
-                                  : <ChevronRight size={14} className="text-muted-foreground/30 shrink-0" />
-                                }
+                                {selected && <Check size={12} strokeWidth={1.5} color="var(--cv-fg)" />}
                               </button>
                             );
                           })
-                        )}
+                        }
                       </motion.div>
                     )}
-
                     {contactTab === "recent" && (
-                      <motion.div
-                        key="recent-tab"
-                        initial={{ opacity: 0, y: 4 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -4 }}
-                        className="space-y-1.5"
-                      >
-                        {recent.length === 0 ? (
-                          <p className="text-center text-xs text-muted-foreground py-6">Belum ada riwayat transfer</p>
-                        ) : (
-                          recent.map((r) => {
+                      <motion.div key="recent" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                        {recent.length === 0
+                          ? <p style={{ fontSize: "11px", fontStyle: "italic", color: "var(--cv-muted)", fontFamily: SERIF, padding: "20px 0" }}>No transfer history.</p>
+                          : recent.map((r) => {
                             const rc = getByAddress(r.address);
                             return (
-                              <button
-                                key={r.address}
-                                onClick={() => {
-                                  setToAddress(r.address);
-                                  setAmount(r.amount);
-                                }}
-                                className="w-full flex items-center gap-3 p-3.5 rounded-2xl border border-border/40 bg-card hover:border-border/70 transition-all text-left"
-                              >
-                                <div className="w-10 h-10 rounded-xl bg-muted/20 flex items-center justify-center shrink-0">
-                                  {rc
-                                    ? <span className="text-xl">{rc.emoji}</span>
-                                    : <UserCircle2 size={18} className="text-muted-foreground" />
-                                  }
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                  <p className="text-sm font-semibold text-foreground truncate">
-                                    {rc?.name || `${r.address.slice(0, 8)}...${r.address.slice(-6)}`}
+                              <button key={r.address} onClick={() => { setToAddress(r.address); setAmount(r.amount); }} className="cv-contact-row">
+                                <span style={{ fontSize: "18px", flexShrink: 0 }}>{rc?.emoji || <UserCircle2 size={16} />}</span>
+                                <div style={{ flex: 1, minWidth: 0 }}>
+                                  <p style={{ fontFamily: SERIF, fontSize: "14px", color: "var(--cv-fg)", marginBottom: "2px" }}>
+                                    {rc?.name || `${r.address.slice(0, 8)}…${r.address.slice(-6)}`}
                                   </p>
-                                  <p className="text-[10px] text-muted-foreground">
-                                    {new Date(r.timestamp).toLocaleDateString("id-ID", {
-                                      day: "numeric", month: "short",
-                                    })}
+                                  <p style={{ fontFamily: SERIF, fontSize: "10px", color: "var(--cv-muted)", fontStyle: "italic" }}>
+                                    {new Date(r.timestamp).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}
                                   </p>
                                 </div>
-                                <div className="text-right shrink-0">
-                                  <p className="text-sm font-bold text-foreground">{r.amount}</p>
-                                  <p className="text-[9px] text-muted-foreground">{NETWORK_CONFIG.tokenSymbol}</p>
+                                <div style={{ textAlign: "right" }}>
+                                  <p style={{ fontFamily: SERIF, fontSize: "13px", color: "var(--cv-fg)" }}>{r.amount}</p>
+                                  <p style={{ fontFamily: SERIF, fontSize: "9px", color: "var(--cv-muted)", fontStyle: "italic" }}>{NETWORK_CONFIG.tokenSymbol}</p>
                                 </div>
-                                <ChevronRight size={13} className="text-muted-foreground/30 shrink-0" />
                               </button>
                             );
                           })
-                        )}
+                        }
                       </motion.div>
                     )}
                   </AnimatePresence>
-                </motion.div>
+                </div>
               )}
             </motion.div>
           )}
 
-          {/* ══════════════════════════════════════════════
-              STEP: CONFIRM
-          ══════════════════════════════════════════════ */}
+          {/* ══ CONFIRM ══ */}
           {step === "confirm" && (
-            <motion.div
-              key="confirm"
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
-              transition={{ duration: 0.2 }}
-              className="space-y-5"
-            >
-              <button
-                onClick={() => setStep("input")}
-                className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors text-sm"
-              >
-                <ArrowLeft size={14} /> Edit
-              </button>
+            <motion.div key="confirm" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.55, ease }}>
+              <button onClick={() => setStep("input")} className="cv-ghost" style={{ marginBottom: "28px" }}>← Edit</button>
 
-              {/* Summary card */}
-              <div className="p-6 rounded-[2rem] bg-card border border-border/50 space-y-5">
-                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
-                  Konfirmasi Transfer
-                </p>
-
-                {/* Amount center display */}
-                <div className="text-center py-6 border-b border-border/30">
-                  <p className="text-5xl font-bold tracking-tighter text-foreground leading-none mb-2">
-                    {parseFloat(amount).toFixed(4)}
-                  </p>
-                  <p className="text-lg font-bold text-muted-foreground">{NETWORK_CONFIG.tokenSymbol}</p>
-                </div>
-
-                {/* Details rows */}
-                <div className="space-y-3.5">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-muted-foreground">Dari</span>
-                    <div className="flex items-center gap-2">
-                      <div className="w-5 h-5 rounded-full bg-muted/40 flex items-center justify-center">
-                        <Wallet size={10} className="text-muted-foreground" />
-                      </div>
-                      <span className="text-xs font-mono text-foreground">
-                        {wallet.address.slice(0, 8)}...{wallet.address.slice(-6)}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-muted-foreground">Ke</span>
-                    <div className="flex items-center gap-2">
-                      {contact && (
-                        <span className="text-base leading-none">{contact.emoji}</span>
-                      )}
-                      <div className="text-right">
-                        {contact && (
-                          <p className="text-[10px] font-bold text-foreground">{contact.name}</p>
-                        )}
-                        <p className="text-xs font-mono text-muted-foreground">
-                          {toAddress.slice(0, 8)}...{toAddress.slice(-6)}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-muted-foreground">Network</span>
-                    <span className="text-xs font-bold text-foreground">{NETWORK_CONFIG.name}</span>
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-muted-foreground">Estimasi Gas</span>
-                    <span className="text-xs text-muted-foreground font-mono">
-                      ~{GAS_COST.toFixed(5)} {NETWORK_CONFIG.tokenSymbol}
-                    </span>
+              {/* Summary infobox */}
+              <div style={{ border: "1px solid var(--cv-border-light)", marginBottom: "28px" }}>
+                <div style={{ padding: "20px 28px 0", borderBottom: "1px solid var(--cv-border-light)" }}>
+                  <p style={{ fontSize: "9px", letterSpacing: "0.24em", textTransform: "uppercase", color: "var(--cv-muted)", fontFamily: SERIF, marginBottom: "20px" }}>Transaction Summary</p>
+                  <div style={{ textAlign: "center", paddingBottom: "24px" }}>
+                    <p style={{ fontFamily: SERIF, fontSize: "clamp(44px, 10vw, 64px)", fontWeight: 400, letterSpacing: "-0.03em", lineHeight: 1, color: "var(--cv-fg)" }}>
+                      {parseFloat(amount).toFixed(4)}
+                    </p>
+                    <p style={{ fontFamily: SERIF, fontSize: "16px", color: "var(--cv-muted)", fontStyle: "italic", marginTop: "4px" }}>{NETWORK_CONFIG.tokenSymbol}</p>
                   </div>
                 </div>
-
-                {/* Total */}
-                <div className="flex items-center justify-between px-4 py-3.5 rounded-xl bg-muted/20 border border-border/40">
-                  <span className="text-sm font-bold text-foreground">Total Keluar</span>
-                  <span className="text-sm font-bold text-foreground font-mono">
-                    ~{(amountNum + GAS_COST).toFixed(5)}{" "}
-                    <span className="font-normal text-muted-foreground">{NETWORK_CONFIG.tokenSymbol}</span>
-                  </span>
-                </div>
+                {[
+                  { label: "From", val: `${wallet.address.slice(0, 10)}…${wallet.address.slice(-8)}`, mono: true },
+                  { label: "To", val: contact ? `${contact.emoji} ${contact.name} · ${toAddress.slice(0, 8)}…` : `${toAddress.slice(0, 10)}…${toAddress.slice(-8)}`, mono: !contact },
+                  { label: "Network", val: NETWORK_CONFIG.name, mono: false },
+                  { label: "Est. Gas", val: `~${GAS_COST.toFixed(5)} ${NETWORK_CONFIG.tokenSymbol}`, mono: true },
+                  { label: "Total Out", val: `~${(amountNum + GAS_COST).toFixed(5)} ${NETWORK_CONFIG.tokenSymbol}`, mono: true },
+                ].map(({ label, val, mono }) => (
+                  <div key={label} style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", padding: "14px 28px", borderBottom: "1px solid var(--cv-border-light)" }}>
+                    <span style={{ fontSize: "10px", letterSpacing: "0.14em", color: "var(--cv-muted)", fontFamily: SERIF, fontStyle: "italic" }}>{label}</span>
+                    <span style={{ fontFamily: mono ? MONO : SERIF, fontSize: mono ? "11px" : "13px", color: "var(--cv-fg)" }}>{val}</span>
+                  </div>
+                ))}
               </div>
 
               {/* Warning */}
-              <div className="flex items-start gap-2.5 p-4 rounded-2xl bg-amber-500/5 border border-amber-500/20">
-                <AlertTriangle size={13} className="text-amber-400 mt-0.5 shrink-0" />
-                <p className="text-[11px] text-muted-foreground leading-relaxed">
-                  Transaksi blockchain bersifat permanen dan tidak bisa dibatalkan. Pastikan address tujuan sudah benar.
+              <div style={{ display: "flex", gap: "14px", padding: "16px 20px", border: "1px solid var(--cv-border-light)", background: "var(--cv-surface)", marginBottom: "24px" }}>
+                <div style={{ width: "1px", background: "var(--cv-fg)", flexShrink: 0, alignSelf: "stretch" }} />
+                <p style={{ fontSize: "11px", color: "var(--cv-muted)", fontFamily: SERIF, fontStyle: "italic", lineHeight: 1.7 }}>
+                  Blockchain transactions are permanent and irreversible. Verify the recipient address before proceeding.
                 </p>
               </div>
 
-              {/* Confirm */}
-              <button
-                onClick={handleSend}
-                disabled={sending}
-                className="w-full h-14 rounded-2xl bg-foreground text-background font-bold text-sm flex items-center justify-center gap-2 hover:opacity-90 disabled:opacity-60 transition-all"
-              >
-                {sending ? (
-                  <>
-                    <div className="w-4 h-4 border-2 border-background/30 border-t-background rounded-full animate-spin" />
-                    Mengirim...
-                  </>
-                ) : (
-                  <><Send size={15} /> Kirim Sekarang</>
-                )}
+              <button onClick={handleSend} disabled={sending} className="cv-btn" style={{ marginBottom: "12px" }}>
+                {sending
+                  ? <><span>Transmitting</span><span style={{ fontStyle: "italic", position: "relative", zIndex: 1 }}>···</span></>
+                  : <><span>Execute Transfer</span><ArrowRight size={12} strokeWidth={1.5} style={{ position: "relative", zIndex: 1 }} /></>
+                }
               </button>
-
-              <button
-                onClick={() => setStep("input")}
-                disabled={sending}
-                className="w-full h-11 text-muted-foreground text-sm hover:text-foreground transition-colors"
-              >
-                Batal
-              </button>
+              <button onClick={() => setStep("input")} disabled={sending} className="cv-ghost" style={{ width: "100%", textAlign: "center" }}>Cancel</button>
             </motion.div>
           )}
 
-          {/* ══════════════════════════════════════════════
-              STEP: SUCCESS
-          ══════════════════════════════════════════════ */}
+          {/* ══ SUCCESS ══ */}
           {step === "success" && (
-            <motion.div
-              key="success"
-              initial={{ opacity: 0, scale: 0.97 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ type: "spring", stiffness: 300, damping: 24 }}
-              className="space-y-5 text-center"
-            >
-              {/* Success icon */}
-              <motion.div
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                transition={{ type: "spring", stiffness: 280, damping: 18, delay: 0.1 }}
-                className="w-28 h-28 rounded-[2.5rem] bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center mx-auto"
-              >
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.5 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ delay: 0.25 }}
-                >
-                  <Check size={48} className="text-emerald-500" strokeWidth={2.5} />
-                </motion.div>
+            <motion.div key="success" initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.7, ease }} style={{ textAlign: "center" }}>
+              <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ delay: 0.2, type: "spring", stiffness: 260, damping: 20 }}
+                style={{ width: "80px", height: "80px", border: "1px solid var(--cv-border-light)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 28px", background: "var(--cv-surface)" }}>
+                <Check size={28} strokeWidth={1.5} />
               </motion.div>
 
-              <div>
-                <h2 className="text-2xl font-bold text-foreground tracking-tight mb-2">Transfer Berhasil!</h2>
-                <p className="text-muted-foreground text-sm leading-relaxed">
-                  <span className="font-bold text-foreground">
-                    {parseFloat(amount).toFixed(4)} {NETWORK_CONFIG.tokenSymbol}
-                  </span>{" "}
-                  berhasil dikirim ke{" "}
-                  {contact
-                    ? <span className="font-bold text-foreground">{contact.emoji} {contact.name}</span>
-                    : <span className="font-mono text-xs text-foreground">
-                        {toAddress.slice(0, 8)}...{toAddress.slice(-6)}
-                      </span>
-                  }
-                </p>
-              </div>
+              <p style={{ fontFamily: SERIF, fontSize: "28px", fontWeight: 400, letterSpacing: "-0.01em", marginBottom: "12px" }}>Transfer Complete.</p>
+              <p style={{ fontFamily: SERIF, fontSize: "13px", fontStyle: "italic", color: "var(--cv-muted)", marginBottom: "32px", lineHeight: 1.7 }}>
+                {parseFloat(amount).toFixed(4)} {NETWORK_CONFIG.tokenSymbol} transmitted to{" "}
+                {contact ? `${contact.emoji} ${contact.name}` : `${toAddress.slice(0, 8)}…${toAddress.slice(-6)}`}.
+              </p>
 
-              {/* Tx hash */}
               {txHash && (
-                <motion.div
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.3 }}
-                  className="p-4 rounded-2xl bg-muted/20 border border-border/40 text-left space-y-1.5"
-                >
-                  <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
-                    Transaction Hash
-                  </p>
-                  <p className="text-[11px] font-mono text-foreground break-all leading-relaxed">
-                    {txHash}
-                  </p>
-                </motion.div>
+                <div style={{ border: "1px solid var(--cv-border-light)", padding: "16px 20px", marginBottom: "28px", textAlign: "left" }}>
+                  <p style={{ fontSize: "8px", letterSpacing: "0.22em", textTransform: "uppercase", color: "var(--cv-muted)", fontFamily: SERIF, marginBottom: "8px" }}>Transaction Hash</p>
+                  <p style={{ fontFamily: MONO, fontSize: "10px", color: "var(--cv-fg)", wordBreak: "break-all", lineHeight: 1.8 }}>{txHash}</p>
+                </div>
               )}
 
-              {/* Actions */}
-              <motion.div
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.35 }}
-                className="flex gap-3"
-              >
-                <button
-                  onClick={handleReset}
-                  className="flex-1 h-13 py-3.5 rounded-2xl bg-muted/30 text-foreground font-bold text-sm hover:bg-muted/50 transition-colors"
-                >
-                  Kirim Lagi
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "2px" }}>
+                <button onClick={handleReset} style={{ background: "var(--cv-surface)", border: "1px solid var(--cv-border-light)", padding: "14px", fontFamily: SERIF, fontSize: "11px", letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--cv-fg)", cursor: "pointer" }}>
+                  New Transfer
                 </button>
-                <button
-                  onClick={() => router.push("/dashboard")}
-                  className="flex-1 h-13 py-3.5 rounded-2xl bg-foreground text-background font-bold text-sm hover:opacity-90 transition-opacity"
-                >
-                  Dashboard
+                <button onClick={() => router.push("/dashboard")} className="cv-btn" style={{ width: "auto" }}>
+                  <span>Dashboard</span>
                 </button>
-              </motion.div>
+              </div>
             </motion.div>
           )}
         </AnimatePresence>
-
       </div>
 
-      {/* ── QR Modal (receive) ──────────────────────────────── */}
-      <QRModal
-        isOpen={showQR}
-        onClose={() => setShowQR(false)}
-        address={wallet.address}
-        label={`Wallet ${wallet.address.slice(0, 6)}...${wallet.address.slice(-4)}`}
-      />
+      <QRModal isOpen={showQR} onClose={() => setShowQR(false)} address={wallet.address}
+        label={`Wallet ${wallet.address.slice(0, 6)}…${wallet.address.slice(-4)}`} />
     </div>
   );
 }

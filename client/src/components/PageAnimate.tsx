@@ -6,10 +6,10 @@ import { LayoutRouterContext } from "next/dist/shared/lib/app-router-context.sha
 import { useContext, useRef, useState, useEffect } from "react";
 
 // Urutan Halaman
-const routes: Record<string, number> = { 
-  "/": 0, 
-  "/vault": 1, 
-  "/market": 2 
+const routes: Record<string, number> = {
+  "/": 0,
+  "/vault": 1,
+  "/market": 2
 };
 
 function FrozenRouter(props: { children: React.ReactNode }) {
@@ -54,7 +54,7 @@ export default function PageAnimate({ children }: { children: React.ReactNode })
       opacity: 1,
       scale: 1,
       zIndex: 1,
-      position: "relative" as const, // Relative saat diam biar bisa discroll
+      position: "absolute" as const, // Selalu absolute biar konsisten viewportnya
     },
     exit: (dir: number) => ({
       x: dir > 0 ? "-25%" : "25%", // Efek Parallax halus
@@ -64,7 +64,8 @@ export default function PageAnimate({ children }: { children: React.ReactNode })
       filter: "blur(4px)",
       position: "absolute" as const, // Absolute saat keluar
       top: 0,
-      width: "100%"
+      width: "100%",
+      height: "100%",
     }),
   };
 
@@ -79,11 +80,11 @@ export default function PageAnimate({ children }: { children: React.ReactNode })
         animate="center"
         exit="exit"
         transition={{
-            x: { type: "spring", stiffness: 280, damping: 32, mass: 1 }, // Tuning Physics: Sedikit lebih berat biar mewah
-            opacity: { duration: 0.3 },
-            scale: { duration: 0.35 }
+          x: { type: "spring", stiffness: 280, damping: 32, mass: 1 }, // Tuning Physics: Sedikit lebih berat biar mewah
+          opacity: { duration: 0.3 },
+          scale: { duration: 0.35 }
         }}
-        className="w-full min-h-screen will-change-transform"
+        className="absolute inset-0 w-full h-[100dvh] overflow-y-auto overflow-x-hidden will-change-transform"
       >
         <FrozenRouter>{children}</FrozenRouter>
       </motion.div>

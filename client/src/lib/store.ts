@@ -159,6 +159,7 @@ interface VaultState {
   cancelTrade: (tokenId: number) => Promise<boolean>;
   burnAsset: (tokenId: number, cid: string) => Promise<boolean>;
 }
+export type StoreState = VaultState;
 
 // ============================================================
 // STORE

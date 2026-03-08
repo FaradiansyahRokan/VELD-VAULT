@@ -366,8 +366,13 @@ export const useStore = create<VaultState>((set, get) => ({
   getEffectiveCid: async (tokenId: number, cidFromChain: string): Promise<string> => {
     try {
       const res = await fetch(`/api/cid-override?tokenId=${tokenId}`);
+      if (!res.ok) return cidFromChain;
       const { cid } = await res.json();
-      return cid ?? cidFromChain;
+      if (cid && cid !== cidFromChain) {
+        console.log(`[getEffectiveCid] token #${tokenId}: KV override found → ${cid.slice(0, 12)}...`);
+        return cid;
+      }
+      return cidFromChain;
     } catch {
       return cidFromChain;
     }
@@ -816,9 +821,22 @@ export const useStore = create<VaultState>((set, get) => ({
         const effectiveCid = await get().getEffectiveCid(tokenId, item.cid);
         const { newCid } = await reEncryptForBuyer(effectiveCid, signer, publicKey);
 
-        if (newCid !== item.cid) {
-          const txUpdate = await contract!.updateEncryptedCid(tokenId, newCid, gasOverride("updateEncryptedCid"));
-          await txUpdate.wait();
+        // Simpan CID baru ke KV — buyer butuh ini untuk decrypt
+        // Tidak throw error kalau KV gagal (trade tetap lanjut, buyer coba ulang decrypt nanti)
+        if (newCid !== effectiveCid) {
+          try {
+            const message = `CipherVault-CID-Override:${tokenId}:${newCid}`;
+            const signature = await (signer as ethers.Wallet).signMessage(message);
+            await fetch("/api/cid-override", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ tokenId, newCid, ownerAddress: myAddress, signature }),
+            });
+          } catch (kvErr) {
+            // KV gagal — log tapi lanjut. Buyer masih bisa decrypt via v3 ECDH
+            // selama mereka punya wallet yang benar.
+            console.warn("[confirmTrade] KV CID save failed, proceeding:", kvErr);
+          }
         }
       }
 

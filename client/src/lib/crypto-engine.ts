@@ -391,38 +391,50 @@ export const decryptFile = async (
       return await decryptContent(fileKeyBuffer, metadata);
     }
 
-    // --- v3: ECDH buyer unwrap ---
+    // --- v3: ECDH unwrap ---
+    // v3 datang dari purchase atau transfer.
+    // sellerPublicKey = pubkey yang meng-encrypt → kita compute ECDH(my_privkey × sellerPublicKey)
     if (metadata.version === 3) {
       if (!metadata.sellerPublicKey) {
-        throw new Error("Seller public key tidak ada di metadata");
+        throw new Error("sellerPublicKey tidak ada di metadata v3. File mungkin corrupt.");
       }
       const wallet = signer as ethers.Wallet;
       if (!wallet.signingKey) {
-        throw new Error("Signer tidak mendukung ECDH decryption");
+        throw new Error("Signer tidak punya private key. Pastikan wallet ter-unlock.");
       }
 
-      // Buyer hitung shared secret yang sama dengan seller
-      const sharedSecretHex = wallet.signingKey.computeSharedSecret(
-        metadata.sellerPublicKey
-      );
-      const sharedSecretBytes = ethers.getBytes(sharedSecretHex);
-      const ecdhKeyRaw = await crypto.subtle.digest(
-        "SHA-256",
-        toArrayBuffer(sharedSecretBytes)
-      );
-      const ecdhWrapKey = await crypto.subtle.importKey(
-        "raw",
-        ecdhKeyRaw,
-        "AES-GCM",
-        false,
-        ["decrypt"]
-      );
-
-      const fileKeyBuffer = await crypto.subtle.decrypt(
-        { name: "AES-GCM", iv: toArrayBuffer(ethers.getBytes(metadata.wrapIv)) },
-        ecdhWrapKey,
-        base64ToArrayBuffer(metadata.encryptedKey)
-      );
+      let fileKeyBuffer: ArrayBuffer;
+      try {
+        const sharedSecretHex = wallet.signingKey.computeSharedSecret(metadata.sellerPublicKey);
+        const ecdhKeyRaw = await crypto.subtle.digest(
+          "SHA-256", toArrayBuffer(ethers.getBytes(sharedSecretHex))
+        );
+        const ecdhWrapKey = await crypto.subtle.importKey(
+          "raw", ecdhKeyRaw, "AES-GCM", false, ["decrypt"]
+        );
+        fileKeyBuffer = await crypto.subtle.decrypt(
+          { name: "AES-GCM", iv: toArrayBuffer(ethers.getBytes(metadata.wrapIv)) },
+          ecdhWrapKey,
+          base64ToArrayBuffer(metadata.encryptedKey)
+        );
+      } catch (ecdhErr) {
+        // Fallback: mungkin CID yang di-resolve masih v3 lama (bukan yang terbaru dari KV)
+        // Coba v2 wrap (wallet-bound) — kalau wallet ini original uploader
+        console.warn("[decryptFile] v3 ECDH failed, trying v2 fallback:", ecdhErr);
+        try {
+          const wrapKey = await getWrapKey(signer);
+          fileKeyBuffer = await crypto.subtle.decrypt(
+            { name: "AES-GCM", iv: toArrayBuffer(ethers.getBytes(metadata.wrapIv)) },
+            wrapKey,
+            base64ToArrayBuffer(metadata.encryptedKey)
+          );
+        } catch {
+          throw new Error(
+            "Dekripsi gagal. File ini dienkripsi untuk wallet lain. " +
+            "Pastikan kamu menggunakan wallet yang menerima file ini."
+          );
+        }
+      }
       return await decryptContent(fileKeyBuffer, metadata);
     }
 

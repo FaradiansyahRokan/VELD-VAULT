@@ -935,6 +935,7 @@ export default function LandingPage() {
           provider.getBlockNumber(),
           provider.getLogs({ address: CONTRACT, topics: [VaultItemCreatedTopic], fromBlock: 0, toBlock: "latest" }),
           new ethers.Contract(CONTRACT, getAllListedABI, provider).getAllListedAssets().catch(() => []),
+          // Add explicit fetch for ERC721 Transfer events and others if general getLogs misses them or requires explicit address/topics config.
           provider.getLogs({ address: CONTRACT, fromBlock, toBlock: "latest" }).catch(() => [])
         ]);
 
@@ -955,14 +956,14 @@ export default function LandingPage() {
         // Process logs for Network Monitor
         if (allLogs && allLogs.length > 0) {
           const parsedLogs = allLogs
-            .filter(l => l.topics[0] && mapTopicToAction(l.topics[0]) !== "STATE_SYNC")
-            .slice(-8)
             .map((l: any) => ({
               id: `${l.blockHash}-${l.logIndex}`,
               time: "Live Activity",
               action: mapTopicToAction(l.topics[0]),
               hash: l.transactionHash
-            }));
+            }))
+            .filter(l => l.action !== "STATE_SYNC")
+            .slice(-8);
 
           if (parsedLogs.length < 8) {
             const padding = Array.from({ length: 8 - parsedLogs.length }).map((_, i) => ({

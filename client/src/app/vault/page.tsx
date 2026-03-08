@@ -17,6 +17,7 @@ import BatchUpload from "@/components/BatchUpload";
 import ShareWithExpiry from "@/components/ShareWithExpiry";
 import PriceHistory from "@/components/PriceHistory";
 import { NETWORK_CONFIG } from "@/lib/constants";
+import { useContactsStore } from "@/lib/contact-store";
 
 export default function VaultPage() {
   const router = useRouter();
@@ -26,10 +27,12 @@ export default function VaultPage() {
     mintAndEncrypt,
     listAssetForSale, updateListing, cancelListing,
     transferAsset, sendCopyAsset, confirmTrade, cancelTrade, burnAsset,
-    getEffectiveCid,
   } = useStore();
 
   const { addActivity } = useActivityStore();
+  const { contacts, getByAddress } = useContactsStore();
+  const [showContactPicker, setShowContactPicker] = useState(false);
+  const [contactSearch, setContactSearch] = useState("");
   const [loading, setLoading] = useState(false);
   const [isClient, setIsClient] = useState(false);
   const [modals, setModals] = useState({
@@ -103,12 +106,10 @@ export default function VaultPage() {
   // ──────────────────────────────────────────
   // DECRYPT & PREVIEW / DOWNLOAD
   // ──────────────────────────────────────────
-  const handleDecrypt = async (tokenId: number, cidFromChain: string, mode: "PREVIEW" | "DOWNLOAD") => {
+  const handleDecrypt = async (cid: string, mode: "PREVIEW" | "DOWNLOAD") => {
     if (!wallet || !signer) return;
     const t = toast.loading("Mendekripsi...");
     try {
-      // Resolve CID yang benar — cek KV override dulu (file mungkin di-transfer)
-      const cid = await getEffectiveCid(tokenId, cidFromChain);
       const file = await decryptFile(cid, signer);
 
       if (mode === "PREVIEW") {
@@ -526,7 +527,7 @@ export default function VaultPage() {
                   ) : (
                     <>
                       <button
-                        onClick={() => handleDecrypt(file.id, file.cid, "PREVIEW")}
+                        onClick={() => handleDecrypt(file.cid, "PREVIEW")}
                         className="flex-1 h-12 rounded-[1.5rem] bg-background text-foreground font-bold text-xs shadow-sm hover:bg-foreground hover:text-background transition-all border border-border/50"
                       >
                         Buka File
@@ -695,8 +696,9 @@ export default function VaultPage() {
 
         {/* TRANSFER */}
         {modals.transfer && (
-          <Modal key="transfer" isOpen onClose={() => closeModal("transfer")} title="Transfer Asset">
+          <Modal key="transfer" isOpen onClose={() => { closeModal("transfer"); setShowContactPicker(false); setContactSearch(""); }} title="Transfer Asset">
             <div className="space-y-5 pt-2">
+              {/* Mode MOVE / COPY */}
               <div className="flex bg-muted/30 p-1.5 rounded-[1.5rem]">
                 {(["MOVE", "COPY"] as const).map((m) => (
                   <button
@@ -708,6 +710,7 @@ export default function VaultPage() {
                   </button>
                 ))}
               </div>
+
               {formData.mode === "COPY" && (
                 <div className="p-3 bg-amber-500/5 border border-amber-500/20 rounded-2xl">
                   <p className="text-xs text-amber-600 dark:text-amber-400 leading-relaxed">
@@ -715,33 +718,156 @@ export default function VaultPage() {
                   </p>
                 </div>
               )}
-              <Input
-                label="Alamat Penerima (0x...)"
-                value={formData.address}
-                onChange={(e: any) => setFormData({ ...formData, address: e.target.value })}
-                placeholder="0x..."
-              />
+
+              {/* Address input + Contact Picker toggle */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between px-1">
+                  <label className="text-[10px] uppercase font-bold text-muted-foreground">Alamat Penerima</label>
+                  {contacts.length > 0 && (
+                    <button
+                      onClick={() => { setShowContactPicker((p) => !p); setContactSearch(""); }}
+                      className="text-[10px] font-bold text-primary hover:underline flex items-center gap-1"
+                    >
+                      <Users size={11} />
+                      {showContactPicker ? "Tutup Kontak" : "Pilih dari Kontak"}
+                    </button>
+                  )}
+                </div>
+
+                {/* Contact Picker */}
+                <AnimatePresence>
+                  {showContactPicker && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      exit={{ opacity: 0, height: 0 }}
+                      className="overflow-hidden"
+                    >
+                      <div className="bg-muted/20 border border-border/50 rounded-2xl overflow-hidden">
+                        {/* Search dalam kontak */}
+                        <div className="p-3 border-b border-border/30">
+                          <input
+                            value={contactSearch}
+                            onChange={(e) => setContactSearch(e.target.value)}
+                            placeholder="Cari nama atau alamat..."
+                            className="w-full bg-background/50 px-3 py-2 rounded-xl text-xs outline-none border border-border/30 focus:border-primary/30 text-foreground placeholder:text-muted-foreground/50"
+                          />
+                        </div>
+
+                        {/* List kontak */}
+                        <div className="max-h-48 overflow-y-auto">
+                          {contacts
+                            .filter((c) => {
+                              const q = contactSearch.toLowerCase();
+                              return !q || c.name.toLowerCase().includes(q) || c.address.toLowerCase().includes(q);
+                            })
+                            .map((contact) => {
+                              const isSelected = formData.address.toLowerCase() === contact.address.toLowerCase();
+                              return (
+                                <button
+                                  key={contact.id}
+                                  onClick={() => {
+                                    setFormData((p) => ({ ...p, address: contact.address }));
+                                    setShowContactPicker(false);
+                                    setContactSearch("");
+                                  }}
+                                  className={`w-full flex items-center gap-3 px-4 py-3 hover:bg-muted/40 transition-colors text-left border-b border-border/20 last:border-0 ${isSelected ? "bg-primary/5" : ""}`}
+                                >
+                                  {/* Avatar emoji */}
+                                  <div className={`w-9 h-9 rounded-full flex items-center justify-center text-base shrink-0 border ${isSelected ? "border-primary/30 bg-primary/10" : "border-border/40 bg-muted/30"}`}>
+                                    {contact.emoji}
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-sm font-bold text-foreground truncate">{contact.name}</p>
+                                    <p className="text-[10px] font-mono text-muted-foreground">
+                                      {contact.address.slice(0, 8)}...{contact.address.slice(-6)}
+                                    </p>
+                                  </div>
+                                  {isSelected && (
+                                    <Check size={14} className="text-primary shrink-0" />
+                                  )}
+                                </button>
+                              );
+                            })}
+
+                          {contacts.filter((c) => {
+                            const q = contactSearch.toLowerCase();
+                            return !q || c.name.toLowerCase().includes(q) || c.address.toLowerCase().includes(q);
+                          }).length === 0 && (
+                            <div className="py-6 text-center text-xs text-muted-foreground">
+                              Tidak ada kontak ditemukan
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                {/* Input manual dengan preview nama kontak */}
+                <div className="relative">
+                  <input
+                    value={formData.address}
+                    onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                    placeholder="0x..."
+                    className="w-full bg-muted/30 px-4 py-3.5 rounded-2xl text-sm font-mono outline-none border border-transparent focus:border-border transition-all text-foreground placeholder:text-muted-foreground/50 pr-10"
+                  />
+                  {/* Tampilkan nama kontak kalau address cocok */}
+                  {formData.address && getByAddress(formData.address) && (
+                    <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                      <span className="text-base" title={getByAddress(formData.address)?.name}>
+                        {getByAddress(formData.address)?.emoji}
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Badge nama kontak di bawah input */}
+                {formData.address && getByAddress(formData.address) && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -4 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="flex items-center gap-2 px-3"
+                  >
+                    <Check size={11} className="text-emerald-500" />
+                    <span className="text-[11px] text-emerald-500 font-bold">
+                      {getByAddress(formData.address)?.name}
+                    </span>
+                    {getByAddress(formData.address)?.note && (
+                      <span className="text-[11px] text-muted-foreground">
+                        · {getByAddress(formData.address)?.note}
+                      </span>
+                    )}
+                  </motion.div>
+                )}
+              </div>
+
               <Button
                 onClick={async () => {
+                  if (!formData.address) return toast.error("Masukkan alamat penerima");
                   try {
                     const success =
                       formData.mode === "MOVE"
                         ? await transferAsset(activeId!, formData.address)
                         : await sendCopyAsset(activeId!, formData.address, formData.name, formData.cid);
                     if (success) {
+                      const contactName = getByAddress(formData.address)?.name;
                       addActivity({
                         type: "transfer_out",
                         title: formData.mode === "MOVE" ? "Asset ditransfer" : "Salinan dikirim",
-                        description: `Asset #${activeId} dikirim ke ${formData.address.slice(0, 6)}...${formData.address.slice(-4)}`,
+                        description: `Asset #${activeId} dikirim ke ${contactName ?? `${formData.address.slice(0, 6)}...${formData.address.slice(-4)}`}`,
                         walletAddress: wallet!.address,
                         tokenId: activeId!,
                         address: formData.address,
                       });
                       toast.success("Transfer berhasil!");
                       closeModal("transfer");
+                      setShowContactPicker(false);
+                      setContactSearch("");
                     }
                   } catch (e: any) { toast.error(e.message); }
                 }}
+                disabled={!formData.address}
                 className="w-full h-14 rounded-[1.2rem]"
               >
                 Konfirmasi Transfer

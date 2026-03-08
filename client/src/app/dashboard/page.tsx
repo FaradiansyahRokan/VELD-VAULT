@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useMemo, useCallback } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useStore } from "@/lib/store";
 import { useActivityStore, ACTIVITY_META } from "../../lib/activity-store";
@@ -111,7 +111,11 @@ export default function DashboardPage() {
   if (!mounted || !wallet || !stats) return null;
 
   return (
-    <div className="absolute inset-0 overflow-y-auto"><div className="pt-36 px-6 pb-24 max-w-[1400px] mx-auto">
+    <div
+      className="absolute inset-0 overflow-y-scroll overscroll-y-contain"
+      style={{ WebkitOverflowScrolling: "touch" }}
+    >
+    <div className="pt-36 px-6 pb-24 max-w-[1400px] mx-auto">
 
       {/* ── Header ── */}
       <motion.div
@@ -209,7 +213,7 @@ export default function DashboardPage() {
                       className="flex items-center gap-3 p-3.5 rounded-2xl bg-card border border-border/40 hover:border-border/70 transition-colors"
                     >
                       <div className="w-8 h-8 rounded-xl bg-muted/30 flex items-center justify-center text-base shrink-0">
-                        {/* {meta.emoji} */}
+                        {meta.emoji}
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-semibold text-foreground truncate">{a.title}</p>

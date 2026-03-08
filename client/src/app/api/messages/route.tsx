@@ -58,7 +58,32 @@ async function getMessagesForAddress(address: string): Promise<StoredMessage[]> 
     return raw.map((r: any) => (typeof r === "string" ? JSON.parse(r) : r)).sort((a: any, b: any) => b.timestamp - a.timestamp);
 }
 async function markRead(id: string, reader: string) {
-    // For simplicity, re-fetch and update — optimize later if needed
+    // Find and update the message in both sender and recipient lists
+    const normalized = reader.toLowerCase();
+    const listKey = `msgs:${normalized}`;
+    const raw = (await kv.lrange(listKey, 0, 499)) || [];
+
+    for (let i = 0; i < raw.length; i++) {
+        const item = typeof raw[i] === "string" ? JSON.parse(raw[i] as string) : raw[i] as unknown as StoredMessage;
+        if (item.id === id && item.to === normalized) {
+            item.read = true;
+            // Replace the element at index i using lset
+            await (kv as any).lset(listKey, i, JSON.stringify(item));
+
+            // Also update in sender's list
+            const senderKey = `msgs:${item.from}`;
+            const senderRaw = (await kv.lrange(senderKey, 0, 499)) || [];
+            for (let j = 0; j < senderRaw.length; j++) {
+                const si = typeof senderRaw[j] === "string" ? JSON.parse(senderRaw[j] as string) : senderRaw[j] as unknown as StoredMessage;
+                if (si.id === id) {
+                    si.read = true;
+                    await (kv as any).lset(senderKey, j, JSON.stringify(si));
+                    break;
+                }
+            }
+            break;
+        }
+    }
 }
 
 // ── Handlers ─────────────────────────────────────────────────

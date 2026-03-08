@@ -47,7 +47,11 @@ export default function MarketPage() {
   };
 
   return (
-    <div className="min-h-screen pt-40 px-6 pb-32 max-w-[1400px] mx-auto bg-background transition-colors duration-500">
+    <div
+      className="absolute inset-0 overflow-y-scroll overscroll-y-contain"
+      style={{ WebkitOverflowScrolling: "touch" }}
+    >
+    <div className="pt-40 px-6 pb-32 max-w-[1400px] mx-auto">
 
       {/* HEADER */}
       <div className="flex flex-col lg:flex-row justify-between items-end mb-20 gap-10">
@@ -79,7 +83,7 @@ export default function MarketPage() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Cari nama atau ID asset..."
-            className="w-full h-16 pl-14 pr-6 rounded-[2rem] bg-muted/20 border border-border/50 text-foreground placeholder:text-muted-foreground/50 focus:bg-background focus:ring-2 focus:ring-foreground/5 focus:border-foreground/20 transition-all outline-none text-base"
+            className="w-full h-16 pl-14 pr-6 rounded-[2rem] bg-muted/20 border border-border/50 text-foreground placeholder:text-muted-foreground/50 focus:bg-background focus:ring-2 focus:ring-foreground/5 focus:border-foreground/20 transition-all outline-none text-[16px] md:text-base"
           />
           {search && (
             <button
@@ -239,6 +243,7 @@ export default function MarketPage() {
           })}
         </motion.div>
       )}
+    </div>
     </div>
   );
 }

@@ -303,7 +303,13 @@ function MessageBubble({ m, isMine, showDate, onTap }: {
             <span className={`text-[9px] ${isMine ? "text-primary-foreground/60" : "text-muted-foreground"}`}>
               {new Date(m.timestamp).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })}
             </span>
-            {isMine && (m.read ? <CheckCheck size={10} className="text-primary-foreground/60" /> : <Check size={10} className="text-primary-foreground/60" />)}
+            {isMine && (
+              m.read
+                ? <span title="Dibaca" className="flex"><CheckCheck size={11} className="text-blue-300" /></span>
+                : String(m.id).startsWith("opt-")
+                  ? <span title="Mengirim..." className="flex"><Check size={11} className="text-primary-foreground/40" /></span>
+                  : <span title="Terkirim" className="flex"><CheckCheck size={11} className="text-primary-foreground/50" /></span>
+            )}
           </div>
         </motion.div>
       </motion.div>
@@ -409,6 +415,39 @@ export default function MessagesPage() {
     setAmbientMood(detectAmbient(activeMsgs));
   }, [messages, activeAddr, wallet?.address]);
 
+  // ── Mark incoming messages as read saat chat dibuka ──
+  useEffect(() => {
+    if (!activeAddr || !wallet?.address) return;
+    const unread = messages.filter(m =>
+      m.from === activeAddr &&
+      m.to === wallet.address.toLowerCase() &&
+      !m.read &&
+      !String(m.id).startsWith("opt-")
+    );
+    if (!unread.length) return;
+
+    // Update local state immediately
+    setMessages(prev =>
+      prev.map(m =>
+        unread.some(u => u.id === m.id) ? { ...m, read: true } : m
+      )
+    );
+
+    // Reset unread counter di sidebar
+    setConversations(prev =>
+      prev.map(c => c.address === activeAddr ? { ...c, unread: 0 } : c)
+    );
+
+    // Notify server — fire and forget
+    unread.forEach(m => {
+      fetch("/api/messages", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: m.id, reader: wallet.address }),
+      }).catch(() => { });
+    });
+  }, [activeAddr, messages, wallet?.address]); // eslint-disable-line
+
   useEffect(() => {
     if (!activeAddr || !wallet?.address) return;
     const t = setInterval(async () => {
@@ -451,8 +490,16 @@ export default function MessagesPage() {
         });
         const ids = new Set(withoutOpt.map(m => m.id));
         const newMsgs = decrypted.filter(m => !ids.has(m.id));
-        if (!newMsgs.length && withoutOpt.length === prev.length) return prev;
-        return [...withoutOpt, ...newMsgs].sort((a, b) => a.timestamp - b.timestamp);
+
+        // Sync read status dari server — update pesan lama yang mungkin sudah dibaca peer
+        const readUpdated = withoutOpt.map(m => {
+          const fresh = decrypted.find(d => d.id === m.id);
+          if (fresh && fresh.read && !m.read) return { ...m, read: true };
+          return m;
+        });
+
+        if (!newMsgs.length && readUpdated.every((m, i) => m === withoutOpt[i]) && withoutOpt.length === prev.length) return prev;
+        return [...readUpdated, ...newMsgs].sort((a, b) => a.timestamp - b.timestamp);
       });
 
       setConversations((prev) => {
@@ -731,10 +778,6 @@ export default function MessagesPage() {
                   <div className="h-2" aria-hidden />
                 </div>
 
-
-                {/* Emoji Physics */}
-                {/* <EmojiPhysicsPlayground containerRef={messagesContainerRef} /> */}
-
                 {/* Input */}
                 <div className="p-4 border-t border-border/50 shrink-0 relative z-10">
                   <div className="flex items-end gap-3">
@@ -756,6 +799,9 @@ export default function MessagesPage() {
                       </motion.button>
                     </div>
                   </div>
+                  <p className="text-[9px] text-muted-foreground/35 mt-1.5 ml-1">
+                    ✨ sayang · wkwk · wow · uang · good night · :party: · :rain: · :matrix:
+                  </p>
                 </div>
               </>
             )}

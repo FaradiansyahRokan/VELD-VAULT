@@ -53,7 +53,11 @@ export default function ToolsPage() {
   const filtered = filter === "all" ? allActivities : allActivities.filter((a) => a.type === filter);
 
   return (
-    <div className="min-h-screen pt-36 px-6 pb-24 max-w-[1200px] mx-auto">
+    <div
+      className="absolute inset-0 overflow-y-scroll overscroll-y-contain"
+      style={{ WebkitOverflowScrolling: "touch" }}
+    >
+    <div className="pt-36 px-6 pb-24 max-w-[1200px] mx-auto">
       {/* Header */}
       <motion.div initial={{ opacity: 0, y: -16 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
         <div className="flex items-center gap-3 mb-2">
@@ -167,7 +171,7 @@ export default function ToolsPage() {
                 </div>
 
                 {/* Activity list */}
-                <div className="overflow-y-auto max-h-[calc(100vh-20rem)]">
+                <div className="overflow-y-auto max-h-[calc(100dvh-22rem)]" style={{ WebkitOverflowScrolling: "touch" }}>
                   {filtered.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-16 gap-3 text-center">
                       <Activity size={32} className="text-muted-foreground/20" />
@@ -236,7 +240,8 @@ export default function ToolsPage() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="p-6"
+                className="p-6 overflow-y-auto max-h-[calc(100dvh-18rem)]"
+              style={{ WebkitOverflowScrolling: "touch" }}
               >
                 <ContactsBook />
               </motion.div>
@@ -249,7 +254,8 @@ export default function ToolsPage() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="p-6"
+                className="p-6 overflow-y-auto max-h-[calc(100dvh-18rem)]"
+              style={{ WebkitOverflowScrolling: "touch" }}
               >
                 <div className="mb-5">
                   <h2 className="font-bold text-foreground text-lg">Penanda Tangan Dokumen</h2>
@@ -265,6 +271,7 @@ export default function ToolsPage() {
         </motion.div>
       </div>
 
+    </div>
       {/* QR Modal */}
       <QRModal
         isOpen={showQR}

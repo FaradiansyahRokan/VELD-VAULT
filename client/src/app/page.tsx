@@ -858,7 +858,6 @@ function NetworkMonitor({
               {whaleTxs.map((w, i) => (
                 <div className="nm-whale-item" key={w.hash} style={{ animationDelay: `${i * 60}ms` }}>
                   <div className="nm-whale-label">
-                    <span>🔥</span>
                     <span>WHALE TRANSACTION</span>
                     <span style={{ color: "#333", marginLeft: "auto" }}>Block #{w.blockNumber.toLocaleString()}</span>
                   </div>

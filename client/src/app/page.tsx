@@ -863,42 +863,9 @@ function AllocationBar({ name, pct, apy, delay }: { name: string, pct: number, a
 export default function LandingPage() {
   const [heroStatsVisible, setHeroStatsVisible] = useState(false);
   const heroRef = useRef(null);
-  const [logs, setLogs] = useState<{ id: number; time: string; action: string; hash: string }[]>([]);
+  const [logs, setLogs] = useState<{ id: string; time: string; action: string; hash: string }[]>([]);
 
-  useEffect(() => {
-    let id = 0;
-    const actions = [
-      "ENCRYPT_PAYLOAD", "KEY_EXCHANGE_INIT", "STORE_IPFS_CID",
-      "MINT_VAULT_ITEM", "VERIFY_SIGNATURE", "ZK_PROOF_GENERATE",
-      "P2P_HANDSHAKE", "DECRYPT_REQUEST", "ESCROW_LOCK", "SYNC_STATE"
-    ];
-    const generateHash = () => "0x" + Array.from({ length: 64 }, () => Math.floor(Math.random() * 16).toString(16)).join('').padStart(64, '0');
-
-    const initial = Array.from({ length: 8 }, () => {
-      id++;
-      return {
-        id,
-        time: new Date(Date.now() - Math.random() * 10000).toISOString().split('T')[1].slice(0, 12),
-        action: actions[Math.floor(Math.random() * actions.length)],
-        hash: generateHash()
-      };
-    }).sort((a, b) => a.time.localeCompare(b.time));
-    setLogs(initial);
-
-    const interval = setInterval(() => {
-      id++;
-      setLogs(prev => {
-        const newLogs = [...prev, {
-          id,
-          time: new Date().toISOString().split('T')[1].slice(0, 12),
-          action: actions[Math.floor(Math.random() * actions.length)],
-          hash: generateHash()
-        }];
-        return newLogs.slice(-8);
-      });
-    }, 1800);
-    return () => clearInterval(interval);
-  }, []);
+  // Removed fake simulation polling 
 
   // ── Live blockchain stats ─────────────────────────────────────
   const [liveStats, setLiveStats] = useState({
@@ -915,18 +882,39 @@ export default function LandingPage() {
 
     const getAllListedABI = ["function getAllListedAssets() view returns (tuple(uint256 id,uint256 tokenId,address seller,address owner,uint256 price,bool isListed,bool isCopy,string encryptedCid,string previewURI,string name,string description,bool useEscrow,address buyer,bool sellerConfirmed,bool buyerConfirmed,bool isEscrowActive)[])"];
     const VaultItemCreatedTopic = ethers.id("VaultItemCreated(uint256,address)");
+    const AssetTransferredTopic = ethers.id("AssetTransferred(uint256,address,address,string)");
+    const AssetListedTopic = ethers.id("AssetListed(uint256,uint256,bool)");
+    const AssetDelistedTopic = ethers.id("AssetDelisted(uint256)");
+    const EscrowStartedTopic = ethers.id("EscrowStarted(uint256,address,address,uint256)");
+    const EscrowCompletedTopic = ethers.id("EscrowCompleted(uint256,address,address,uint256)");
+
+    const mapTopicToAction = (topic: string) => {
+      if (topic === VaultItemCreatedTopic) return "MINT_VAULT_ITEM";
+      if (topic === AssetTransferredTopic) return "TRANSFER_ASSET";
+      if (topic === AssetListedTopic) return "LIST_ASSET";
+      if (topic === AssetDelistedTopic) return "DELIST_ASSET";
+      if (topic === EscrowStartedTopic) return "ESCROW_LOCK";
+      if (topic === EscrowCompletedTopic) return "ESCROW_RELEASE";
+      return "STATE_SYNC";
+    };
 
     async function fetchData() {
       try {
         const provider = new ethers.JsonRpcProvider(RPC);
-        const [blockNum, logs, listed] = await Promise.all([
+        const latestBlock = await provider.getBlockNumber();
+        const fromBlock = Math.max(0, latestBlock - 50000); // Only relatively recent to avoid heavy payloads
+
+        const [blockNum, mintLogs, listed, allLogs] = await Promise.all([
           provider.getBlockNumber(),
           provider.getLogs({ address: CONTRACT, topics: [VaultItemCreatedTopic], fromBlock: 0, toBlock: "latest" }),
           new ethers.Contract(CONTRACT, getAllListedABI, provider).getAllListedAssets().catch(() => []),
+          provider.getLogs({ address: CONTRACT, fromBlock, toBlock: "latest" }).catch(() => [])
         ]);
-        const totalMinted = logs.length;
+
+        const totalMinted = mintLogs.length;
         const listedCount = Array.isArray(listed) ? listed.length : 0;
         setLiveStats({ blockNumber: blockNum, totalMinted, listedAssets: listedCount, loading: false });
+
         // Update ticker with live values
         setTicker(prev => prev.map(t => {
           if (t.sym === "CHAIN ID") return { ...t, val: "777000" };
@@ -936,6 +924,28 @@ export default function LandingPage() {
           { sym: "TOTAL MINTED", val: totalMinted.toString(), chg: "On-chain", up: true },
           { sym: "LISTED ASSETS", val: listedCount.toString(), chg: "Active", up: true },
         ]));
+
+        // Process logs for Network Monitor
+        if (allLogs && allLogs.length > 0) {
+          const parsedLogs = allLogs
+            .filter(l => l.topics[0] && mapTopicToAction(l.topics[0]) !== "STATE_SYNC")
+            .slice(-8)
+            .map((l: any) => ({
+              id: `${l.blockHash}-${l.logIndex}`,
+              time: "Live Activity",
+              action: mapTopicToAction(l.topics[0]),
+              hash: l.transactionHash
+            }));
+
+          if (parsedLogs.length < 8) {
+            const padding = Array.from({ length: 8 - parsedLogs.length }).map((_, i) => ({
+              id: `pad-${i}`, time: "Just now", action: "SYNC_STATE", hash: "0x000...000 (polling block " + blockNum + ")"
+            }));
+            setLogs([...padding, ...parsedLogs]);
+          } else {
+            setLogs(parsedLogs);
+          }
+        }
       } catch {
         setLiveStats(s => ({ ...s, loading: false }));
       }

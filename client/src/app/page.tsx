@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { ethers } from "ethers";
 
 const style = `
   @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;0,900;1,400;1,700&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=DM+Mono:wght@300;400;500&display=swap');
@@ -20,6 +21,42 @@ const style = `
     --cream: #f2f0eb;
     --white: #fafaf8;
   }
+
+  /* ── DARK MODE — flip palette ── */
+  .dark {
+    --black: #fafaf8;
+    --ink: #f0f0ee;
+    --charcoal: #d4d4d2;
+    --graphite: #b0b0ae;
+    --mid: #a0a09e;
+    --silver: #707070;
+    --ash: #484848;
+    --mist: #303030;
+    --smoke: #222222;
+    --cream: #181818;
+    --white: #0f0f0f;
+  }
+  .dark body { background: #0f0f0f; color: #f0f0ee; }
+  .dark .nav { background: rgba(15,15,15,0.92); border-bottom-color: var(--smoke); }
+  .dark .ticker-wrap { background: var(--white); border-color: var(--smoke); }
+  .dark .hero-stats { background: var(--cream); border-color: var(--smoke); }
+  .dark .formula-box { background: var(--cream); border-color: var(--smoke); }
+  .dark .strategy-card { background: var(--cream); }
+  .dark .cta-section { background: var(--white); }
+  .dark .chart-container { border-color: var(--smoke); }
+  .dark .metrics-grid { border-color: var(--smoke); }
+  .dark .metric-cell { border-color: var(--smoke); }
+  .dark .allocation-row { border-color: var(--smoke); }
+  .dark .risk-table th { border-color: var(--smoke); }
+  .dark .risk-table td { border-color: var(--smoke); color: var(--mid); }
+  .dark .section-header { border-color: var(--smoke); }
+  .dark .chart-path { stroke: var(--ink); }
+  .dark .chart-path-secondary { stroke: var(--ash); }
+  .dark .grid-line { stroke: var(--smoke); }
+  .dark .axis-label { fill: var(--silver); }
+  .dark .hero-stat { border-color: var(--smoke); }
+  .dark .hero-stat-bar { background: var(--smoke); }
+  .dark .hero-stat-bar-fill { background: var(--ink); }
 
   body {
     background: var(--white);
@@ -285,9 +322,13 @@ const style = `
     border-top: 1px solid var(--smoke);
   }
   .section-dark {
-    background: var(--ink);
-    color: var(--white);
+    background: #111111;
+    color: #fafaf8;
     padding: 100px 48px;
+  }
+  .dark .section-dark {
+    background: #0a0a0a;
+    color: #fafaf8;
   }
   .section-dark .section { padding: 0; }
 
@@ -389,7 +430,7 @@ const style = `
     display: flex; align-items: center; gap: 8px;
   }
   .legend-dot {
-    width: 8px; height: 8px; border-radius: 50%;
+    width: 8px; height: 8px; border-radius: 0;
   }
   .chart-svg { width: 100%; overflow: visible; }
   .chart-path {
@@ -491,27 +532,27 @@ const style = `
   /* ── DARK SECTION ── */
   .dark-metrics {
     display: grid; grid-template-columns: repeat(3, 1fr);
-    gap: 0; border: 1px solid var(--graphite);
+    gap: 0; border: 1px solid #2e2e2e;
   }
   .dark-metric {
     padding: 52px 44px;
-    border-right: 1px solid var(--graphite);
+    border-right: 1px solid #2e2e2e;
   }
   .dark-metric:last-child { border-right: none; }
   .dark-metric-label {
     font-family: 'DM Mono', monospace;
     font-size: 10px; letter-spacing: 0.18em;
-    text-transform: uppercase; color: var(--silver);
+    text-transform: uppercase; color: #707070;
     margin-bottom: 20px;
   }
   .dark-metric-value {
     font-family: 'Playfair Display', serif;
     font-size: 52px; font-weight: 700;
-    color: var(--white); line-height: 1;
+    color: #fafaf8; line-height: 1;
     letter-spacing: -0.03em; margin-bottom: 12px;
   }
   .dark-metric-desc {
-    font-size: 14px; color: var(--silver); font-style: italic;
+    font-size: 14px; color: #8a8a8a; font-style: italic;
     line-height: 1.6;
   }
 
@@ -604,7 +645,7 @@ const style = `
 
   /* ── FOOTER ── */
   .footer {
-    background: var(--ink); color: var(--white);
+    background: #111111; color: #fafaf8;
     padding: 60px 48px 40px;
   }
   .footer-inner {
@@ -612,7 +653,7 @@ const style = `
   }
   .footer-top {
     display: flex; justify-content: space-between; align-items: flex-start;
-    padding-bottom: 40px; border-bottom: 1px solid var(--graphite);
+    padding-bottom: 40px; border-bottom: 1px solid #2e2e2e;
     margin-bottom: 32px;
   }
   .footer-logo {
@@ -625,26 +666,26 @@ const style = `
   .footer-col-title {
     font-family: 'DM Mono', monospace;
     font-size: 10px; letter-spacing: 0.18em;
-    text-transform: uppercase; color: var(--silver);
+    text-transform: uppercase; color: #707070;
     margin-bottom: 16px;
   }
   .footer-col a {
     display: block;
-    font-size: 15px; color: var(--ash);
+    font-size: 15px; color: #b8b8b8;
     text-decoration: none; margin-bottom: 10px;
     transition: color 0.2s;
   }
-  .footer-col a:hover { color: var(--white); }
+  .footer-col a:hover { color: #fafaf8; }
   .footer-bottom {
     display: flex; justify-content: space-between; align-items: center;
   }
   .footer-copy {
     font-family: 'DM Mono', monospace;
-    font-size: 11px; color: var(--mid);
+    font-size: 11px; color: #5a5a5a;
     letter-spacing: 0.04em;
   }
   .footer-disclaimer {
-    font-size: 12px; color: var(--mid); font-style: italic;
+    font-size: 12px; color: #5a5a5a; font-style: italic;
     max-width: 400px; text-align: right; line-height: 1.6;
   }
 
@@ -656,10 +697,66 @@ const style = `
     .strategy-grid { grid-template-columns: 1fr; }
     .research-grid { grid-template-columns: 1fr; }
     .dark-metrics { grid-template-columns: 1fr; }
-    .dark-metric { border-right: none; border-bottom: 1px solid var(--graphite); }
+    .dark-metric { border-right: none; border-bottom: 1px solid #2e2e2e; }
     .footer-links { gap: 32px; }
     .section { padding: 72px 32px; }
     .cta-bg-text { font-size: 160px; }
+  }
+
+  @media (max-width: 768px) {
+    .nav-inner { padding: 14px 20px; }
+    .nav-links { display: none; }
+    .hero { padding: 110px 20px 60px; gap: 40px; }
+    .hero-title { font-size: clamp(36px, 9vw, 64px); }
+    .hero-subtitle { font-size: 16px; margin-bottom: 36px; }
+    .hero-cta-group { flex-direction: column; align-items: flex-start; gap: 14px; }
+    .hero-stat { padding: 20px 24px; }
+    .hero-stat-value { font-size: 32px; }
+    .metrics-grid { grid-template-columns: 1fr 1fr; }
+    .metric-cell { padding: 28px 20px; }
+    .metric-value { font-size: 36px; }
+    .section { padding: 56px 20px; }
+    .section-full { padding: 56px 20px; }
+    .section-dark { padding: 56px 20px; }
+    .section-header { flex-direction: column; align-items: flex-start; gap: 12px; margin-bottom: 36px; }
+    .section-caption { text-align: left; }
+    .section-title { font-size: clamp(24px, 6vw, 40px); }
+    .dark-metric { padding: 36px 24px; }
+    .dark-metric-value { font-size: 36px; }
+    .strategy-card { padding: 32px 28px; }
+    .strategy-card-num { font-size: 48px; }
+    .allocation-row { grid-template-columns: 1fr 80px; gap: 12px; }
+    .allocation-bar-wrap { display: none; }
+    .chart-container { padding: 24px 16px; overflow-x: auto; }
+    .cta-section { padding: 72px 20px; }
+    .cta-title { font-size: clamp(32px, 8vw, 52px); }
+    .cta-bg-text { font-size: 90px; }
+    .footer { padding: 48px 20px 32px; }
+    .footer-top { flex-direction: column; gap: 36px; }
+    .footer-links { flex-direction: column; gap: 28px; }
+    .footer-bottom { flex-direction: column; gap: 12px; text-align: center; }
+    .footer-disclaimer { text-align: center; max-width: 100%; }
+    .research-grid { gap: 32px; }
+    .research-title { font-size: 28px; }
+  }
+
+  @media (max-width: 480px) {
+    .hero { padding: 100px 16px 48px; }
+    .hero-title { font-size: clamp(30px, 10vw, 52px); }
+    .metrics-grid { grid-template-columns: 1fr; }
+    .metric-cell:last-child { border-right: none; }
+    .dark-metrics { gap: 0; }
+    .strategy-card { padding: 24px 20px; }
+    .ticker-item { padding: 10px 20px; }
+    .btn-primary, .btn-ghost { width: 100%; text-align: center; padding: 13px 24px; }
+    .hero-cta-group { width: 100%; }
+    .nav-logo { font-size: 15px; }
+    .section { padding: 44px 16px; }
+    .section-full { padding: 44px 16px; }
+    .section-dark { padding: 44px 16px; }
+    .formula-box { padding: 20px 20px; }
+    .formula-eq { font-size: 15px; }
+    .cta-bg-text { display: none; }
   }
 `;
 
@@ -695,15 +792,17 @@ const risk = [
   { metric: "Custody Model", value: "Self", note: "Non-custodial" },
 ];
 
-const ticker = [
-  { sym: "NETWORK UPTIME", val: "99.99%", chg: "", up: true },
-  { sym: "TVL PROTECTED", val: "$284.3M", chg: "+1.2%", up: true },
-  { sym: "ACTIVE TUNNELS", val: "8,432", chg: "+5.1%", up: true },
-  { sym: "ETH/USD", val: "3,412", chg: "+0.31%", up: true },
-  { sym: "BTC/USD", val: "61,840", chg: "−0.14%", up: false },
-  { sym: "GAS FEE MAX", val: "15gwei", chg: "−2.1%", up: true },
-  { sym: "KEYS GENERATED", val: "1.2M", chg: "", up: true },
-  { sym: "PROTOCOL AGE", val: "831d", chg: "", up: true },
+const tickerStatic = [
+  { sym: "NETWORK", val: "BridgeStone", chg: "", up: true },
+  { sym: "CHAIN ID", val: "777000", chg: "", up: true },
+  { sym: "TOKEN", val: "VELD", chg: "", up: true },
+  { sym: "ENCRYPTION", val: "AES-256-GCM", chg: "", up: true },
+  { sym: "KEY EXCHANGE", val: "ECDH", chg: "", up: true },
+  { sym: "SIGNATURES", val: "ECDSA EIP-712", chg: "", up: true },
+  { sym: "CUSTODY", val: "Non-Custodial", chg: "", up: true },
+  { sym: "DATA BREACHES", val: "0", chg: "All-time", up: true },
+  { sym: "STORAGE", val: "IPFS", chg: "Decentralised", up: true },
+  { sym: "CONTRACT", val: "ERC-721", chg: "On-chain", up: true },
 ];
 
 // ── Animated counter ─────────────────────────────────────────
@@ -782,10 +881,53 @@ export default function LandingPage() {
   const vP = generatePath(vault, W, H);
   const bP = generatePath(bench, W, H);
 
+  // ── Live blockchain stats ─────────────────────────────────────
+  const [liveStats, setLiveStats] = useState({
+    blockNumber: 0,
+    totalMinted: 0,
+    listedAssets: 0,
+    loading: true,
+  });
+  const [ticker, setTicker] = useState(tickerStatic);
+
   useEffect(() => {
+    const RPC = process.env.NEXT_PUBLIC_RPC_URL || "http://127.0.0.1:9654/ext/bc/w4DDDiThpt7dv6A1T2UqkAUxZkC1JVceqg3QMpZ8nL4KPQcHs/rpc";
+    const CONTRACT = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS || "0xfEaE1829545008221d3cac836acDA2ACd39748b6";
+
+    const getAllListedABI = ["function getAllListedAssets() view returns (tuple(uint256 id,uint256 tokenId,address seller,address owner,uint256 price,bool isListed,bool isCopy,string encryptedCid,string previewURI,string name,string description,bool useEscrow,address buyer,bool sellerConfirmed,bool buyerConfirmed,bool isEscrowActive)[])"];
+    const VaultItemCreatedTopic = ethers.id("VaultItemCreated(uint256,address)");
+
+    async function fetchData() {
+      try {
+        const provider = new ethers.JsonRpcProvider(RPC);
+        const [blockNum, logs, listed] = await Promise.all([
+          provider.getBlockNumber(),
+          provider.getLogs({ address: CONTRACT, topics: [VaultItemCreatedTopic], fromBlock: 0, toBlock: "latest" }),
+          new ethers.Contract(CONTRACT, getAllListedABI, provider).getAllListedAssets().catch(() => []),
+        ]);
+        const totalMinted = logs.length;
+        const listedCount = Array.isArray(listed) ? listed.length : 0;
+        setLiveStats({ blockNumber: blockNum, totalMinted, listedAssets: listedCount, loading: false });
+        // Update ticker with live values
+        setTicker(prev => prev.map(t => {
+          if (t.sym === "CHAIN ID") return { ...t, val: "777000" };
+          return t;
+        }).concat([
+          { sym: "BLOCK HEIGHT", val: blockNum.toLocaleString(), chg: "Live", up: true },
+          { sym: "TOTAL MINTED", val: totalMinted.toString(), chg: "On-chain", up: true },
+          { sym: "LISTED ASSETS", val: listedCount.toString(), chg: "Active", up: true },
+        ]));
+      } catch {
+        setLiveStats(s => ({ ...s, loading: false }));
+      }
+    }
+
+    fetchData();
+    const interval = setInterval(fetchData, 15000);
     const t = setTimeout(() => setHeroStatsVisible(true), 600);
-    return () => clearTimeout(t);
+    return () => { clearInterval(interval); clearTimeout(t); };
   }, []);
+
 
   return (
     <>
@@ -810,8 +952,8 @@ export default function LandingPage() {
           <div className="ticker-inner">
             {[...ticker, ...ticker].map((t, i) => (
               <div className="ticker-item" key={i}>
-                <span style={{ color: '#0a0a0a', fontWeight: 500, letterSpacing: '0.1em' }}>{t.sym}</span>
-                <span>{t.val}</span>
+                <span style={{ color: 'var(--ink)', fontWeight: 500, letterSpacing: '0.1em' }}>{t.sym}</span>
+                <span style={{ color: 'var(--mid)' }}>{t.val}</span>
                 {t.chg && <span className={t.up ? 'up' : 'down'}>{t.chg}</span>}
               </div>
             ))}
@@ -819,7 +961,7 @@ export default function LandingPage() {
         </div>
 
         {/* ── HERO ── */}
-        <div style={{ borderBottom: '1px solid #e8e8e8' }}>
+        <div style={{ borderBottom: '1px solid var(--smoke)' }}>
           <div className="hero">
             {/* Left */}
             <div>
@@ -837,26 +979,39 @@ export default function LandingPage() {
               </p>
               <div className="hero-cta-group animate-fade-up delay-4">
                 <button className="btn-primary" onClick={() => window.location.href = '/login'}>Enter the Vault</button>
-                <button className="btn-ghost">Read Whitepaper</button>
+                <button className="btn-ghost" onClick={() => window.open('/CipherVault_WhitePaper_v2.pdf', '_blank')}>Read Whitepaper</button>
               </div>
             </div>
 
             {/* Right — stats panel */}
             <div className="hero-stats animate-fade-up delay-3" ref={heroRef}>
-              {[
-                { label: "Encrypted Objects Secured", value: "84,392", bar: 82 },
-                { label: "Network Uptime", value: "99.99%", bar: 100 },
-                { label: "Total Value Protected", value: "$284.3M", bar: 61 },
-              ].map(({ label, value, bar }) => (
-                <div className="hero-stat" key={label}>
-                  <div className="hero-stat-label">{label}</div>
-                  <div className="hero-stat-value">{value}</div>
-                  <div className="hero-stat-bar">
-                    <div className="hero-stat-bar-fill"
-                      style={{ width: heroStatsVisible ? `${bar}%` : '0%' }} />
-                  </div>
+              <div className="hero-stat">
+                <div className="hero-stat-label">Total Tokens Minted</div>
+                <div className="hero-stat-value">
+                  {liveStats.loading ? <span style={{ fontSize: 20, fontStyle: 'italic', color: 'var(--silver)' }}>Connecting…</span> : liveStats.totalMinted.toLocaleString()}
                 </div>
-              ))}
+                <div className="hero-stat-bar">
+                  <div className="hero-stat-bar-fill" style={{ width: heroStatsVisible && !liveStats.loading ? '100%' : '0%' }} />
+                </div>
+              </div>
+              <div className="hero-stat">
+                <div className="hero-stat-label">Listed Assets on Market</div>
+                <div className="hero-stat-value">
+                  {liveStats.loading ? <span style={{ fontSize: 20, fontStyle: 'italic', color: 'var(--silver)' }}>Fetching…</span> : liveStats.listedAssets.toLocaleString()}
+                </div>
+                <div className="hero-stat-bar">
+                  <div className="hero-stat-bar-fill" style={{ width: heroStatsVisible && !liveStats.loading ? '70%' : '0%' }} />
+                </div>
+              </div>
+              <div className="hero-stat">
+                <div className="hero-stat-label">Current Block Height</div>
+                <div className="hero-stat-value">
+                  {liveStats.loading ? <span style={{ fontSize: 20, fontStyle: 'italic', color: 'var(--silver)' }}>Syncing…</span> : liveStats.blockNumber.toLocaleString()}
+                </div>
+                <div className="hero-stat-bar">
+                  <div className="hero-stat-bar-fill" style={{ width: heroStatsVisible && !liveStats.loading ? '90%' : '0%' }} />
+                </div>
+              </div>
               <div className="hero-stat">
                 <div className="hero-stat-label">System Status</div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 4 }}>
@@ -881,13 +1036,13 @@ export default function LandingPage() {
                 <div className="section-num">01 — Infrastructure</div>
                 <div className="section-title">Key Metrics</div>
               </div>
-              <div className="section-caption">Live network statistics</div>
+              <div className="section-caption">Live network statistics <span className="live-dot" style={{ marginLeft: 4 }} /></div>
             </div>
             <div className="metrics-grid animate-fade-up delay-2">
               <MetricCell index={1} label="Uptime" value="99.99" unit="%" desc="SLA guaranteed operational time" trend="Tier 4 Class" delay={100} />
-              <MetricCell index={2} label="Data Secured" value="42.8" unit="TB" desc="Encrypted objects globally distributed" trend="+2.4% 30D" delay={200} />
-              <MetricCell index={3} label="Active Keys" value="8432" desc="Cryptographic keypairs managing data" delay={300} />
-              <MetricCell index={4} label="Data Breaches" value="0" desc="Zero knowledge mathematical proof" delay={400} />
+              <MetricCell index={2} label="Tokens Minted" value={String(liveStats.totalMinted)} desc="NFTs minted on-chain to date" delay={200} />
+              <MetricCell index={3} label="Market Listings" value={String(liveStats.listedAssets)} desc="Active assets listed on marketplace" delay={300} />
+              <MetricCell index={4} label="Data Breaches" value="0" desc="Zero incidents, all-time record" delay={400} />
             </div>
           </div>
         </div>
@@ -906,17 +1061,17 @@ export default function LandingPage() {
               <div className="chart-header">
                 <div>
                   <div className="chart-title">Data Secured (TB) — 25 Months</div>
-                  <div style={{ fontFamily: 'DM Mono, monospace', fontSize: 11, color: '#8a8a8a', marginTop: 6, letterSpacing: '0.06em' }}>
+                  <div style={{ fontFamily: 'DM Mono, monospace', fontSize: 11, color: 'var(--silver)', marginTop: 6, letterSpacing: '0.06em' }}>
                     CIPHERVAULT PROTOCOL vs. Legacy Cloud Storage
                   </div>
                 </div>
                 <div className="chart-legend">
                   <div className="chart-legend-item">
-                    <div className="legend-dot" style={{ background: '#111' }} />
+                    <div className="legend-dot" style={{ background: 'var(--ink)' }} />
                     CipherVault
                   </div>
                   <div className="chart-legend-item">
-                    <div className="legend-dot" style={{ background: '#b8b8b8' }} />
+                    <div className="legend-dot" style={{ background: 'var(--ash)' }} />
                     Legacy Cloud
                   </div>
                 </div>
@@ -924,15 +1079,15 @@ export default function LandingPage() {
 
               {/* Y-axis labels + chart */}
               <div style={{ display: 'flex', gap: 16 }}>
-                <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', paddingBottom: 24, fontFamily: 'DM Mono, monospace', fontSize: 10, color: '#8a8a8a', letterSpacing: '0.05em' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', paddingBottom: 24, fontFamily: 'DM Mono, monospace', fontSize: 10, color: 'var(--silver)', letterSpacing: '0.05em' }}>
                   {['310', '280', '250', '220'].map(v => <span key={v}>{v}</span>)}
                 </div>
                 <div style={{ flex: 1 }}>
                   <svg viewBox={`0 0 ${W} ${H}`} className="chart-svg">
                     <defs>
                       <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#111" stopOpacity="0.4" />
-                        <stop offset="100%" stopColor="#111" stopOpacity="0" />
+                        <stop offset="0%" stopColor="var(--ink)" stopOpacity="0.4" />
+                        <stop offset="100%" stopColor="var(--ink)" stopOpacity="0" />
                       </linearGradient>
                     </defs>
                     {/* Grid lines */}
@@ -945,10 +1100,10 @@ export default function LandingPage() {
                     <path d={bP.d} className="chart-path-secondary" />
                     <path d={vP.d} className="chart-path" />
                     {/* End dot */}
-                    <circle cx={vP.lastX} cy={vP.lastY} r="4" fill="#111" />
+                    <circle cx={vP.lastX} cy={vP.lastY} r="4" fill="var(--ink)" />
                   </svg>
                   {/* X-axis */}
-                  <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 32px 0', fontFamily: 'DM Mono, monospace', fontSize: 10, color: '#8a8a8a', letterSpacing: '0.05em' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 32px 0', fontFamily: 'DM Mono, monospace', fontSize: 10, color: 'var(--silver)', letterSpacing: '0.05em' }}>
                     {['Mar 23', 'Jun 23', 'Sep 23', 'Dec 23', 'Mar 24', 'Jun 24', 'Sep 24', 'Dec 24', 'Mar 25'].map(m => (
                       <span key={m}>{m}</span>
                     ))}
@@ -957,17 +1112,17 @@ export default function LandingPage() {
               </div>
 
               {/* Summary row */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 0, borderTop: '1px solid #e8e8e8', marginTop: 32 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 0, borderTop: '1px solid var(--smoke)', marginTop: 32 }}>
                 {[
-                  { label: "Data Growth", value: "+48.6%", note: "25M cumulative" },
-                  { label: "Messages Sent", value: "2.8M", note: "E2E Encrypted" },
-                  { label: "Network Fees", value: "Minimal", note: "EIP-1559 Optimised" },
-                  { label: "Reliability", value: "100%", note: "Zero downtime" },
+                  { label: "Encryption", value: "AES-256", note: "GCM Mode, military grade" },
+                  { label: "Key Exchange", value: "ECDH", note: "Secp256k1 elliptic curve" },
+                  { label: "Zero Breaches", value: "Verified", note: "All-time clean record" },
+                  { label: "Custody", value: "Self", note: "Non-custodial, your keys" },
                 ].map(({ label, value, note }) => (
-                  <div key={label} style={{ padding: '20px 24px', borderRight: '1px solid #e8e8e8' }}>
-                    <div style={{ fontFamily: 'DM Mono, monospace', fontSize: 10, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#8a8a8a', marginBottom: 8 }}>{label}</div>
-                    <div style={{ fontFamily: 'Playfair Display, serif', fontSize: 24, fontWeight: 700, color: '#111', letterSpacing: '-0.02em' }}>{value}</div>
-                    <div style={{ fontSize: 12, color: '#8a8a8a', fontStyle: 'italic', marginTop: 4 }}>{note}</div>
+                  <div key={label} style={{ padding: '20px 24px', borderRight: '1px solid var(--smoke)' }}>
+                    <div style={{ fontFamily: 'DM Mono, monospace', fontSize: 10, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--silver)', marginBottom: 8 }}>{label}</div>
+                    <div style={{ fontFamily: 'Playfair Display, serif', fontSize: 24, fontWeight: 700, color: 'var(--ink)', letterSpacing: '-0.02em' }}>{value}</div>
+                    <div style={{ fontSize: 12, color: 'var(--silver)', fontStyle: 'italic', marginTop: 4 }}>{note}</div>
                   </div>
                 ))}
               </div>
@@ -976,7 +1131,7 @@ export default function LandingPage() {
         </div>
 
         {/* ── STRATEGY ── */}
-        <div style={{ borderTop: '1px solid #e8e8e8' }}>
+        <div style={{ borderTop: '1px solid var(--smoke)' }}>
           <div className="section">
             <div className="section-header animate-fade-up">
               <div>
@@ -1020,7 +1175,7 @@ export default function LandingPage() {
         </div>
 
         {/* ── ALLOCATION ── */}
-        <div style={{ borderTop: '1px solid #e8e8e8' }}>
+        <div style={{ borderTop: '1px solid var(--smoke)' }}>
           <div className="section">
             <div className="section-header animate-fade-up">
               <div>
@@ -1031,19 +1186,19 @@ export default function LandingPage() {
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1px 340px', gap: '0 48px' }}>
               <div>
-                <div style={{ display: 'grid', gridTemplateColumns: '180px 1fr 80px 100px', fontFamily: 'DM Mono, monospace', fontSize: 10, letterSpacing: '0.16em', textTransform: 'uppercase', color: '#8a8a8a', marginBottom: 8, gap: 24 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '180px 1fr 80px 100px', fontFamily: 'DM Mono, monospace', fontSize: 10, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--silver)', marginBottom: 8, gap: 24 }}>
                   <span>Feature</span><span></span><span style={{ textAlign: 'right' }}>Usage</span><span style={{ textAlign: 'right' }}>Status</span>
                 </div>
                 {alloc.map((a, i) => (
                   <AllocationBar key={a.name} {...a} delay={i * 150 + 200} />
                 ))}
               </div>
-              <div style={{ background: '#e8e8e8' }} />
+              <div style={{ background: 'var(--smoke)' }} />
               {/* Donut-like breakdown */}
               <div>
                 <svg viewBox="0 0 200 200" style={{ width: '100%' }}>
                   {alloc.map((a, i) => {
-                    const colors = ['#111', '#444', '#888', '#bbb'];
+                    const colors = ['var(--ink)', 'var(--graphite)', 'var(--silver)', 'var(--ash)'];
                     const total = alloc.reduce((s, x) => s + x.pct, 0);
                     let offset = alloc.slice(0, i).reduce((s, x) => s + x.pct, 0);
                     const strokeDash = (a.pct / total) * 502;
@@ -1061,17 +1216,17 @@ export default function LandingPage() {
                       />
                     );
                   })}
-                  <text x="100" y="95" textAnchor="middle" fontFamily="Playfair Display, serif" fontSize="26" fontWeight="700" fill="#111">100%</text>
-                  <text x="100" y="115" textAnchor="middle" fontFamily="DM Mono, monospace" fontSize="9" fill="#8a8a8a" letterSpacing="2">DEPLOYED</text>
+                  <text x="100" y="95" textAnchor="middle" fontFamily="Playfair Display, serif" fontSize="26" fontWeight="700" fill="var(--ink)">100%</text>
+                  <text x="100" y="115" textAnchor="middle" fontFamily="DM Mono, monospace" fontSize="9" fill="var(--silver)" letterSpacing="2">DEPLOYED</text>
                 </svg>
                 <div style={{ marginTop: 16 }}>
                   {alloc.map((a, i) => {
-                    const colors = ['#111', '#444', '#888', '#bbb'];
+                    const colors = ['var(--ink)', 'var(--graphite)', 'var(--silver)', 'var(--ash)'];
                     return (
                       <div key={a.name} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
                         <div style={{ width: 10, height: 10, borderRadius: '50%', background: colors[i], flexShrink: 0 }} />
-                        <span style={{ fontFamily: 'EB Garamond, serif', fontSize: 14, color: '#5a5a5a', fontStyle: 'italic' }}>{a.name}</span>
-                        <span style={{ marginLeft: 'auto', fontFamily: 'DM Mono, monospace', fontSize: 12, color: '#8a8a8a' }}>{a.pct}%</span>
+                        <span style={{ fontFamily: 'EB Garamond, serif', fontSize: 14, color: 'var(--mid)', fontStyle: 'italic' }}>{a.name}</span>
+                        <span style={{ marginLeft: 'auto', fontFamily: 'DM Mono, monospace', fontSize: 12, color: 'var(--silver)' }}>{a.pct}%</span>
                       </div>
                     );
                   })}
@@ -1084,12 +1239,12 @@ export default function LandingPage() {
         {/* ── DARK METRICS ── */}
         <div className="section-dark">
           <div style={{ maxWidth: 1280, margin: '0 auto' }}>
-            <div style={{ borderBottom: '1px solid #2e2e2e', paddingBottom: 36, marginBottom: 56, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+            <div style={{ borderBottom: '1px solid var(--graphite)', paddingBottom: 36, marginBottom: 56, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: 20 }}>
               <div>
-                <div style={{ fontFamily: 'DM Mono, monospace', fontSize: 11, letterSpacing: '0.2em', color: '#5a5a5a', textTransform: 'uppercase', marginBottom: 10 }}>05 — Security</div>
-                <div style={{ fontFamily: 'Playfair Display, serif', fontSize: 44, fontWeight: 700, color: '#fafaf8', letterSpacing: '-0.02em' }}>Threat Model Defenses</div>
+                <div style={{ fontFamily: 'DM Mono, monospace', fontSize: 11, letterSpacing: '0.2em', color: 'var(--silver)', textTransform: 'uppercase', marginBottom: 10 }}>05 — Security</div>
+                <div style={{ fontFamily: 'Playfair Display, serif', fontSize: 44, fontWeight: 700, color: 'var(--black)', letterSpacing: '-0.02em' }}>Threat Model Defenses</div>
               </div>
-              <div style={{ fontSize: 14, color: '#5a5a5a', fontStyle: 'italic', textAlign: 'right', maxWidth: 240, lineHeight: 1.6 }}>
+              <div style={{ fontSize: 14, color: 'var(--silver)', fontStyle: 'italic', textAlign: 'right', maxWidth: 240, lineHeight: 1.6 }}>
                 Impenetrable architecture built for adversarial environments
               </div>
             </div>
@@ -1142,7 +1297,7 @@ export default function LandingPage() {
                 </div>
               </div>
               <div>
-                <div style={{ fontFamily: 'DM Mono, monospace', fontSize: 10, letterSpacing: '0.16em', textTransform: 'uppercase', color: '#8a8a8a', marginBottom: 20 }}>Risk Statistics — 25 Months</div>
+                <div style={{ fontFamily: 'DM Mono, monospace', fontSize: 10, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--silver)', marginBottom: 20 }}>Security Statistics</div>
                 <table className="risk-table">
                   <thead>
                     <tr>
@@ -1155,8 +1310,8 @@ export default function LandingPage() {
                     {risk.map(r => (
                       <tr key={r.metric}>
                         <td>{r.metric}</td>
-                        <td style={{ fontFamily: 'DM Mono, monospace', fontSize: 14, fontWeight: 500, color: '#111' }}>{r.value}</td>
-                        <td style={{ fontFamily: 'DM Mono, monospace', fontSize: 11, textAlign: 'right', color: '#8a8a8a' }}>{r.note}</td>
+                        <td style={{ fontFamily: 'DM Mono, monospace', fontSize: 14, fontWeight: 500, color: 'var(--ink)' }}>{r.value}</td>
+                        <td style={{ fontFamily: 'DM Mono, monospace', fontSize: 11, textAlign: 'right', color: 'var(--silver)' }}>{r.note}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -1170,7 +1325,7 @@ export default function LandingPage() {
         <div className="cta-section">
           <div className="cta-bg-text">Cipher</div>
           <div className="cta-content animate-fade-up">
-            <div style={{ fontFamily: 'DM Mono, monospace', fontSize: 11, letterSpacing: '0.22em', textTransform: 'uppercase', color: '#8a8a8a', marginBottom: 24 }}>
+            <div style={{ fontFamily: 'DM Mono, monospace', fontSize: 11, letterSpacing: '0.22em', textTransform: 'uppercase', color: 'var(--silver)', marginBottom: 24 }}>
               — Uncompromised Security —
             </div>
             <h2 className="cta-title">
@@ -1182,9 +1337,9 @@ export default function LandingPage() {
             </p>
             <div style={{ display: 'flex', justifyContent: 'center', gap: 16, flexWrap: 'wrap' }}>
               <button className="btn-primary" onClick={() => window.location.href = '/login'}>Launch Web App</button>
-              <button className="btn-ghost">View Documentation</button>
+              <button className="btn-ghost" onClick={() => window.open('/CipherVault_WhitePaper_v2.pdf', '_blank')}>View Documentation</button>
             </div>
-            <div style={{ marginTop: 52, fontFamily: 'DM Mono, monospace', fontSize: 11, color: '#b8b8b8', letterSpacing: '0.1em', display: 'flex', justifyContent: 'center', gap: 40, flexWrap: 'wrap' }}>
+            <div style={{ marginTop: 52, fontFamily: 'DM Mono, monospace', fontSize: 11, color: 'var(--ash)', letterSpacing: '0.1em', display: 'flex', justifyContent: 'center', gap: 40, flexWrap: 'wrap' }}>
               <span>✦ Verifiable Smart Contracts</span>
               <span>✦ Non-custodial</span>
               <span>✦ E2E Encrypted</span>
@@ -1199,7 +1354,7 @@ export default function LandingPage() {
             <div className="footer-top">
               <div>
                 <div className="footer-logo">CipherVault</div>
-                <div style={{ fontFamily: 'DM Mono, monospace', fontSize: 10, letterSpacing: '0.14em', color: '#5a5a5a', marginTop: 8, textTransform: 'uppercase' }}>
+                <div style={{ fontFamily: 'DM Mono, monospace', fontSize: 10, letterSpacing: '0.14em', color: 'var(--silver)', marginTop: 8, textTransform: 'uppercase' }}>
                   Secure On-Chain Storage & Communications
                 </div>
               </div>

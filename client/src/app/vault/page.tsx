@@ -35,7 +35,7 @@ export default function VaultPage() {
   const [isClient, setIsClient] = useState(false);
   const [modals, setModals] = useState({ sell: false, edit: false, transfer: false, burn: false, preview: false, batchUpload: false, share: false });
   const [activeId, setActiveId] = useState<number | null>(null);
-  const [txLoading, setTxLoading] = useState<Record<number, boolean>>({});
+  const [txLoading, setTxLoading] = useState<Record<number, string | null>>({});
   const [formData, setFormData] = useState({ price: "", desc: "", escrow: true, address: "", mode: "MOVE" as "MOVE" | "COPY", cid: "", name: "", previewUrl: "", previewFile: null as File | null, previewObj: null as File | null, previewType: "", previewName: "" });
 
   useEffect(() => {
@@ -107,15 +107,15 @@ export default function VaultPage() {
         @import url('https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;1,400;1,500&display=swap');
         :root{--cv-bg:#FAFAF8;--cv-fg:#0A0A0A;--cv-muted:#6B6B6B;--cv-border:#D8D4CC;--cv-border-light:#EDEAE4;--cv-card:#FFFFFF;--cv-surface:#F4F2EE;--cv-ink-light:#3A3A3A;}
         .dark{--cv-bg:#0A0A08;--cv-fg:#F0EDE6;--cv-muted:#8A857C;--cv-border:#2A2820;--cv-border-light:#1E1C18;--cv-card:#111109;--cv-surface:#161410;--cv-ink-light:#C5BFB5;}
-        .cv-asset-card{border:1px solid var(--cv-border-light);background:var(--cv-card);transition:border-color 0.35s,transform 0.35s;}
+        .cv-asset-card{border:1px solid var(--cv-border-light);background:var(--cv-card);transition:border-color 0.35s,transform 0.35s;border-radius:0;}
         .cv-asset-card:hover{border-color:var(--cv-border);transform:translateY(-2px);}
         .cv-asset-card.escrow{border-color:var(--cv-border);background:var(--cv-surface);}
-        .cv-action-btn{background:transparent;border:1px solid var(--cv-border-light);padding:10px 16px;font-family:${SERIF};font-size:9px;letter-spacing:0.18em;text-transform:uppercase;color:var(--cv-muted);cursor:pointer;transition:all 0.25s;display:flex;align-items:center;justify-content:center;gap:8px;}
+        .cv-action-btn{background:transparent;border:1px solid var(--cv-border-light);padding:10px 16px;font-family:${SERIF};font-size:9px;letter-spacing:0.18em;text-transform:uppercase;color:var(--cv-muted);cursor:pointer;transition:all 0.25s;display:flex;align-items:center;justify-content:center;gap:8px;border-radius:0;}
         .cv-action-btn:hover{border-color:var(--cv-fg);color:var(--cv-fg);}
         .cv-action-btn.danger:hover{border-color:#dc2626;color:#dc2626;}
         .cv-action-btn.primary{background:var(--cv-fg);color:var(--cv-bg);border-color:var(--cv-fg);}
         .cv-action-btn.primary:hover{opacity:0.85;}
-        .cv-badge{font-family:${SERIF};font-size:8px;letter-spacing:0.2em;text-transform:uppercase;padding:4px 10px;border:1px solid var(--cv-border-light);color:var(--cv-muted);}
+        .cv-badge{font-family:${SERIF};font-size:8px;letter-spacing:0.2em;text-transform:uppercase;padding:4px 10px;border:1px solid var(--cv-border-light);color:var(--cv-muted);border-radius:0;}
       `}</style>
 
       <div style={{ maxWidth: "1280px", margin: "0 auto", padding: "120px 48px 96px" }}>
@@ -161,7 +161,7 @@ export default function VaultPage() {
                 <p style={{ fontSize: "9px", letterSpacing: "0.26em", textTransform: "uppercase", color: "var(--cv-muted)", fontFamily: SERIF }}>
                   Pending Offers — Awaiting Confirmation
                 </p>
-                <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#f59e0b", display: "inline-block", animation: "pulse 2s infinite" }} />
+                <span style={{ width: "6px", height: "6px", borderRadius: "0", background: "#f59e0b", display: "inline-block", animation: "pulse 2s infinite" }} />
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
                 {salesItems.map((sale: any, i: number) => (
@@ -173,28 +173,28 @@ export default function VaultPage() {
                       </p>
                     </div>
                     <div style={{ display: "flex", gap: "2px" }}>
-                      <button className="cv-action-btn primary" disabled={txLoading[sale.tokenId]}
+                      <Button variant="primary" isLoading={txLoading[sale.tokenId] === 'confirm'} disabled={!!txLoading[sale.tokenId]} className="cv-action-btn primary"
                         onClick={async () => {
                           try {
-                            setTxLoading(prev => ({ ...prev, [sale.tokenId]: true }));
+                            setTxLoading(prev => ({ ...prev, [sale.tokenId]: 'confirm' }));
                             await confirmTrade(sale.tokenId); toast.success("Trade confirmed.");
                             addActivity({ type: "escrow_confirm", title: "Trade confirmed", description: `Confirmed sale of asset #${sale.tokenId} "${sale.name}" for ${sale.price} ${NETWORK_CONFIG.tokenSymbol}`, walletAddress: wallet!.address, tokenId: sale.tokenId, amount: sale.price, address: sale.buyer });
                           } catch (e: any) { toast.error(e.message); }
-                          finally { setTxLoading(prev => ({ ...prev, [sale.tokenId]: false })); }
+                          finally { setTxLoading(prev => ({ ...prev, [sale.tokenId]: null })); }
                         }}>
                         Confirm
-                      </button>
-                      <button className="cv-action-btn danger" disabled={txLoading[sale.tokenId]}
+                      </Button>
+                      <Button variant="danger" isLoading={txLoading[sale.tokenId] === 'cancel'} disabled={!!txLoading[sale.tokenId]} className="cv-action-btn danger h-auto"
                         onClick={async () => {
                           try {
-                            setTxLoading(prev => ({ ...prev, [sale.tokenId]: true }));
+                            setTxLoading(prev => ({ ...prev, [sale.tokenId]: 'cancel' }));
                             await cancelTrade(sale.tokenId); toast.success("Trade cancelled, buyer refunded.");
                             addActivity({ type: "escrow_cancel", title: "Trade cancelled", description: `Trade for asset #${sale.tokenId} cancelled, buyer refunded`, walletAddress: wallet!.address, tokenId: sale.tokenId, address: sale.buyer });
                           } catch (e: any) { toast.error(e.message); }
-                          finally { setTxLoading(prev => ({ ...prev, [sale.tokenId]: false })); }
+                          finally { setTxLoading(prev => ({ ...prev, [sale.tokenId]: null })); }
                         }}>
                         Decline
-                      </button>
+                      </Button>
                     </div>
                   </div>
                 ))}
@@ -454,9 +454,24 @@ export default function VaultPage() {
               <div style={{ display: "flex", gap: "2px" }}>
                 <Button onClick={() => closeModal("burn")} variant="secondary" className="flex-1 h-12 rounded-none">Cancel</Button>
                 <Button onClick={async () => {
-                  try { await burnAsset(activeId!, formData.cid); toast.success("Asset destroyed."); addActivity({ type: "burn", title: "Asset destroyed", description: `Asset #${activeId} permanently removed`, walletAddress: wallet!.address, tokenId: activeId! }); closeModal("burn"); }
-                  catch (e: any) { toast.error(e.message); }
-                }} variant="danger" className="flex-1 h-12 rounded-none">Destroy</Button>
+                  setLoading(true);
+                  try {
+                    await burnAsset(activeId!, formData.cid);
+                    toast.success("Asset destroyed.");
+                    addActivity({
+                      type: "burn",
+                      title: "Asset destroyed",
+                      description: `Asset #${activeId} permanently removed`,
+                      walletAddress: wallet!.address,
+                      tokenId: activeId!,
+                    });
+                    closeModal("burn");
+                  } catch (e: any) {
+                    toast.error(e.message);
+                  } finally {
+                    setLoading(false);
+                  }
+                }} variant="danger" isLoading={loading} disabled={loading} className="flex-1 h-12 rounded-none">Destroy</Button>
               </div>
             </div>
           </Modal>

@@ -24,118 +24,106 @@ const FONT_HREF =
 
 /* ── Routes ─────────────────────────────────────────────────── */
 const NAV = [
-  { id: "dashboard", label: "Overview",  href: "/dashboard" },
-  { id: "vault",     label: "Vault",     href: "/vault"     },
-  { id: "market",    label: "Market",    href: "/market"    },
-  { id: "messages",  label: "Messages",  href: "/messages"  },
-  { id: "transfer",  label: "Transfer",  href: "/transfer"  },
-  { id: "tools",     label: "Tools",     href: "/tools"     },
+  { id: "dashboard", label: "Overview", href: "/dashboard" },
+  { id: "vault", label: "Vault", href: "/vault" },
+  { id: "market", label: "Market", href: "/market" },
+  { id: "messages", label: "Messages", href: "/messages" },
+  { id: "transfer", label: "Transfer", href: "/transfer" },
+  { id: "tools", label: "Tools", href: "/tools" },
 ] as const;
 
 const HIDE_ON = ["/", "/login"];
 
 /* ── Physics ─────────────────────────────────────────────────── */
-const SP  = { type: "spring", stiffness: 320, damping: 32, mass: 0.75 } as const;
-const SPS = { type: "spring", stiffness: 220, damping: 30, mass: 1.0  } as const;
-
-/* ── Ticker data ──────────────────────────────────────────────── */
-const TICKS = [
-  { sym: "UPTIME",  val: "99.99%",  chg: "",       up: true  },
-  { sym: "TVL",     val: "$284.3M", chg: "+1.2%",  up: true  },
-  { sym: "TUNNELS", val: "8,432",   chg: "+5.1%",  up: true  },
-  { sym: "ETH/USD", val: "3,412",   chg: "+0.31%", up: true  },
-  { sym: "BTC/USD", val: "61,840",  chg: "−0.14%", up: false },
-  { sym: "GAS",     val: "15 gwei", chg: "−2.1%",  up: true  },
-  { sym: "KEYS",    val: "1.2M",    chg: "",        up: true  },
-  { sym: "AGE",     val: "831d",    chg: "",        up: true  },
-];
+const SP = { type: "spring", stiffness: 320, damping: 32, mass: 0.75 } as const;
+const SPS = { type: "spring", stiffness: 220, damping: 30, mass: 1.0 } as const;
 
 /* ── Inline SVG icons ────────────────────────────────────────── */
 const I = {
   Grid: () => (
     <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-      <rect x="1" y="1" width="5" height="5" stroke="currentColor" strokeWidth="1.2"/>
-      <rect x="8" y="1" width="5" height="5" stroke="currentColor" strokeWidth="1.2"/>
-      <rect x="1" y="8" width="5" height="5" stroke="currentColor" strokeWidth="1.2"/>
-      <rect x="8" y="8" width="5" height="5" fill="currentColor"/>
+      <rect x="1" y="1" width="5" height="5" stroke="currentColor" strokeWidth="1.2" />
+      <rect x="8" y="1" width="5" height="5" stroke="currentColor" strokeWidth="1.2" />
+      <rect x="1" y="8" width="5" height="5" stroke="currentColor" strokeWidth="1.2" />
+      <rect x="8" y="8" width="5" height="5" fill="currentColor" />
     </svg>
   ),
   X: () => (
     <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-      <line x1="1" y1="1" x2="11" y2="11" stroke="currentColor" strokeWidth="1.3"/>
-      <line x1="11" y1="1" x2="1" y2="11" stroke="currentColor" strokeWidth="1.3"/>
+      <line x1="1" y1="1" x2="11" y2="11" stroke="currentColor" strokeWidth="1.3" />
+      <line x1="11" y1="1" x2="1" y2="11" stroke="currentColor" strokeWidth="1.3" />
     </svg>
   ),
   Copy: () => (
     <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
-      <rect x="1" y="3" width="9" height="9" stroke="currentColor" strokeWidth="1.2"/>
-      <path d="M3 3V1h9v9H10" stroke="currentColor" strokeWidth="1.2"/>
+      <rect x="1" y="3" width="9" height="9" stroke="currentColor" strokeWidth="1.2" />
+      <path d="M3 3V1h9v9H10" stroke="currentColor" strokeWidth="1.2" />
     </svg>
   ),
   Check: () => (
     <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
       <polyline points="1.5,6.5 5,10 11.5,2.5" stroke="currentColor" strokeWidth="1.5"
-        strokeLinecap="round" strokeLinejoin="round"/>
+        strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   ),
   Shield: () => (
     <svg width="13" height="14" viewBox="0 0 13 14" fill="none">
       <path d="M6.5 1L1 3.2v4.3C1 10.3 3.4 12.6 6.5 13.5 9.6 12.6 12 10.3 12 7.5V3.2L6.5 1z"
-        stroke="currentColor" strokeWidth="1.2"/>
+        stroke="currentColor" strokeWidth="1.2" />
     </svg>
   ),
   Send: () => (
     <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
-      <line x1="1.5" y1="11.5" x2="11.5" y2="1.5" stroke="currentColor" strokeWidth="1.3"/>
+      <line x1="1.5" y1="11.5" x2="11.5" y2="1.5" stroke="currentColor" strokeWidth="1.3" />
       <polyline points="5,1.5 11.5,1.5 11.5,8" stroke="currentColor" strokeWidth="1.3"
-        strokeLinecap="round" strokeLinejoin="round"/>
+        strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   ),
   Out: () => (
     <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
-      <path d="M5 1H1v11h4" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
-      <line x1="5.5" y1="6.5" x2="12" y2="6.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
+      <path d="M5 1H1v11h4" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+      <line x1="5.5" y1="6.5" x2="12" y2="6.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
       <polyline points="9,3.5 12,6.5 9,9.5" stroke="currentColor" strokeWidth="1.2"
-        strokeLinecap="round" strokeLinejoin="round"/>
+        strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   ),
   Bell: () => (
     <svg width="14" height="15" viewBox="0 0 14 15" fill="none">
-      <path d="M7 1.5a4 4 0 0 1 4 4v3.2l1.2 1.3H1.8L3 8.7V5.5a4 4 0 0 1 4-4z" stroke="currentColor" strokeWidth="1.2"/>
-      <path d="M5.5 12.5a1.5 1.5 0 0 0 3 0" stroke="currentColor" strokeWidth="1.2"/>
+      <path d="M7 1.5a4 4 0 0 1 4 4v3.2l1.2 1.3H1.8L3 8.7V5.5a4 4 0 0 1 4-4z" stroke="currentColor" strokeWidth="1.2" />
+      <path d="M5.5 12.5a1.5 1.5 0 0 0 3 0" stroke="currentColor" strokeWidth="1.2" />
     </svg>
   ),
   Menu: () => (
     <svg width="17" height="12" viewBox="0 0 17 12" fill="none">
-      <line x1="0" y1="1"  x2="17" y2="1"  stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
-      <line x1="0" y1="6"  x2="12" y2="6"  stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
-      <line x1="0" y1="11" x2="17" y2="11" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
+      <line x1="0" y1="1" x2="17" y2="1" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+      <line x1="0" y1="6" x2="12" y2="6" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+      <line x1="0" y1="11" x2="17" y2="11" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
     </svg>
   ),
   Sun: () => (
     <svg width="15" height="15" viewBox="0 0 15 15" fill="none">
-      <circle cx="7.5" cy="7.5" r="2.8" stroke="currentColor" strokeWidth="1.2"/>
-      <line x1="7.5" y1="0.5"  x2="7.5" y2="2.5"  stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
-      <line x1="7.5" y1="12.5" x2="7.5" y2="14.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
-      <line x1="0.5" y1="7.5"  x2="2.5" y2="7.5"  stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
-      <line x1="12.5" y1="7.5" x2="14.5" y2="7.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
-      <line x1="2.6"  y1="2.6"  x2="3.9"  y2="3.9"  stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
-      <line x1="11.1" y1="11.1" x2="12.4" y2="12.4" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
-      <line x1="2.6"  y1="12.4" x2="3.9"  y2="11.1" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
-      <line x1="11.1" y1="3.9"  x2="12.4" y2="2.6"  stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
+      <circle cx="7.5" cy="7.5" r="2.8" stroke="currentColor" strokeWidth="1.2" />
+      <line x1="7.5" y1="0.5" x2="7.5" y2="2.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+      <line x1="7.5" y1="12.5" x2="7.5" y2="14.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+      <line x1="0.5" y1="7.5" x2="2.5" y2="7.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+      <line x1="12.5" y1="7.5" x2="14.5" y2="7.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+      <line x1="2.6" y1="2.6" x2="3.9" y2="3.9" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+      <line x1="11.1" y1="11.1" x2="12.4" y2="12.4" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+      <line x1="2.6" y1="12.4" x2="3.9" y2="11.1" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+      <line x1="11.1" y1="3.9" x2="12.4" y2="2.6" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
     </svg>
   ),
   Moon: () => (
     <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
       <path d="M12.5 9A6 6 0 0 1 5 1.5a6 6 0 1 0 7.5 7.5z"
-        stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round"/>
+        stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" />
     </svg>
   ),
   Chevron: ({ up }: { up?: boolean }) => (
     <svg width="10" height="10" viewBox="0 0 10 10" fill="none"
       style={{ transform: up ? "rotate(180deg)" : "none", transition: "transform 0.28s ease" }}>
       <polyline points="1,3 5,7 9,3" stroke="currentColor" strokeWidth="1.2"
-        strokeLinecap="round" strokeLinejoin="round"/>
+        strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   ),
 };
@@ -253,7 +241,7 @@ const CSS = `
   .nb-bal-btn:active { transform: scale(0.98); }
 
   /* DOT */
-  .nb-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+  .nb-dot { width: 6px; height: 6px; border-radius: 0; flex-shrink: 0; }
   .nb-dot.online  { background: var(--nb-up); }
   .nb-dot.offline { background: var(--nb-dn); animation: nb-blink 1.5s ease infinite; }
   .nb-dot.warn    { background: #a07c20;       animation: nb-blink 1.5s ease infinite; }
@@ -472,7 +460,7 @@ const CSS = `
   .nb-mob-tab.active { color:var(--nb-ink); }
   .nb-mob-tab-dot {
     position:absolute; top:7px; left:50%; width:3px; height:3px;
-    background:var(--nb-ink); border-radius:50%; transform:translateX(-50%);
+    background:var(--nb-ink); border-radius:0; transform:translateX(-50%);
   }
 
   /* MOBILE SHEET */
@@ -501,7 +489,7 @@ function WalletDrawer({ wallet, balance, network, activeTab, theme, onNav, onClo
   theme: string | undefined; onNav: (h: string) => void;
   onClose: () => void; onLogout: () => void; onTheme: (t: string) => void;
 }) {
-  const [copied, setCopied]   = useState(false);
+  const [copied, setCopied] = useState(false);
   const [showKey, setShowKey] = useState(false);
 
   const copy = () => {
@@ -511,8 +499,8 @@ function WalletDrawer({ wallet, balance, network, activeTab, theme, onNav, onClo
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const isDark     = theme === "dark";
-  const dotClass   = network === "online" ? "online" : network === "offline" ? "offline" : "warn";
+  const isDark = theme === "dark";
+  const dotClass = network === "online" ? "online" : network === "offline" ? "offline" : "warn";
   const networkLabel = network === "online" ? NETWORK_CONFIG.name :
     network === "offline" ? "Disconnected" : network === "checking" ? "Connecting…" : "Wrong Network";
 
@@ -577,8 +565,10 @@ function WalletDrawer({ wallet, balance, network, activeTab, theme, onNav, onClo
             <div className="nb-db" onClick={copy} style={{ cursor: "pointer" }}>
               <div className="nb-dblbl">
                 <span>Public Key</span>
-                <span style={{ display: "flex", alignItems: "center", gap: 5,
-                  color: copied ? "var(--nb-up)" : "var(--nb-silver)" }}>
+                <span style={{
+                  display: "flex", alignItems: "center", gap: 5,
+                  color: copied ? "var(--nb-up)" : "var(--nb-silver)"
+                }}>
                   {copied ? <I.Check /> : <I.Copy />} {copied ? "Copied" : "Copy"}
                 </span>
               </div>
@@ -635,31 +625,30 @@ function WalletDrawer({ wallet, balance, network, activeTab, theme, onNav, onClo
 
 /* ── MAIN EXPORT ─────────────────────────────────────────────── */
 export default function Navbar() {
-  const router   = useRouter();
+  const router = useRouter();
   const pathname = usePathname();
 
   const { wallet, balance, networkStatus, logout } = useStore();
-  const { theme, setTheme, resolvedTheme }         = useTheme();
+  const { theme, setTheme, resolvedTheme } = useTheme();
 
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [sheetOpen,  setSheetOpen]  = useState(false);
-  const [mounted,    setMounted]    = useState(false);
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => { setMounted(true); }, []);
 
-  const activeTab    = NAV.find(t => pathname.startsWith(t.href))?.id ?? "dashboard";
-  const dotClass     = networkStatus === "online" ? "online" : networkStatus === "offline" ? "offline" : "warn";
-  const displayBal   = parseFloat(balance || "0").toFixed(4);
+  const activeTab = NAV.find(t => pathname.startsWith(t.href))?.id ?? "dashboard";
+  const dotClass = networkStatus === "online" ? "online" : networkStatus === "offline" ? "offline" : "warn";
+  const displayBal = parseFloat(balance || "0").toFixed(4);
   const currentTheme = resolvedTheme ?? theme ?? "light";
 
-  const goTo         = (href: string) => router.push(href);
+  const goTo = (href: string) => router.push(href);
   const handleLogout = () => { logout(); router.replace("/"); };
-  const handleTheme  = (t: string) => setTheme(t);
+  const handleTheme = (t: string) => setTheme(t);
 
   if (!mounted) return null;
   if (HIDE_ON.some(p => pathname === p)) return null;
 
-  const tickDbl = [...TICKS, ...TICKS];
 
   return (
     <>
@@ -723,19 +712,6 @@ export default function Navbar() {
             </button>
           </div>
         </div>
-
-        {/* Ticker (desktop only) */}
-        <div className="nb-ticker nb-desk-only">
-          <div className="nb-ticker-track">
-            {tickDbl.map((t, i) => (
-              <span className="nb-tick-item" key={i}>
-                <span className="nb-tick-sym">{t.sym}</span>
-                <span>{t.val}</span>
-                {t.chg && <span className={t.up ? "nb-tick-up" : "nb-tick-dn"}>{t.chg}</span>}
-              </span>
-            ))}
-          </div>
-        </div>
       </header>
 
       {/* ══ DESKTOP DRAWER ════════════════════════════════ */}
@@ -776,8 +752,10 @@ export default function Navbar() {
         {sheetOpen && (
           <>
             <motion.div
-              style={{ position: "fixed", inset: 0, zIndex: 1000,
-                background: "rgba(14,14,14,0.25)", backdropFilter: "blur(6px)" }}
+              style={{
+                position: "fixed", inset: 0, zIndex: 1000,
+                background: "rgba(14,14,14,0.25)", backdropFilter: "blur(6px)"
+              }}
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               onClick={() => setSheetOpen(false)}
             />
@@ -786,8 +764,10 @@ export default function Navbar() {
               transition={SPS}>
               <div className="nb-sheet-handle" />
               <div style={{ padding: "18px 22px 60px" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center",
-                  marginBottom: 20, paddingBottom: 16, borderBottom: "1px solid var(--nb-smoke)" }}>
+                <div style={{
+                  display: "flex", justifyContent: "space-between", alignItems: "center",
+                  marginBottom: 20, paddingBottom: 16, borderBottom: "1px solid var(--nb-smoke)"
+                }}>
                   <div>
                     <div className="nb-deyebrow">Active Session</div>
                     <div className="nb-dtitle" style={{ fontSize: 20 }}>Vault <em>Access</em></div>

@@ -5,6 +5,7 @@ import { Toaster } from 'sonner';
 import { ThemeProvider } from "@/components/theme-provider";
 import Navbar from "@/components/Navbar";
 import PageAnimate from "@/components/PageAnimate";
+import CustomCursor from "@/components/CustomCursor";
 
 const inter = Inter({ subsets: ["latin"], variable: '--font-inter' });
 const mono = JetBrains_Mono({ subsets: ["latin"], variable: '--font-mono' });
@@ -35,6 +36,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
             </main>
 
             <Toaster position="bottom-center" />
+            <CustomCursor />
         </ThemeProvider>
       </body>
     </html>

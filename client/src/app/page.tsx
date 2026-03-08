@@ -760,21 +760,7 @@ const style = `
   }
 `;
 
-// ── Sparkline data ───────────────────────────────────────────
-const generatePath = (points: number[], w: number, h: number, pad = 32) => {
-  const xs = points.map((_, i) => pad + (i / (points.length - 1)) * (w - 2 * pad));
-  const mn = Math.min(...points), mx = Math.max(...points);
-  const ys = points.map(p => h - pad - ((p - mn) / (mx - mn || 1)) * (h - 2 * pad));
-  let d = `M ${xs[0]} ${ys[0]}`;
-  for (let i = 1; i < xs.length; i++) {
-    const cx = (xs[i - 1] + xs[i]) / 2;
-    d += ` C ${cx} ${ys[i - 1]}, ${cx} ${ys[i]}, ${xs[i]} ${ys[i]}`;
-  }
-  return { d, xs, ys, lastX: xs[xs.length - 1], lastY: ys[ys.length - 1] };
-};
-
-const vault = [210, 218, 225, 219, 230, 238, 244, 240, 252, 258, 262, 271, 268, 275, 282, 280, 291, 295, 304, 312, 308, 316, 322, 319, 331];
-const bench = [210, 212, 211, 214, 216, 219, 217, 221, 223, 225, 228, 224, 226, 229, 231, 235, 238, 236, 240, 243, 241, 245, 248, 246, 250];
+// ── Sparkline data removed ───────────────────────────────────
 
 const alloc = [
   { name: "Encrypted Vault Storage", pct: 42, apy: "Persistent" },
@@ -877,9 +863,42 @@ function AllocationBar({ name, pct, apy, delay }: { name: string, pct: number, a
 export default function LandingPage() {
   const [heroStatsVisible, setHeroStatsVisible] = useState(false);
   const heroRef = useRef(null);
-  const W = 700, H = 240;
-  const vP = generatePath(vault, W, H);
-  const bP = generatePath(bench, W, H);
+  const [logs, setLogs] = useState<{ id: number; time: string; action: string; hash: string }[]>([]);
+
+  useEffect(() => {
+    let id = 0;
+    const actions = [
+      "ENCRYPT_PAYLOAD", "KEY_EXCHANGE_INIT", "STORE_IPFS_CID",
+      "MINT_VAULT_ITEM", "VERIFY_SIGNATURE", "ZK_PROOF_GENERATE",
+      "P2P_HANDSHAKE", "DECRYPT_REQUEST", "ESCROW_LOCK", "SYNC_STATE"
+    ];
+    const generateHash = () => "0x" + Array.from({ length: 64 }, () => Math.floor(Math.random() * 16).toString(16)).join('').padStart(64, '0');
+
+    const initial = Array.from({ length: 8 }, () => {
+      id++;
+      return {
+        id,
+        time: new Date(Date.now() - Math.random() * 10000).toISOString().split('T')[1].slice(0, 12),
+        action: actions[Math.floor(Math.random() * actions.length)],
+        hash: generateHash()
+      };
+    }).sort((a, b) => a.time.localeCompare(b.time));
+    setLogs(initial);
+
+    const interval = setInterval(() => {
+      id++;
+      setLogs(prev => {
+        const newLogs = [...prev, {
+          id,
+          time: new Date().toISOString().split('T')[1].slice(0, 12),
+          action: actions[Math.floor(Math.random() * actions.length)],
+          hash: generateHash()
+        }];
+        return newLogs.slice(-8);
+      });
+    }, 1800);
+    return () => clearInterval(interval);
+  }, []);
 
   // ── Live blockchain stats ─────────────────────────────────────
   const [liveStats, setLiveStats] = useState({
@@ -1047,84 +1066,41 @@ export default function LandingPage() {
           </div>
         </div>
 
-        {/* ── CHART ── */}
-        <div style={{ borderTop: '1px solid #e8e8e8' }}>
+        {/* ── NETWORK ACTIVITY ── */}
+        <div style={{ borderTop: '1px solid var(--smoke)' }}>
           <div className="section">
             <div className="section-header animate-fade-up">
               <div>
-                <div className="section-num">02 — Adoption</div>
-                <div className="section-title">Network Growth</div>
+                <div className="section-num">02 — Live Activity</div>
+                <div className="section-title">Network Monitor</div>
               </div>
-              <div className="section-caption">Cumulative encrypted data volume over time</div>
+              <div className="section-caption">Real-time cryptographic operations</div>
             </div>
-            <div className="chart-container animate-fade-up delay-2">
-              <div className="chart-header">
-                <div>
-                  <div className="chart-title">Data Secured (TB) — 25 Months</div>
-                  <div style={{ fontFamily: 'DM Mono, monospace', fontSize: 11, color: 'var(--silver)', marginTop: 6, letterSpacing: '0.06em' }}>
-                    CIPHERVAULT PROTOCOL vs. Legacy Cloud Storage
-                  </div>
-                </div>
-                <div className="chart-legend">
-                  <div className="chart-legend-item">
-                    <div className="legend-dot" style={{ background: 'var(--ink)' }} />
-                    CipherVault
-                  </div>
-                  <div className="chart-legend-item">
-                    <div className="legend-dot" style={{ background: 'var(--ash)' }} />
-                    Legacy Cloud
-                  </div>
-                </div>
+            <div className="chart-container animate-fade-up delay-2" style={{ background: '#0a0a0a', border: '1px solid var(--smoke)', padding: '32px 48px', position: 'relative', overflow: 'hidden' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24, borderBottom: '1px solid #2e2e2e', paddingBottom: 16 }}>
+                <span className="live-dot" />
+                <span style={{ fontFamily: 'DM Mono, monospace', fontSize: 11, color: '#8a8a8a', letterSpacing: '0.1em' }}>NODE OP: MAINNET-SECURE / LIVE LOGS</span>
               </div>
-
-              {/* Y-axis labels + chart */}
-              <div style={{ display: 'flex', gap: 16 }}>
-                <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', paddingBottom: 24, fontFamily: 'DM Mono, monospace', fontSize: 10, color: 'var(--silver)', letterSpacing: '0.05em' }}>
-                  {['310', '280', '250', '220'].map(v => <span key={v}>{v}</span>)}
-                </div>
-                <div style={{ flex: 1 }}>
-                  <svg viewBox={`0 0 ${W} ${H}`} className="chart-svg">
-                    <defs>
-                      <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="var(--ink)" stopOpacity="0.4" />
-                        <stop offset="100%" stopColor="var(--ink)" stopOpacity="0" />
-                      </linearGradient>
-                    </defs>
-                    {/* Grid lines */}
-                    {[0.25, 0.5, 0.75].map(f => (
-                      <line key={f} x1={32} y1={32 + f * (H - 64)} x2={W - 32} y2={32 + f * (H - 64)} className="grid-line" />
-                    ))}
-                    {/* Area */}
-                    <path d={`${vP.d} L ${vP.lastX} ${H - 32} L 32 ${H - 32} Z`} className="chart-area" />
-                    {/* Lines */}
-                    <path d={bP.d} className="chart-path-secondary" />
-                    <path d={vP.d} className="chart-path" />
-                    {/* End dot */}
-                    <circle cx={vP.lastX} cy={vP.lastY} r="4" fill="var(--ink)" />
-                  </svg>
-                  {/* X-axis */}
-                  <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 32px 0', fontFamily: 'DM Mono, monospace', fontSize: 10, color: 'var(--silver)', letterSpacing: '0.05em' }}>
-                    {['Mar 23', 'Jun 23', 'Sep 23', 'Dec 23', 'Mar 24', 'Jun 24', 'Sep 24', 'Dec 24', 'Mar 25'].map(m => (
-                      <span key={m}>{m}</span>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              {/* Summary row */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 0, borderTop: '1px solid var(--smoke)', marginTop: 32 }}>
-                {[
-                  { label: "Encryption", value: "AES-256", note: "GCM Mode, military grade" },
-                  { label: "Key Exchange", value: "ECDH", note: "Secp256k1 elliptic curve" },
-                  { label: "Zero Breaches", value: "Verified", note: "All-time clean record" },
-                  { label: "Custody", value: "Self", note: "Non-custodial, your keys" },
-                ].map(({ label, value, note }) => (
-                  <div key={label} style={{ padding: '20px 24px', borderRight: '1px solid var(--smoke)' }}>
-                    <div style={{ fontFamily: 'DM Mono, monospace', fontSize: 10, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--silver)', marginBottom: 8 }}>{label}</div>
-                    <div style={{ fontFamily: 'Playfair Display, serif', fontSize: 24, fontWeight: 700, color: 'var(--ink)', letterSpacing: '-0.02em' }}>{value}</div>
-                    <div style={{ fontSize: 12, color: 'var(--silver)', fontStyle: 'italic', marginTop: 4 }}>{note}</div>
+              <div style={{ fontFamily: 'DM Mono, monospace', fontSize: 13, display: 'flex', flexDirection: 'column', gap: 16, minHeight: 280, position: 'relative' }}>
+                {logs.map(log => (
+                  <div key={log.id} className="animate-fade-up" style={{ display: 'flex', gap: 16, borderBottom: '1px dashed #1c1c1c', paddingBottom: 8, alignItems: 'center' }}>
+                    <span style={{ color: '#5a5a5a', flexShrink: 0 }}>{log.time}</span>
+                    <span style={{
+                      color: log.action === 'ENCRYPT_PAYLOAD' ? '#4ade80' :
+                        log.action === 'MINT_VAULT_ITEM' ? '#60a5fa' :
+                          '#e5e7eb',
+                      fontWeight: 500,
+                      minWidth: 160,
+                      flexShrink: 0
+                    }}>
+                      [{log.action}]
+                    </span>
+                    <span style={{ color: '#8a8a8a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {log.hash}
+                    </span>
                   </div>
                 ))}
+                <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 100, background: 'linear-gradient(to top, #0a0a0a, transparent)', pointerEvents: 'none' }} />
               </div>
             </div>
           </div>

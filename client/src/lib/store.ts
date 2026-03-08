@@ -114,6 +114,7 @@ interface VaultState {
   logout: () => void;
 
   // Network
+  getEffectiveCid: (tokenId: number, cidFromChain: string) => Promise<string>;
   startAutoRefresh: () => Promise<void>;
   stopAutoRefresh: () => void;
   syncAll: () => Promise<void>;
@@ -358,6 +359,17 @@ export const useStore = create<VaultState>((set, get) => ({
       throw new Error(
         `Saldo ${NETWORK_CONFIG.tokenSymbol} tidak cukup. Minimal 0.001 ${NETWORK_CONFIG.tokenSymbol}.`
       );
+    }
+  },
+
+  // ── Resolve CID yang benar untuk token (cek KV override dulu) ────
+  getEffectiveCid: async (tokenId: number, cidFromChain: string): Promise<string> => {
+    try {
+      const res = await fetch(`/api/cid-override?tokenId=${tokenId}`);
+      const { cid } = await res.json();
+      return cid ?? cidFromChain;
+    } catch {
+      return cidFromChain;
     }
   },
 
@@ -681,40 +693,71 @@ export const useStore = create<VaultState>((set, get) => ({
       if (!ethers.isAddress(to)) throw new Error("Alamat tujuan tidak valid");
       if (!signer) throw new Error("Signer tidak ditemukan");
 
-      // ── Re-encrypt file untuk penerima ──────────────────────────────
-      // Ambil public key penerima dari server terlebih dahulu.
-      // Jika gagal, transfer dibatalkan — lebih baik gagal awal daripada
-      // file tidak bisa dibuka oleh penerima setelah on-chain transfer.
+      const myAddress = (await signer.getAddress()).toLowerCase();
       const item = vaultItems.find((p) => p.id === tokenId);
-      if (item?.cid) {
+
+      // ── Pre-flight checks ─────────────────────────────────────────────
+      // Contract akan revert kalau kondisi ini tidak terpenuhi.
+      // Lebih baik catch di sini dengan pesan yang jelas.
+      if (!item) throw new Error("Asset tidak ditemukan di vault kamu");
+
+      const isOwner =
+        item.owner?.toLowerCase() === myAddress ||
+        item.seller?.toLowerCase() === myAddress;
+      if (!isOwner) throw new Error("Kamu bukan pemilik asset ini");
+
+      if (item.isEscrowActive) {
+        throw new Error(
+          "Asset sedang dalam proses escrow. Selesaikan atau batalkan escrow terlebih dahulu sebelum transfer."
+        );
+      }
+
+      // ── Auto-delist jika masih listed ─────────────────────────────────
+      // Contract tidak izinkan transfer asset yang sedang di-listing.
+      // Kita delist otomatis, lalu lanjut transfer.
+      if (item.isListed) {
+        const txDelist = await contract!.cancelListing(tokenId, gasOverride("cancelListing"));
+        await txDelist.wait();
+      }
+
+      // ── Re-encrypt file untuk penerima ───────────────────────────────
+      if (item.cid) {
         const res = await fetch(`/api/pubkey-store?address=${to}`);
         if (!res.ok) {
           throw new Error(
-            "Penerima belum terdaftar public key-nya. Minta penerima untuk login ke CipherVault minimal sekali."
+            "Penerima belum pernah login ke CipherVault. Minta penerima untuk login minimal sekali agar public key-nya terdaftar."
           );
         }
         const { publicKey: recipientPubKey } = await res.json();
 
-        // Re-encrypt: ganti kepemilikan enkripsi ke penerima
         const { newCid } = await reEncryptForTransfer(item.cid, signer, recipientPubKey);
 
-        // Update CID di contract jika berubah (konten sama, key wrap baru)
+        // Simpan CID baru di KV sebagai override (bypass updateEncryptedCid on-chain)
+        // Vault page akan baca dari sini untuk decrypt file.
         if (newCid !== item.cid) {
-          const txCid = await contract!.updateEncryptedCid(
-            tokenId,
-            newCid,
-            gasOverride("updateEncryptedCid")
-          );
-          await txCid.wait();
+          const message = `CipherVault-CID-Override:${tokenId}:${newCid}`;
+          const signature = await (signer as ethers.Wallet).signMessage(message);
+          await fetch("/api/cid-override", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              tokenId,
+              newCid,
+              ownerAddress: myAddress,
+              signature,
+            }),
+          });
         }
       }
 
-      // ── Transfer on-chain ────────────────────────────────────────────
+      // ── Transfer on-chain ─────────────────────────────────────────────
       const tx = await contract!.transferAsset(tokenId, to, gasOverride("transferAsset"));
       await tx.wait();
       await syncAll();
       return true;
     } catch (error: any) {
+      // Jangan wrap ulang error yang sudah kita throw sendiri
+      if (error.message && !error.code) throw error;
       throw new Error(parseContractError(error));
     }
   },

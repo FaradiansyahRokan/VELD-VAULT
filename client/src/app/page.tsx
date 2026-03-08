@@ -882,19 +882,46 @@ export default function LandingPage() {
 
     const getAllListedABI = ["function getAllListedAssets() view returns (tuple(uint256 id,uint256 tokenId,address seller,address owner,uint256 price,bool isListed,bool isCopy,string encryptedCid,string previewURI,string name,string description,bool useEscrow,address buyer,bool sellerConfirmed,bool buyerConfirmed,bool isEscrowActive)[])"];
     const VaultItemCreatedTopic = ethers.id("VaultItemCreated(uint256,address)");
-    const AssetTransferredTopic = ethers.id("AssetTransferred(uint256,address,address,string)");
-    const AssetListedTopic = ethers.id("AssetListed(uint256,uint256,bool)");
+    const AssetTransferredTopic = ethers.id("AssetTransferred(uint256,address,address)");
+    const AssetListedTopic = ethers.id("AssetListed(uint256,uint256)");
     const AssetDelistedTopic = ethers.id("AssetDelisted(uint256)");
     const EscrowStartedTopic = ethers.id("EscrowStarted(uint256,address,address,uint256)");
     const EscrowCompletedTopic = ethers.id("EscrowCompleted(uint256,address,address,uint256)");
 
+    // Additional Topics
+    const TransferTopic = ethers.id("Transfer(address,address,uint256)");
+    const AssetBurnedTopic = ethers.id("AssetBurned(uint256)");
+    const AssetSoldTopic = ethers.id("AssetSold(uint256,address,uint256)");
+    const EscrowUpdateTopic = ethers.id("EscrowUpdate(uint256,string)");
+    const ListingCancelledTopic = ethers.id("ListingCancelled(uint256)");
+    const ListingUpdatedTopic = ethers.id("ListingUpdated(uint256,uint256)");
+    const MetadataUpdateTopic = ethers.id("MetadataUpdate(uint256)");
+    const ApprovalTopic = ethers.id("Approval(address,address,uint256)");
+    const ApprovalForAllTopic = ethers.id("ApprovalForAll(address,address,bool)");
+
     const mapTopicToAction = (topic: string) => {
+      // Core Vault
       if (topic === VaultItemCreatedTopic) return "MINT_VAULT_ITEM";
-      if (topic === AssetTransferredTopic) return "TRANSFER_ASSET";
+      if (topic === AssetBurnedTopic) return "ASSET_BURNED";
+      if (topic === MetadataUpdateTopic) return "VERIFY_DOCUMENT";
+
+      // Market & Transfers
+      if (topic === TransferTopic) return "TRANSFER_TOKEN";
+      if (topic === AssetTransferredTopic) return "ASSET_TRANSFERRED";
+      if (topic === AssetSoldTopic) return "ASSET_SOLD";
       if (topic === AssetListedTopic) return "LIST_ASSET";
-      if (topic === AssetDelistedTopic) return "DELIST_ASSET";
+      if (topic === AssetDelistedTopic || topic === ListingCancelledTopic) return "DELIST_ASSET";
+      if (topic === ListingUpdatedTopic) return "LISTING_UPDATED";
+
+      // Escrow
       if (topic === EscrowStartedTopic) return "ESCROW_LOCK";
       if (topic === EscrowCompletedTopic) return "ESCROW_RELEASE";
+      if (topic === EscrowUpdateTopic) return "ESCROW_UPDATE";
+
+      // Permissions
+      if (topic === ApprovalTopic) return "APPROVAL_GRANTED";
+      if (topic === ApprovalForAllTopic) return "APPROVAL_ALL";
+
       return "STATE_SYNC";
     };
 
@@ -1096,16 +1123,19 @@ export default function LandingPage() {
                   <div key={log.id} className="animate-fade-up" style={{ display: 'flex', gap: 16, borderBottom: '1px dashed #1c1c1c', paddingBottom: 8, alignItems: 'center' }}>
                     <span style={{ color: '#5a5a5a', flexShrink: 0 }}>{log.time}</span>
                     <span style={{
-                      color: log.action === 'ENCRYPT_PAYLOAD' ? '#4ade80' :
-                        log.action === 'MINT_VAULT_ITEM' ? '#60a5fa' :
-                          '#e5e7eb',
+                      color: (log.action === 'MINT_VAULT_ITEM' || log.action === 'ASSET_SOLD') ? '#4ade80' :
+                        (log.action.includes('ESCROW') || log.action === 'VERIFY_DOCUMENT') ? '#facc15' :
+                          (log.action.includes('LIST')) ? '#60a5fa' :
+                            (log.action.includes('TRANSFER')) ? '#a78bfa' :
+                              (log.action.includes('BURN') || log.action.includes('DELIST') || log.action.includes('CANCEL')) ? '#f87171' :
+                                '#e5e7eb',
                       fontWeight: 500,
                       minWidth: 160,
                       flexShrink: 0
                     }}>
                       [{log.action}]
                     </span>
-                    <span style={{ color: '#8a8a8a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    <span style={{ color: '#8a8a8a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', fontFamily: 'DM Mono, monospace' }}>
                       {log.hash}
                     </span>
                   </div>

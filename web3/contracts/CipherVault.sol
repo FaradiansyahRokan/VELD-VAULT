@@ -150,11 +150,30 @@ contract CipherVault is ERC721URIStorage, Ownable {
         emit EscrowUpdate(tokenId, "Cancel"); // EMIT EVENT
     }
 
-    function transferAsset(uint256 tokenId, address to) public {
+    /**
+     * @dev Transfer asset ke wallet lain.
+     *      newEncryptedCid: CID v3 yang sudah di-re-encrypt untuk penerima.
+     *      Kirim string kosong ("") kalau tidak perlu update CID (misal copy).
+     *
+     *      Dengan ini, re-encrypt + transfer terjadi atomik on-chain —
+     *      tidak ada state tengah dimana CID lama tapi owner sudah berpindah.
+     */
+    function transferAsset(uint256 tokenId, address to, string memory newEncryptedCid) public {
         require(ownerOf(tokenId) == msg.sender, "Not owner");
+        require(!idToVaultItem[tokenId].isEscrowActive, "In escrow, cancel first");
+
+        // Update CID on-chain jika disediakan (fully decentralized, no server needed)
+        if (bytes(newEncryptedCid).length > 0) {
+            idToVaultItem[tokenId].encryptedCid = newEncryptedCid;
+            _setTokenURI(tokenId, newEncryptedCid);
+            emit MetadataUpdate(tokenId);
+        }
+
         _transfer(msg.sender, to, tokenId);
         idToVaultItem[tokenId].owner = payable(to);
-        emit AssetTransferred(tokenId, msg.sender, to); // EMIT EVENT
+        // Reset seller jika masih ada sisa state
+        idToVaultItem[tokenId].seller = payable(address(0));
+        emit AssetTransferred(tokenId, msg.sender, to);
     }
 
     function sendCopy(address to, string memory name, string memory encryptedCid) public {
@@ -167,14 +186,25 @@ contract CipherVault is ERC721URIStorage, Ownable {
     }
 
     /**
-     * @dev Seller update encryptedCid selama escrow aktif.
-     *      Dipakai untuk upload versi file yang sudah di-re-encrypt untuk buyer (ECDH).
+     * @dev Update encryptedCid — dua konteks:
+     *  1. Saat escrow aktif: hanya seller yang boleh (re-encrypt untuk buyer)
+     *  2. Di luar escrow: hanya owner yang boleh (re-encrypt setelah transfer)
+     *
+     * Ini yang membuat kepemilikan enkripsi bisa berpindah fully on-chain
+     * tanpa bergantung pada server eksternal.
      */
     function updateEncryptedCid(uint256 tokenId, string memory newCid) public {
-        require(idToVaultItem[tokenId].isEscrowActive, "Not in escrow");
-        require(idToVaultItem[tokenId].seller == msg.sender, "Only seller");
-        idToVaultItem[tokenId].encryptedCid = newCid;
+        VaultItem storage item = idToVaultItem[tokenId];
+        if (item.isEscrowActive) {
+            // Konteks escrow: seller re-encrypt untuk buyer sebelum confirm
+            require(item.seller == msg.sender, "Only seller during escrow");
+        } else {
+            // Konteks transfer: owner re-encrypt untuk penerima
+            require(ownerOf(tokenId) == msg.sender, "Only owner");
+        }
+        item.encryptedCid = newCid;
         _setTokenURI(tokenId, newCid);
+        emit MetadataUpdate(tokenId);
     }
 
     function burnAsset(uint256 tokenId) public {

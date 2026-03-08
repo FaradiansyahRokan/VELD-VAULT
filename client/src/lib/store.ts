@@ -362,20 +362,11 @@ export const useStore = create<VaultState>((set, get) => ({
     }
   },
 
-  // ── Resolve CID yang benar untuk token (cek KV override dulu) ────
-  getEffectiveCid: async (tokenId: number, cidFromChain: string): Promise<string> => {
-    try {
-      const res = await fetch(`/api/cid-override?tokenId=${tokenId}`);
-      if (!res.ok) return cidFromChain;
-      const { cid } = await res.json();
-      if (cid && cid !== cidFromChain) {
-        console.log(`[getEffectiveCid] token #${tokenId}: KV override found → ${cid.slice(0, 12)}...`);
-        return cid;
-      }
-      return cidFromChain;
-    } catch {
-      return cidFromChain;
-    }
+  // ── Resolve CID yang benar untuk token ──────────────────────────
+  // CID sekarang tersimpan on-chain via updateEncryptedCid — tidak perlu KV.
+  // Fungsi ini tetap ada untuk backward compatibility dan syncAll refresh.
+  getEffectiveCid: async (_tokenId: number, cidFromChain: string): Promise<string> => {
+    return cidFromChain;
   },
 
   // ----------------------------------------------------------
@@ -726,7 +717,8 @@ export const useStore = create<VaultState>((set, get) => ({
         await txDelist.wait();
       }
 
-      // ── Re-encrypt file untuk penerima ───────────────────────────────
+      // ── Re-encrypt file untuk penerima (fully on-chain, no server) ───
+      let newEncryptedCid = "";
       if (item.cid) {
         const res = await fetch(`/api/pubkey-store?address=${to}`);
         if (!res.ok) {
@@ -735,29 +727,14 @@ export const useStore = create<VaultState>((set, get) => ({
           );
         }
         const { publicKey: recipientPubKey } = await res.json();
-
         const { newCid } = await reEncryptForTransfer(item.cid, signer, recipientPubKey);
-
-        // Simpan CID baru di KV sebagai override (bypass updateEncryptedCid on-chain)
-        // Vault page akan baca dari sini untuk decrypt file.
-        if (newCid !== item.cid) {
-          const message = `CipherVault-CID-Override:${tokenId}:${newCid}`;
-          const signature = await (signer as ethers.Wallet).signMessage(message);
-          await fetch("/api/cid-override", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              tokenId,
-              newCid,
-              ownerAddress: myAddress,
-              signature,
-            }),
-          });
-        }
+        newEncryptedCid = newCid;
       }
 
-      // ── Transfer on-chain ─────────────────────────────────────────────
-      const tx = await contract!.transferAsset(tokenId, to, gasOverride("transferAsset"));
+      // ── Transfer on-chain + update CID atomik ────────────────────────
+      // Contract baru: transferAsset(tokenId, to, newEncryptedCid)
+      // CID v3 tersimpan on-chain sekalian — fully decentralized, no KV needed.
+      const tx = await contract!.transferAsset(tokenId, to, newEncryptedCid, gasOverride("transferAsset"));
       await tx.wait();
       await syncAll();
       return true;
@@ -821,22 +798,13 @@ export const useStore = create<VaultState>((set, get) => ({
         const effectiveCid = await get().getEffectiveCid(tokenId, item.cid);
         const { newCid } = await reEncryptForBuyer(effectiveCid, signer, publicKey);
 
-        // Simpan CID baru ke KV — buyer butuh ini untuk decrypt
-        // Tidak throw error kalau KV gagal (trade tetap lanjut, buyer coba ulang decrypt nanti)
+        // Update CID on-chain — seller masih aktif, isEscrowActive = true ✓
+        // Contract: updateEncryptedCid(tokenId, newCid) → tersimpan di chain, buyer baca dari sini
         if (newCid !== effectiveCid) {
-          try {
-            const message = `CipherVault-CID-Override:${tokenId}:${newCid}`;
-            const signature = await (signer as ethers.Wallet).signMessage(message);
-            await fetch("/api/cid-override", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ tokenId, newCid, ownerAddress: myAddress, signature }),
-            });
-          } catch (kvErr) {
-            // KV gagal — log tapi lanjut. Buyer masih bisa decrypt via v3 ECDH
-            // selama mereka punya wallet yang benar.
-            console.warn("[confirmTrade] KV CID save failed, proceeding:", kvErr);
-          }
+          const txCid = await contract!.updateEncryptedCid(
+            tokenId, newCid, gasOverride("updateEncryptedCid")
+          );
+          await txCid.wait();
         }
       }
 

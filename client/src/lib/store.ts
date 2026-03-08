@@ -583,7 +583,8 @@ export const useStore = create<VaultState>((set, get) => ({
     const item = vaultItems.find((i) => i.id === tokenId);
     if (!item) throw new Error("Asset tidak ditemukan di vault");
 
-    return decryptFile(item.cid, signer);
+    const effectiveCid = await get().getEffectiveCid(item.id, item.cid);
+    return decryptFile(effectiveCid, signer);
   },
 
   // ----------------------------------------------------------
@@ -811,7 +812,9 @@ export const useStore = create<VaultState>((set, get) => ({
         }
         const { publicKey } = await res.json();
 
-        const { newCid } = await reEncryptForBuyer(item.cid, signer, publicKey);
+        // Resolve CID yang benar — mungkin sudah di-override di KV (post-transfer)
+        const effectiveCid = await get().getEffectiveCid(tokenId, item.cid);
+        const { newCid } = await reEncryptForBuyer(effectiveCid, signer, publicKey);
 
         if (newCid !== item.cid) {
           const txUpdate = await contract!.updateEncryptedCid(tokenId, newCid, gasOverride("updateEncryptedCid"));

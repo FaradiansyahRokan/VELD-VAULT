@@ -26,6 +26,7 @@ export default function VaultPage() {
     mintAndEncrypt,
     listAssetForSale, updateListing, cancelListing,
     transferAsset, sendCopyAsset, confirmTrade, cancelTrade, burnAsset,
+    getEffectiveCid,
   } = useStore();
 
   const { addActivity } = useActivityStore();
@@ -102,10 +103,12 @@ export default function VaultPage() {
   // ──────────────────────────────────────────
   // DECRYPT & PREVIEW / DOWNLOAD
   // ──────────────────────────────────────────
-  const handleDecrypt = async (cid: string, mode: "PREVIEW" | "DOWNLOAD") => {
+  const handleDecrypt = async (tokenId: number, cidFromChain: string, mode: "PREVIEW" | "DOWNLOAD") => {
     if (!wallet || !signer) return;
     const t = toast.loading("Mendekripsi...");
     try {
+      // Resolve CID yang benar — cek KV override dulu (file mungkin di-transfer)
+      const cid = await getEffectiveCid(tokenId, cidFromChain);
       const file = await decryptFile(cid, signer);
 
       if (mode === "PREVIEW") {
@@ -523,7 +526,7 @@ export default function VaultPage() {
                   ) : (
                     <>
                       <button
-                        onClick={() => handleDecrypt(file.cid, "PREVIEW")}
+                        onClick={() => handleDecrypt(file.id, file.cid, "PREVIEW")}
                         className="flex-1 h-12 rounded-[1.5rem] bg-background text-foreground font-bold text-xs shadow-sm hover:bg-foreground hover:text-background transition-all border border-border/50"
                       >
                         Buka File

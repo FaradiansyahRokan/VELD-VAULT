@@ -348,18 +348,16 @@ export default function DashboardPage() {
       `}</style>
 
       <div className="cv-dashboard" style={{ position: "relative" }}>
-        <div style={{ maxWidth: "1280px", margin: "0 auto", padding: "0 48px 96px", position: "relative", zIndex: 1 }}>
+        <div className="max-w-[1280px] mx-auto px-4 md:px-12 pb-24 relative z-10">
 
           {/* ── Masthead / Header ──────────────────────────────────── */}
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.9, ease }}
+            className="pt-24 md:pt-[120px] pb-10 mb-8 md:mb-12"
             style={{
-              paddingTop: "120px",
-              paddingBottom: "40px",
               borderBottom: "1px solid var(--cv-border-light)",
-              marginBottom: "48px",
             }}
           >
             {/* Top meta line */}
@@ -441,8 +439,9 @@ export default function DashboardPage() {
                 border: "1px solid var(--cv-border-light)",
                 padding: "14px 18px",
                 background: "var(--cv-surface)",
-                textAlign: "right",
-              }}>
+              }}
+                className="w-full sm:w-auto text-left sm:text-right"
+              >
                 <p style={{
                   fontSize: "8px",
                   letterSpacing: "0.24em",
@@ -474,9 +473,9 @@ export default function DashboardPage() {
             {/* ── Balance Hero ──────────────────────────────────────── */}
             <motion.div
               variants={stagger.item}
+              className="p-6 md:p-[40px_44px]"
               style={{
                 border: "1px solid var(--cv-border-light)",
-                padding: "40px 44px",
                 marginBottom: "2px",
                 display: "flex",
                 alignItems: "flex-end",
@@ -494,7 +493,7 @@ export default function DashboardPage() {
                 right: "32px",
                 top: "50%",
                 transform: "translateY(-50%)",
-                fontSize: "72px",
+                fontSize: "clamp(40px, 8vw, 72px)",
                 fontFamily: SERIF,
                 fontStyle: "italic",
                 fontWeight: 300,
@@ -552,12 +551,11 @@ export default function DashboardPage() {
               </div>
 
               {/* Portfolio value */}
-              <div style={{
-                textAlign: "right",
-                position: "relative",
-                borderLeft: "1px solid var(--cv-border-light)",
-                paddingLeft: "40px",
-              }}>
+              <div
+                className="w-full sm:w-auto pt-6 sm:pt-0 sm:pl-10 border-t sm:border-t-0 sm:border-l border-[var(--cv-border-light)] text-left sm:text-right"
+                style={{
+                  position: "relative",
+                }}>
                 <p style={{
                   fontSize: "9px",
                   letterSpacing: "0.22em",
@@ -584,13 +582,13 @@ export default function DashboardPage() {
             </motion.div>
 
             {/* ── Stats Grid ───────────────────────────────────────── */}
-            <div style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(6, 1fr)",
-              gap: "2px",
-              marginBottom: "48px",
-              marginTop: "2px",
-            }}>
+            <div
+              className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6"
+              style={{
+                gap: "2px",
+                marginBottom: "48px",
+                marginTop: "2px",
+              }}>
               <StatCard label="Total Assets" value={stats.totalItems} roman="I"
                 onClick={() => router.push("/vault")} />
               <StatCard label="In Vault" value={stats.myItems} roman="II"
@@ -605,12 +603,12 @@ export default function DashboardPage() {
             </div>
 
             {/* ── Two-Column ───────────────────────────────────────── */}
-            <div style={{
-              display: "grid",
-              gridTemplateColumns: "1fr 1fr",
-              gap: "48px",
-              alignItems: "start",
-            }}>
+            <div
+              className="grid grid-cols-1 lg:grid-cols-2"
+              style={{
+                gap: "48px",
+                alignItems: "start",
+              }}>
 
               {/* Activity Feed */}
               <div>

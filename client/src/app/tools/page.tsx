@@ -96,8 +96,8 @@ const CSS = `
     flex-direction: column;
     padding-top: 56px;
     padding-bottom: 56px;
-    overflow: auto;
-    min-height: 0;
+    overflow: visible;
+    min-height: 100vh;
   }
 }
 
@@ -126,6 +126,8 @@ const CSS = `
     overflow-y: hidden;
     border-right: none;
     border-bottom: 1px solid rgba(255,255,255,0.06);
+    -webkit-overflow-scrolling: touch;
+    scroll-snap-type: x mandatory;
   }
   .tk-rail::-webkit-scrollbar { height: 2px; width: 0; }
 }
@@ -153,6 +155,7 @@ const CSS = `
   .tk-rail-list {
     display: flex; flex-direction: row; padding: 0;
     align-items: stretch; flex: none; width: max-content;
+    min-width: 100%;
   }
 }
 
@@ -219,6 +222,12 @@ const CSS = `
   overflow-y: auto;
   display: flex;
   flex-direction: column;
+}
+@media (max-width: 768px) {
+  .tk-workspace {
+    overflow-y: visible;
+    overflow-x: hidden;
+  }
 }
 .tk-workspace::-webkit-scrollbar { width: 3px; }
 .tk-workspace::-webkit-scrollbar-thumb { background: var(--t-lite); }

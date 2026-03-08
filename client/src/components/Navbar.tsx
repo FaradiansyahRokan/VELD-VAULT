@@ -805,6 +805,52 @@ export default function Navbar() {
                     </div>
                   </div>
 
+                  {/* Address */}
+                  <div>
+                    <div className="nb-divider" style={{ marginBottom: 12 }}><span>Wallet Address</span></div>
+                    <div className="nb-db" style={{ cursor: "pointer" }} onClick={() => {
+                      if (!wallet?.address) return;
+                      navigator.clipboard.writeText(wallet.address);
+                      setSheetOpen(false); // Optional: close or just show toast
+                    }}>
+                      <div className="nb-dblbl">
+                        <span>Public Key</span>
+                        <span style={{ display: "flex", alignItems: "center", gap: 5, color: "var(--nb-silver)" }}>
+                          <I.Copy /> Copy
+                        </span>
+                      </div>
+                      <div className="nb-addr">{wallet?.address || "—"}</div>
+                    </div>
+                  </div>
+
+                  {/* Private key */}
+                  <div className="nb-db" style={{ padding: 0 }}>
+                    <button className="nb-key-toggle"
+                      style={{ padding: "13px 20px" }}
+                      onClick={(e) => {
+                        const target = e.currentTarget;
+                        const content = target.nextElementSibling as HTMLElement;
+                        if (content.style.display === "none" || !content.style.display) {
+                          content.style.display = "block";
+                          target.classList.add("red");
+                        } else {
+                          content.style.display = "none";
+                          target.classList.remove("red");
+                        }
+                      }}>
+                      <span style={{ display: "flex", alignItems: "center", gap: 9 }}>
+                        <I.Shield /> Private Key
+                      </span>
+                      <I.Chevron />
+                    </button>
+                    <div style={{ display: "none" }}>
+                      <div style={{ padding: "0 20px 18px" }}>
+                        <div className="nb-key-val">{wallet?.privateKey}</div>
+                        <div className="nb-warn">⚠ Jangan pernah bagikan key ini</div>
+                      </div>
+                    </div>
+                  </div>
+
                   <div className="nb-nav-grid">
                     {NAV.map(t => (
                       <button key={t.id}

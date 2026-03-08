@@ -6,6 +6,7 @@ import { gasOverride, gasOverrideWithValue, patchProviderFeeData } from "./gas-c
 import CipherVaultArtifact from "@/abis/CipherVault.json";
 import {
   reEncryptForBuyer,
+  reEncryptForTransfer,
   encryptAndUpload,
   decryptFile,
   unlockVaultKey,
@@ -675,9 +676,40 @@ export const useStore = create<VaultState>((set, get) => ({
   // TRANSFER ASSET
   // ----------------------------------------------------------
   transferAsset: async (tokenId, to) => {
-    const { contract, syncAll } = get();
+    const { contract, syncAll, vaultItems, signer } = get();
     try {
       if (!ethers.isAddress(to)) throw new Error("Alamat tujuan tidak valid");
+      if (!signer) throw new Error("Signer tidak ditemukan");
+
+      // ── Re-encrypt file untuk penerima ──────────────────────────────
+      // Ambil public key penerima dari server terlebih dahulu.
+      // Jika gagal, transfer dibatalkan — lebih baik gagal awal daripada
+      // file tidak bisa dibuka oleh penerima setelah on-chain transfer.
+      const item = vaultItems.find((p) => p.id === tokenId);
+      if (item?.cid) {
+        const res = await fetch(`/api/pubkey-store?address=${to}`);
+        if (!res.ok) {
+          throw new Error(
+            "Penerima belum terdaftar public key-nya. Minta penerima untuk login ke CipherVault minimal sekali."
+          );
+        }
+        const { publicKey: recipientPubKey } = await res.json();
+
+        // Re-encrypt: ganti kepemilikan enkripsi ke penerima
+        const { newCid } = await reEncryptForTransfer(item.cid, signer, recipientPubKey);
+
+        // Update CID di contract jika berubah (konten sama, key wrap baru)
+        if (newCid !== item.cid) {
+          const txCid = await contract!.updateEncryptedCid(
+            tokenId,
+            newCid,
+            gasOverride("updateEncryptedCid")
+          );
+          await txCid.wait();
+        }
+      }
+
+      // ── Transfer on-chain ────────────────────────────────────────────
       const tx = await contract!.transferAsset(tokenId, to, gasOverride("transferAsset"));
       await tx.wait();
       await syncAll();

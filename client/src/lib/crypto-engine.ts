@@ -180,21 +180,38 @@ export const reEncryptForBuyer = async (
     }
     const metadata = JSON.parse(raw);
 
-    // Sudah v3 — tidak perlu re-encrypt lagi (idempoten, aman untuk retry)
-    if (metadata.version === 3) {
-      return { newCid: cid };
-    }
-
-    // Unwrap file key
+    // Unwrap file key — support semua versi
     let fileKeyBuffer: ArrayBuffer;
+    const wallet = sellerSigner as ethers.Wallet;
+    if (!wallet.signingKey) throw new Error("Signer tidak punya akses private key");
+
     if (metadata.version === 2) {
-      // v2: unwrap dengan seller's wallet-derived key
+      // v2: unwrap dengan seller wallet-derived key (file original milik seller)
       const wrapKey = await getWrapKey(sellerSigner);
       fileKeyBuffer = await crypto.subtle.decrypt(
         { name: "AES-GCM", iv: toArrayBuffer(ethers.getBytes(metadata.wrapIv)) },
         wrapKey,
         base64ToArrayBuffer(metadata.encryptedKey)
       );
+
+    } else if (metadata.version === 3) {
+      // v3: seller adalah ex-buyer (menerima via purchase atau transfer)
+      // Mereka decrypt sebagai "buyer" menggunakan ECDH(their_privkey × stored_sellerPublicKey)
+      if (!metadata.sellerPublicKey) {
+        throw new Error("sellerPublicKey tidak ada di metadata v3");
+      }
+      const sharedSecretHex = wallet.signingKey.computeSharedSecret(metadata.sellerPublicKey);
+      const sharedSecretBytes = ethers.getBytes(sharedSecretHex);
+      const ecdhKeyRaw = await crypto.subtle.digest("SHA-256", toArrayBuffer(sharedSecretBytes));
+      const ecdhWrapKey = await crypto.subtle.importKey(
+        "raw", ecdhKeyRaw, "AES-GCM", false, ["decrypt"]
+      );
+      fileKeyBuffer = await crypto.subtle.decrypt(
+        { name: "AES-GCM", iv: toArrayBuffer(ethers.getBytes(metadata.wrapIv)) },
+        ecdhWrapKey,
+        base64ToArrayBuffer(metadata.encryptedKey)
+      );
+
     } else {
       // v1 (legacy): key tersimpan sebagai hex plaintext
       if (!metadata.key) throw new Error("Metadata tidak valid, file mungkin rusak.");
@@ -202,11 +219,6 @@ export const reEncryptForBuyer = async (
     }
 
     // Hitung ECDH shared secret: seller privkey × buyer pubkey
-    const wallet = sellerSigner as ethers.Wallet;
-    if (!wallet.signingKey) {
-      throw new Error("Signer tidak punya akses private key untuk ECDH");
-    }
-
     const sharedSecretHex = wallet.signingKey.computeSharedSecret(buyerPublicKey);
     const sharedSecretBytes = ethers.getBytes(sharedSecretHex);
     const ecdhKeyRaw = await crypto.subtle.digest(
@@ -246,6 +258,106 @@ export const reEncryptForBuyer = async (
   } catch (error) {
     console.error("[reEncryptForBuyer] Error:", error);
     throw new Error("Re-Encryption Failed");
+  }
+};
+
+// ============================================================
+// RE-ENCRYPT FOR TRANSFER — ganti kepemilikan enkripsi ke penerima
+// ============================================================
+/**
+ * Dipanggil saat transferAsset.
+ *
+ * Sender (current owner) decrypt file key mereka sendiri,
+ * lalu re-wrap dengan ECDH(sender_privkey × recipient_pubkey).
+ * Hasilnya: v3 baru dimana recipient bisa decrypt sebagai "buyer".
+ *
+ * Ini yang membuat rantai transfer bisa terus berjalan:
+ *   v2(A) → transfer → v3(A→B) → transfer → v3(B→C) → ...
+ * Setiap pemilik baru bisa decrypt dan re-sell.
+ */
+export const reEncryptForTransfer = async (
+  cid: string,
+  senderSigner: ethers.Signer,
+  recipientPublicKey: string
+): Promise<{ newCid: string }> => {
+  try {
+    const ipfs = await getClient();
+
+    // Fetch metadata dari IPFS
+    const stream = ipfs.cat(cid);
+    let raw = "";
+    const decoder = new TextDecoder();
+    for await (const chunk of stream) {
+      raw += decoder.decode(chunk, { stream: true });
+    }
+    const metadata = JSON.parse(raw);
+
+    const wallet = senderSigner as ethers.Wallet;
+    if (!wallet.signingKey) throw new Error("Signer tidak punya private key untuk ECDH");
+
+    // Unwrap file key berdasarkan versi
+    let fileKeyBuffer: ArrayBuffer;
+
+    if (metadata.version === 2) {
+      // Sender adalah original uploader — pakai wallet-derived key
+      const wrapKey = await getWrapKey(senderSigner);
+      fileKeyBuffer = await crypto.subtle.decrypt(
+        { name: "AES-GCM", iv: toArrayBuffer(ethers.getBytes(metadata.wrapIv)) },
+        wrapKey,
+        base64ToArrayBuffer(metadata.encryptedKey)
+      );
+    } else if (metadata.version === 3) {
+      // Sender adalah ex-buyer (dapat dari purchase atau transfer sebelumnya)
+      if (!metadata.sellerPublicKey) throw new Error("sellerPublicKey tidak ada di metadata v3");
+      const sharedSecretHex = wallet.signingKey.computeSharedSecret(metadata.sellerPublicKey);
+      const sharedSecretBytes = ethers.getBytes(sharedSecretHex);
+      const ecdhKeyRaw = await crypto.subtle.digest("SHA-256", toArrayBuffer(sharedSecretBytes));
+      const ecdhWrapKey = await crypto.subtle.importKey(
+        "raw", ecdhKeyRaw, "AES-GCM", false, ["decrypt"]
+      );
+      fileKeyBuffer = await crypto.subtle.decrypt(
+        { name: "AES-GCM", iv: toArrayBuffer(ethers.getBytes(metadata.wrapIv)) },
+        ecdhWrapKey,
+        base64ToArrayBuffer(metadata.encryptedKey)
+      );
+    } else {
+      // v1 legacy
+      if (!metadata.key) throw new Error("Metadata tidak valid");
+      fileKeyBuffer = toArrayBuffer(ethers.getBytes(metadata.key));
+    }
+
+    // Re-wrap untuk recipient: ECDH(sender_privkey × recipient_pubkey)
+    const sharedSecretHex = wallet.signingKey.computeSharedSecret(recipientPublicKey);
+    const sharedSecretBytes = ethers.getBytes(sharedSecretHex);
+    const ecdhKeyRaw = await crypto.subtle.digest("SHA-256", toArrayBuffer(sharedSecretBytes));
+    const ecdhWrapKey = await crypto.subtle.importKey(
+      "raw", ecdhKeyRaw, "AES-GCM", true, ["encrypt", "decrypt"]
+    );
+
+    const newWrapIv = crypto.getRandomValues(new Uint8Array(12));
+    const newEncryptedFileKey = await crypto.subtle.encrypt(
+      { name: "AES-GCM", iv: newWrapIv },
+      ecdhWrapKey,
+      fileKeyBuffer
+    );
+
+    // Payload v3 baru — konten tidak berubah, hanya key-wrap yang ganti pemilik
+    const payload = JSON.stringify({
+      version: 3,
+      name: metadata.name,
+      type: metadata.type,
+      iv: metadata.iv,
+      wrapIv: ethers.hexlify(newWrapIv),
+      encryptedKey: arrayBufferToBase64(newEncryptedFileKey),
+      content: metadata.content,
+      sellerPublicKey: wallet.signingKey.publicKey, // recipient butuh ini untuk shared secret
+    });
+
+    const result = await ipfs.add(payload);
+    return { newCid: result.path };
+  } catch (error) {
+    console.error("[reEncryptForTransfer] Error:", error);
+    throw new Error("Re-Encryption for Transfer Failed. Pastikan wallet aktif dan IPFS tersedia.");
   }
 };
 

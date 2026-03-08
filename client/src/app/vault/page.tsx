@@ -431,13 +431,29 @@ export default function VaultPage() {
                   </p>
                 )}
               </div>
-              <Button onClick={async () => {
-                if (!formData.address) return toast.error("Enter recipient address");
-                try {
-                  const success = formData.mode === "MOVE" ? await transferAsset(activeId!, formData.address) : await sendCopyAsset(activeId!, formData.address, formData.name, formData.cid);
-                  if (success) { addActivity({ type: "transfer_out", title: formData.mode === "MOVE" ? "Asset transferred" : "Copy sent", description: `Asset #${activeId} sent to ${getByAddress(formData.address)?.name ?? formData.address.slice(0, 8) + "…"}`, walletAddress: wallet!.address, tokenId: activeId!, address: formData.address }); toast.success("Transfer complete."); closeModal("transfer"); setShowContactPicker(false); }
-                } catch (e: any) { toast.error(e.message); }
-              }} disabled={!formData.address} className="w-full h-12 rounded-none">Confirm Transfer</Button>
+              <Button
+                onClick={async () => {
+                  if (!formData.address) return toast.error("Enter recipient address");
+                  setLoading(true);
+                  try {
+                    const success = formData.mode === "MOVE" ? await transferAsset(activeId!, formData.address) : await sendCopyAsset(activeId!, formData.address, formData.name, formData.cid);
+                    if (success) {
+                      addActivity({ type: "transfer_out", title: formData.mode === "MOVE" ? "Asset transferred" : "Copy sent", description: `Asset #${activeId} sent to ${getByAddress(formData.address)?.name ?? formData.address.slice(0, 8) + "…"}`, walletAddress: wallet!.address, tokenId: activeId!, address: formData.address });
+                      toast.success("Transfer complete.");
+                      closeModal("transfer");
+                      setShowContactPicker(false);
+                    }
+                  } catch (e: any) {
+                    toast.error(e.message);
+                  } finally {
+                    setLoading(false);
+                  }
+                }}
+                isLoading={loading}
+                disabled={!formData.address || loading}
+                className="w-full h-12 rounded-none">
+                Confirm Transfer
+              </Button>
             </div>
           </Modal>
         )}

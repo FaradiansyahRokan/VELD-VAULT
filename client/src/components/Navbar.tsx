@@ -11,12 +11,12 @@ import { NETWORK_CONFIG } from "../lib/constants";
 import NotificationCenter from "../components/NotificationCenter";
 
 const NAV_TABS = [
-  { id: "dashboard", label: "Home",    href: "/dashboard",  icon: Home },
-  { id: "vault",     label: "Vault",   href: "/vault",      icon: Shield },
-  { id: "market",    label: "Market",  href: "/market",     icon: ShoppingCart },
-  { id: "messages",  label: "Pesan",   href: "/messages",   icon: MessageSquare },
-  { id: "transfer",  label: "Kirim",   href: "/transfer",   icon: ArrowUpRight },
-  { id: "tools",     label: "Tools",   href: "/tools",      icon: Wrench },
+  { id: "dashboard", label: "Home", href: "/dashboard", icon: Home },
+  { id: "vault", label: "Vault", href: "/vault", icon: Shield },
+  { id: "market", label: "Market", href: "/market", icon: ShoppingCart },
+  { id: "messages", label: "Pesan", href: "/messages", icon: MessageSquare },
+  { id: "transfer", label: "Kirim", href: "/transfer", icon: ArrowUpRight },
+  { id: "tools", label: "Tools", href: "/tools", icon: Wrench },
 ] as const;
 
 export default function Navbar() {
@@ -81,10 +81,10 @@ export default function Navbar() {
   const springConfig = { type: "spring", stiffness: 350, damping: 30, mass: 0.8 } as const;
 
   const networkConfig = {
-    online:         { color: "bg-emerald-400", label: NETWORK_CONFIG.name, pulse: false },
-    offline:        { color: "bg-red-500",     label: "Offline",           pulse: true  },
-    "wrong-network":{ color: "bg-amber-400",   label: "Wrong Network",     pulse: true  },
-    checking:       { color: "bg-zinc-400",    label: "Connecting...",     pulse: true  },
+    online: { color: "bg-emerald-400", label: NETWORK_CONFIG.name, pulse: false },
+    offline: { color: "bg-red-500", label: "Offline", pulse: true },
+    "wrong-network": { color: "bg-amber-400", label: "Wrong Network", pulse: true },
+    checking: { color: "bg-zinc-400", label: "Connecting...", pulse: true },
   }[networkStatus] ?? { color: "bg-zinc-400", label: "...", pulse: false };
 
   const displayBalance = parseFloat(balance).toFixed(4);
@@ -118,13 +118,12 @@ export default function Navbar() {
       </div>
 
       {/* NETWORK STATUS */}
-      <div className={`flex items-center justify-between p-3 rounded-2xl border text-[10px] font-bold uppercase tracking-wider ${
-        networkStatus === "online"
+      <div className={`flex items-center justify-between p-3 rounded-2xl border text-[10px] font-bold uppercase tracking-wider ${networkStatus === "online"
           ? "bg-emerald-500/5 border-emerald-500/20 text-emerald-600 dark:text-emerald-400"
           : networkStatus === "offline"
             ? "bg-red-500/5 border-red-500/20 text-red-500"
             : "bg-amber-500/5 border-amber-500/20 text-amber-500"
-      }`}>
+        }`}>
         <div className="flex items-center gap-2">
           {networkStatus === "online"
             ? <Wifi size={12} />
@@ -169,9 +168,8 @@ export default function Navbar() {
       </div>
 
       {/* PRIVATE KEY */}
-      <div className={`rounded-2xl border transition-all duration-300 overflow-hidden ${
-        revealSecret ? "bg-red-500/5 border-red-500/20" : "bg-muted/20 border-transparent hover:border-black/5 dark:hover:border-white/5"
-      }`}>
+      <div className={`rounded-2xl border transition-all duration-300 overflow-hidden ${revealSecret ? "bg-red-500/5 border-red-500/20" : "bg-muted/20 border-transparent hover:border-black/5 dark:hover:border-white/5"
+        }`}>
         <button
           onClick={() => setRevealSecret(!revealSecret)}
           className="w-full flex items-center justify-between p-4"
@@ -244,8 +242,8 @@ export default function Navbar() {
             onClick={() => setMobileMenuOpen(true)}
             className="flex items-center gap-2 h-8 px-3.5 rounded-full bg-foreground text-background text-[10px] font-bold shadow-md hover:opacity-90 active:scale-95 transition-all"
           >
-            <span className="font-mono text-[9px] tracking-wider">{displayBalance} {NETWORK_CONFIG.tokenSymbol}</span>
-            <div className={`w-1.5 h-1.5 rounded-full ${networkConfig.color} ${networkConfig.pulse ? "animate-pulse" : ""}`} />
+            <span className="font-mono text-[9px] tracking-wider whitespace-nowrap">{displayBalance} {NETWORK_CONFIG.tokenSymbol}</span>
+            <div className={`w-1.5 h-1.5 shrink-0 rounded-full ${networkConfig.color} ${networkConfig.pulse ? "animate-pulse" : ""}`} />
           </button>
 
           {/* Right actions */}
@@ -416,7 +414,8 @@ export default function Navbar() {
           transition={springConfig}
           initial={false}
           animate={{
-            width: expanded ? 460 : 560,
+            width: expanded ? 460 : "auto",
+            minWidth: expanded ? 460 : 560,
             borderRadius: expanded ? 28 : 999,
           }}
           className="
@@ -459,11 +458,10 @@ export default function Navbar() {
                           <button
                             key={item.id}
                             onClick={() => router.push(item.href)}
-                            className={`relative px-3.5 py-1.5 text-[10px] font-bold uppercase tracking-wider rounded-full transition-all duration-300 z-10 ${
-                              isActive
+                            className={`relative px-3.5 py-1.5 text-[10px] font-bold uppercase tracking-wider rounded-full transition-all duration-300 z-10 ${isActive
                                 ? "text-foreground"
                                 : "text-muted-foreground hover:text-foreground/80"
-                            }`}
+                              }`}
                           >
                             {isActive && (
                               <motion.div
@@ -487,20 +485,19 @@ export default function Navbar() {
                 <motion.button
                   whileTap={{ scale: 0.95 }}
                   onClick={() => setExpanded(!expanded)}
-                  className={`h-10 px-4 rounded-full font-bold text-[10px] flex items-center gap-2 transition-all duration-300 border ${
-                    expanded
+                  className={`h-10 px-4 rounded-full font-bold text-[10px] flex items-center gap-2 transition-all duration-300 border ${expanded
                       ? "bg-muted/50 text-foreground border-transparent"
                       : "bg-foreground text-background border-transparent shadow-md hover:opacity-90"
-                  }`}
+                    }`}
                 >
                   {!expanded && (
-                    <span className="tracking-wider font-mono text-[9px]">
+                    <span className="tracking-wider font-mono text-[9px] whitespace-nowrap">
                       {displayBalance} {NETWORK_CONFIG.tokenSymbol}
                     </span>
                   )}
-                  {expanded && <span className="tracking-[0.15em]">CLOSE</span>}
+                  {expanded && <span className="tracking-[0.15em] whitespace-nowrap">CLOSE</span>}
                   <div
-                    className={`w-1.5 h-1.5 rounded-full ${networkConfig.color} ${networkConfig.pulse ? "animate-pulse" : ""} shadow-[0_0_8px_currentColor]`}
+                    className={`shrink-0 w-1.5 h-1.5 rounded-full ${networkConfig.color} ${networkConfig.pulse ? "animate-pulse" : ""} shadow-[0_0_8px_currentColor]`}
                   />
                 </motion.button>
               </motion.div>
@@ -530,11 +527,10 @@ export default function Navbar() {
                             <button
                               key={t.id}
                               onClick={() => { setExpanded(false); router.push(t.href); }}
-                              className={`py-2 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all ${
-                                isActive
+                              className={`py-2 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all ${isActive
                                   ? "bg-primary text-primary-foreground"
                                   : "bg-muted/30 text-muted-foreground hover:bg-muted/60 hover:text-foreground"
-                              }`}
+                                }`}
                             >
                               {t.label}
                             </button>

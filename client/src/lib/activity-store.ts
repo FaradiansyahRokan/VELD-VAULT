@@ -78,21 +78,21 @@ export const useActivityStore = create<ActivityState>()(
 // ── Helpers ───────────────────────────────────────────────────
 export const ACTIVITY_META: Record<
   ActivityType,
-  { emoji: string; color: string }
+  { color: string }
 > = {
-  upload:          { emoji: "⬆️", color: "text-blue-400" },
-  list:            { emoji: "🏷️", color: "text-amber-400" },
-  delist:          { emoji: "✖️", color: "text-muted-foreground" },
-  buy:             { emoji: "🛒", color: "text-emerald-400" },
-  sell:            { emoji: "💰", color: "text-emerald-400" },
-  transfer_in:     { emoji: "📥", color: "text-indigo-400" },
-  transfer_out:    { emoji: "📤", color: "text-indigo-400" },
-  escrow_start:    { emoji: "🔒", color: "text-amber-400" },
-  escrow_confirm:  { emoji: "✅", color: "text-emerald-400" },
-  escrow_cancel:   { emoji: "↩️", color: "text-red-400" },
-  message_sent:    { emoji: "✉️", color: "text-blue-400" },
-  message_received:{ emoji: "📨", color: "text-blue-400" },
-  sign:            { emoji: "✍️", color: "text-violet-400" },
-  burn:            { emoji: "🔥", color: "text-red-400" },
-  faucet:          { emoji: "⚡", color: "text-amber-400" },
+  upload:          { color: "text-blue-400" },
+  list:            { color: "text-amber-400" },
+  delist:          { color: "text-muted-foreground" },
+  buy:             { color: "text-emerald-400" },
+  sell:            { color: "text-emerald-400" },
+  transfer_in:     { color: "text-indigo-400" },
+  transfer_out:    { color: "text-indigo-400" },
+  escrow_start:    { color: "text-amber-400" },
+  escrow_confirm:  { color: "text-emerald-400" },
+  escrow_cancel:   { color: "text-red-400" },
+  message_sent:    { color: "text-blue-400" },
+  message_received:{ color: "text-blue-400" },
+  sign:            { color: "text-violet-400" },
+  burn:            { color: "text-red-400" },
+  faucet:          { color: "text-amber-400" },
 };

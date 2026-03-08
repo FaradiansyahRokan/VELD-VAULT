@@ -6,13 +6,13 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Bell, X, CheckCheck, Trash2, ArrowRight } from "lucide-react";
 import { useRouter } from "next/navigation";
 
-const TYPE_CONFIG: Record<Notification["type"], { emoji: string; color: string }> = {
-  success: { emoji: "✅", color: "text-emerald-400" },
-  error:   { emoji: "❌", color: "text-red-400" },
-  warning: { emoji: "⚠️", color: "text-amber-400" },
-  info:    { emoji: "ℹ️", color: "text-blue-400" },
-  trade:   { emoji: "🛒", color: "text-violet-400" },
-  message: { emoji: "✉️", color: "text-indigo-400" },
+const TYPE_CONFIG: Record<Notification["type"], { color: string }> = {
+  success: { color: "text-emerald-400" },
+  error:   { color: "text-red-400" },
+  warning: { color: "text-amber-400" },
+  info:    { color: "text-blue-400" },
+  trade:   { color: "text-violet-400" },
+  message: { color: "text-indigo-400" },
 };
 
 export default function NotificationCenter() {
@@ -127,8 +127,6 @@ export default function NotificationCenter() {
                       {!n.read && (
                         <div className="absolute left-2 top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-primary" />
                       )}
-
-                      <div className="text-base shrink-0 mt-0.5">{meta.emoji}</div>
 
                       <div className="flex-1 min-w-0">
                         <p className={`text-[11px] font-bold ${!n.read ? "text-foreground" : "text-muted-foreground"} truncate`}>

@@ -188,7 +188,7 @@ export default function ToolsPage() {
                           {/* Line connector */}
                           <div className="flex flex-col items-center shrink-0">
                             <div className="w-8 h-8 rounded-xl bg-muted/30 flex items-center justify-center text-base">
-                              {meta.emoji}
+                            
                             </div>
                             {i < filtered.length - 1 && (
                               <div className="w-px h-full min-h-[16px] bg-border/30 mt-1" />

@@ -13,6 +13,10 @@ const mono = JetBrains_Mono({ subsets: ["latin"], variable: '--font-mono' });
 export const metadata: Metadata = {
   title: "CipherVault",
   description: "Secure Decentralized Storage",
+  icons: {
+    icon: "/icon.png",
+    apple: "/apple-icon.png",
+  }
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode; }>) {

@@ -661,12 +661,10 @@ export default function Navbar() {
         {/* Desktop band */}
         <div className="nb-band nb-desk-only">
           <button className="nb-logo" onClick={() => goTo("/dashboard")}>
-            <div className="nb-logo-mark" style={{ border: "none" }}>
-              <img src="/logo.png" alt="StoneCrypt" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-            </div>
+            <div className="nb-logo-mark"><I.Grid /></div>
             <div>
-              <div className="nb-logo-name">StoneCrypt</div>
-              <div className="nb-logo-sub">Quantum Secure Protocol</div>
+              <div className="nb-logo-name">CipherVault</div>
+              <div className="nb-logo-sub">Secure Protocol</div>
             </div>
           </button>
 
@@ -704,10 +702,7 @@ export default function Navbar() {
 
         {/* Mobile top bar */}
         <div className="nb-mob-top nb-mob-only">
-          <button className="nb-mob-logo" onClick={() => goTo("/dashboard")} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <img src="/logo.png" alt="STC" style={{ width: '22px', height: '22px' }} />
-            StoneCrypt
-          </button>
+          <button className="nb-mob-logo" onClick={() => goTo("/dashboard")}>CipherVault</button>
           <div className="nb-mob-bal">
             {displayBal} {NETWORK_CONFIG.tokenSymbol}
           </div>

@@ -146,8 +146,7 @@ const style = `
   /* NAV */
   .nav { position:fixed; top:0; left:0; right:0; z-index:100; background:rgba(250,250,248,0.92); backdrop-filter:blur(12px); border-bottom:1px solid var(--smoke); }
   .nav-inner { max-width:1280px; margin:0 auto; padding:18px 48px; display:flex; align-items:center; justify-content:space-between; }
-  .nav-logo { font-family:'Playfair Display',serif; font-size:18px; font-weight:700; letter-spacing:0.02em; color:var(--ink); display: flex; align-items: center; gap: 10px; }
-  .nav-logo img { width: 24px; height: 24px; object-fit: cover; }
+  .nav-logo { font-family:'Playfair Display',serif; font-size:18px; font-weight:700; letter-spacing:0.02em; color:var(--ink); }
   .nav-logo span { font-style:italic; font-weight:400; }
   .nav-links { display:flex; gap:36px; list-style:none; }
   .nav-links a { font-family:'EB Garamond',serif; font-size:15px; color:var(--mid); text-decoration:none; letter-spacing:0.02em; transition:color 0.2s; }
@@ -517,8 +516,8 @@ const risk = [
 ];
 
 const tickerStatic = [
-  { sym: "NETWORK", val: "StoneCrypt", chg: "", up: true },
-  { sym: "CHAIN ID", val: "666999", chg: "", up: true },
+  { sym: "NETWORK", val: "BridgeStone", chg: "", up: true },
+  { sym: "CHAIN ID", val: "777000", chg: "", up: true },
   { sym: "TOKEN", val: "STC", chg: "", up: true },
   { sym: "ENCRYPTION", val: "AES-256-GCM", chg: "", up: true },
   { sym: "KEY EXCHANGE", val: "ECDH", chg: "", up: true },
@@ -1103,10 +1102,7 @@ export default function LandingPage() {
         {/* ── NAV ── */}
         <nav className="nav animate-fade-in">
           <div className="nav-inner">
-            <div className="nav-logo">
-              <img src="/logo.png" alt="STC" />
-              StoneCrypt <span>Protocol</span>
-            </div>
+            <div className="nav-logo">Cipher<span>Vault</span></div>
             <ul className="nav-links">
               {["Platform", "Storage", "Comms", "Market", "Docs"].map(l => (
                 <li key={l}><a href="#">{l}</a></li>
@@ -1140,12 +1136,12 @@ export default function LandingPage() {
                 Absolute<br /><em>privacy</em><br />in every byte.
               </h1>
               <p className="hero-subtitle animate-fade-up delay-3">
-                StoneCrypt deploys military-grade, end-to-end encrypted storage and messaging
+                CipherVault deploys military-grade, end-to-end encrypted storage and messaging
                 across decentralised networks — designed for individuals and institutions that demand sovereignty over their data.
               </p>
               <div className="hero-cta-group animate-fade-up delay-4">
                 <button className="btn-primary" onClick={() => window.location.href = "/login"}>Enter the Vault</button>
-                <button className="btn-ghost" onClick={() => window.open("/StoneCrypt_WhitePaper_v2.pdf", "_blank")}>Read Whitepaper</button>
+                <button className="btn-ghost" onClick={() => window.open("/CipherVault_WhitePaper_v2.pdf", "_blank")}>Read Whitepaper</button>
               </div>
             </div>
 
@@ -1375,7 +1371,7 @@ export default function LandingPage() {
               <div>
                 <h2 className="research-title">Privacy driven by<br /><em>rigorous mathematics,</em><br />not blind trust.</h2>
                 <p className="research-body">
-                  StoneCrypt's core security engine is built upon industry-standard cryptographic primitives.
+                  CipherVault's core security engine is built upon industry-standard cryptographic primitives.
                   By combining AES-256 for symmetric data payload encryption and ECDH for secure key exchange,
                   every piece of data is mathematically sealed before it leaves your device.
                 </p>
@@ -1427,7 +1423,7 @@ export default function LandingPage() {
             <p className="cta-sub">Self-custodial · Cryptographically Secured · Trustless Architecture</p>
             <div style={{ display: "flex", justifyContent: "center", gap: 16, flexWrap: "wrap" }}>
               <button className="btn-primary" onClick={() => window.location.href = "/login"}>Launch Web App</button>
-              <button className="btn-ghost" onClick={() => window.open("/StoneCrypt_WhitePaper_v2.pdf", "_blank")}>View Documentation</button>
+              <button className="btn-ghost" onClick={() => window.open("/CipherVault_WhitePaper_v2.pdf", "_blank")}>View Documentation</button>
             </div>
             <div style={{ marginTop: 52, fontFamily: "DM Mono, monospace", fontSize: 11, color: "var(--ash)", letterSpacing: "0.1em", display: "flex", justifyContent: "center", gap: 40, flexWrap: "wrap" }}>
               <span>✦ Verifiable Smart Contracts</span>
@@ -1443,7 +1439,7 @@ export default function LandingPage() {
           <div className="footer-inner">
             <div className="footer-top">
               <div>
-                <div className="footer-logo">StoneCrypt</div>
+                <div className="footer-logo">CipherVault</div>
                 <div style={{ fontFamily: "DM Mono, monospace", fontSize: 10, letterSpacing: "0.14em", color: "var(--silver)", marginTop: 8, textTransform: "uppercase" }}>
                   Secure On-Chain Storage &amp; Communications
                 </div>
@@ -1462,9 +1458,9 @@ export default function LandingPage() {
               </div>
             </div>
             <div className="footer-bottom">
-              <div className="footer-copy">© 2026 StoneCrypt Protocol · Open Source Infrastructure</div>
+              <div className="footer-copy">© 2026 CipherVault Protocol · Open Source Infrastructure</div>
               <div className="footer-disclaimer">
-                StoneCrypt is a decentralised protocol. Users are solely responsible for managing their cryptographic keys and backups.
+                CipherVault is a decentralised protocol. Users are solely responsible for managing their cryptographic keys and backups.
               </div>
             </div>
           </div>

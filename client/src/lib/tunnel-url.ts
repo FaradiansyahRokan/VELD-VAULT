@@ -15,7 +15,7 @@ import { kv } from "@vercel/kv";
 
 const DEFAULT_RPC =
   process.env.NEXT_PUBLIC_RPC_URL ||
-  "http://127.0.0.1:9654/ext/bc/w4DDDiThpt7dv6A1T2UqkAUxZkC1JVceqg3QMpZ8nL4KPQcHs/rpc";
+  "https://answer-hansen-understand-built.trycloudflare.com/ext/bc/Yxdrh1Sof5JoTTn66vQjNLdvf7JMYvwMMYUWrjAJBphQ2W9qs/rpc";
 
 const DEFAULT_IPFS =
   process.env.NEXT_PUBLIC_IPFS_URL || "http://127.0.0.1:5001";

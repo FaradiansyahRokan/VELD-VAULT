@@ -1,7 +1,7 @@
 /**
  * Faucet API — /api/faucet
  *
- * Kirim sejumlah kecil VELD ke wallet baru yang belum punya saldo.
+ * Kirim sejumlah kecil STC ke wallet baru yang belum punya saldo.
  *
  * URL RPC diambil dari KV (paling fresh) → env var → localhost.
  */
@@ -58,7 +58,7 @@ export async function POST(request: NextRequest) {
       return Response.json(
         {
           success: false,
-          error: `Saldo sudah cukup (${ethers.formatEther(userBalance)} VELD). Faucet hanya untuk saldo < 0.01 VELD.`,
+          error: `Saldo sudah cukup (${ethers.formatEther(userBalance)} STC). Faucet hanya untuk saldo < 0.01 STC.`,
         },
         { status: 400 }
       );
@@ -78,13 +78,13 @@ export async function POST(request: NextRequest) {
     lastClaim.set(normalizedAddress, now);
     await tx.wait();
 
-    console.log(`[Faucet] Sent ${FAUCET_AMOUNT} VELD → ${address} | tx: ${tx.hash}`);
+    console.log(`[Faucet] Sent ${FAUCET_AMOUNT} STC → ${address} | tx: ${tx.hash}`);
 
     return Response.json({
       success: true,
       amount:  FAUCET_AMOUNT,
       txHash:  tx.hash,
-      message: `${FAUCET_AMOUNT} VELD telah dikirim ke wallet kamu!`,
+      message: `${FAUCET_AMOUNT} STC telah dikirim ke wallet kamu!`,
     });
   } catch (err: any) {
     console.error("[Faucet] Error:", err);

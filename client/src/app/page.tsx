@@ -10,7 +10,7 @@ interface TxData {
   hash: string;
   from: string;
   to: string | null;
-  value: string;        // VELD, human readable
+  value: string;        // STC, human readable
   valueRaw: bigint;
   gasPrice: string;     // gwei
   status: "success" | "pending" | "failed";
@@ -54,7 +54,7 @@ interface WhaleTx {
   hash: string;
   from: string;
   to: string | null;
-  valueVeld: string;
+  valueSTC: string;
   timestamp: number;
   blockNumber: number;
 }
@@ -518,7 +518,7 @@ const risk = [
 const tickerStatic = [
   { sym: "NETWORK", val: "BridgeStone", chg: "", up: true },
   { sym: "CHAIN ID", val: "777000", chg: "", up: true },
-  { sym: "TOKEN", val: "VELD", chg: "", up: true },
+  { sym: "TOKEN", val: "STC", chg: "", up: true },
   { sym: "ENCRYPTION", val: "AES-256-GCM", chg: "", up: true },
   { sym: "KEY EXCHANGE", val: "ECDH", chg: "", up: true },
   { sym: "SIGNATURES", val: "ECDSA EIP-712", chg: "", up: true },
@@ -557,7 +557,7 @@ function timeAgo(ts: number): string {
   if (s < 3600) return `${Math.floor(s / 60)}m ago`;
   return `${Math.floor(s / 3600)}h ago`;
 }
-function fmtVeld(v: bigint): string {
+function fmtSTC(v: bigint): string {
   const n = parseFloat(ethers.formatEther(v));
   if (n === 0) return "0";
   if (n < 0.001) return "<0.001";
@@ -565,7 +565,7 @@ function fmtVeld(v: bigint): string {
   if (n < 1000) return n.toFixed(2);
   return n.toLocaleString("en-US", { maximumFractionDigits: 1 });
 }
-const WHALE_THRESHOLD = BigInt("50000000000000000000"); // 50 VELD
+const WHALE_THRESHOLD = BigInt("50000000000000000000"); // 50 STC
 
 // ── useCountUp hook ────────────────────────────────────────────
 function useCountUp(target: number | string, duration = 1800, delay = 400) {
@@ -738,7 +738,7 @@ function NetworkMonitor({
                       <td className="nm-tx-addr" title={tx.from}>{fmt(tx.from)}</td>
                       <td style={{ color: "#2d2d2d", padding: "9px 2px" }}>→</td>
                       <td className="nm-tx-addr" title={tx.to ?? ""}>{fmt(tx.to)}</td>
-                      <td className="nm-tx-value">{fmtVeld(tx.valueRaw)} VELD</td>
+                      <td className="nm-tx-value">{fmtSTC(tx.valueRaw)} STC</td>
                       <td className="nm-tx-gas">{tx.gasPrice} gwei</td>
                       <td>
                         <span className={`badge-${tx.status}`}>
@@ -843,7 +843,7 @@ function NetworkMonitor({
           <div className="nm-panel-header">
             <span className="nm-panel-title">Whale Radar</span>
             <span className="nm-panel-badge" style={{ color: "#c8b98a", borderColor: "#3d3110" }}>
-              &gt;50 VELD
+              &gt;50 STC
             </span>
           </div>
           {loading ? (
@@ -861,7 +861,7 @@ function NetworkMonitor({
                     <span>WHALE TRANSACTION</span>
                     <span style={{ color: "#333", marginLeft: "auto" }}>Block #{w.blockNumber.toLocaleString()}</span>
                   </div>
-                  <div className="nm-whale-value">{w.valueVeld} VELD</div>
+                  <div className="nm-whale-value">{w.valueSTC} STC</div>
                   <div className="nm-whale-meta">
                     <span>
                       <span style={{ color: "#333", marginRight: 6 }}>From:</span>
@@ -919,13 +919,13 @@ export default function LandingPage() {
   const mapTopicToDefi = useCallback((topic: string, txHash: string, ts: number, i: number): DefiEvent | null => {
     const t = topicIds.current;
     const base = { id: `${txHash}-${i}`, txHash, timestamp: ts, address: "" };
-    if (topic === t.VaultItemCreated) return { ...base, kind: "mint", label: "Vault Mint", detail: "New encrypted asset minted to vault", amount: "0 VELD" };
-    if (topic === t.AssetSold) return { ...base, kind: "swap", label: "Asset Swap", detail: "Asset exchanged for VELD via marketplace", amount: "? VELD" };
+    if (topic === t.VaultItemCreated) return { ...base, kind: "mint", label: "Vault Mint", detail: "New encrypted asset minted to vault", amount: "0 STC" };
+    if (topic === t.AssetSold) return { ...base, kind: "swap", label: "Asset Swap", detail: "Asset exchanged for STC via marketplace", amount: "? STC" };
     if (topic === t.AssetListed) return { ...base, kind: "liq_add", label: "Liquidity Added", detail: "Asset listed — liquidity added to market", amount: "listed" };
     if (topic === t.AssetDelisted) return { ...base, kind: "liq_remove", label: "Liquidity Removed", detail: "Asset delisted — liquidity withdrawn", amount: "delisted" };
     if (topic === t.ListingCancelled) return { ...base, kind: "liq_remove", label: "Listing Cancelled", detail: "Seller cancelled — funds unlocked", amount: "—" };
     if (topic === t.EscrowStarted) return { ...base, kind: "stake", label: "Escrow Staked", detail: "Buyer funds locked in dual-confirm escrow", amount: "locked" };
-    if (topic === t.EscrowCompleted) return { ...base, kind: "settlement", label: "Escrow Settled", detail: "Escrow completed — VELD released to seller", amount: "released" };
+    if (topic === t.EscrowCompleted) return { ...base, kind: "settlement", label: "Escrow Settled", detail: "Escrow completed — STC released to seller", amount: "released" };
     if (topic === t.AssetBurned) return { ...base, kind: "fee", label: "Token Burned", detail: "NFT permanently destroyed — supply reduced", amount: "burned" };
     if (topic === t.MetadataUpdate) return { ...base, kind: "swap", label: "Re-encrypted", detail: "Asset CID updated — new owner key applied", amount: "—" };
     if (topic === t.ListingUpdated) return { ...base, kind: "liq_add", label: "Price Updated", detail: "Market listing price revised", amount: "updated" };
@@ -1046,7 +1046,7 @@ export default function LandingPage() {
           hash: tx.hash,
           from: tx.from,
           to: tx.to,
-          valueVeld: fmtVeld(tx.value),
+          valueSTC: fmtSTC(tx.value),
           timestamp: blockTs,
           blockNumber: blockNum,
         }));

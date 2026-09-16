@@ -33,27 +33,79 @@
 /* CSS Variables untuk Light & Dark Mode */
 @layer base {
   :root {
-    --background: #F4F8FD;              /* Sangat soft Azure/Periwinkle tint */
-    --foreground: #091540;              /* Deep Navy */
-    --card: #FFFFFF;                    /* Pure White untuk kontras */
+    --background: #F4F8FD;
+    --foreground: #091540;
+    --card: #FFFFFF;
     --card-foreground: #091540;
-    --primary: #1B2CC1;                 /* Cobalt Blue */
+    --primary: #1B2CC1;
     --primary-foreground: #FFFFFF;
-    --muted: rgba(171, 210, 250, 0.25); /* Azure soft background (lebih hidup dari abu-abu) */
-    --muted-foreground: #1B2CC1;        /* Cobalt text untuk contrast di muted background */
-    --border: rgba(118, 146, 255, 0.2); /* Periwinkle border */
+    --muted: rgba(171, 210, 250, 0.25);
+    --muted-foreground: #1B2CC1;
+    --border: rgba(118, 146, 255, 0.2);
+
+    /* Dynamic Island Light */
+    --island-bg: rgba(255, 255, 255, 0.72);
+    --island-border: rgba(255, 255, 255, 0.9);
+    --island-border-bottom: rgba(9, 21, 64, 0.1);
+    --island-highlight: rgba(255, 255, 255, 1);
+    --island-inner-ring: rgba(255, 255, 255, 0.5);
+
+    /* Nav Capsule Light */
+    --nav-capsule-bg: rgba(171, 210, 250, 0.2);
+    --nav-capsule-border: rgba(118, 146, 255, 0.15);
+    --nav-active-text: #FFFFFF;
+    --nav-inactive-text: rgba(9, 21, 64, 0.55);
+
+    /* Active Pill Light */
+    --nav-pill-bg: linear-gradient(180deg, #2739DB 0%, #1B2CC1 100%);
+    --nav-pill-border: rgba(27, 44, 193, 0.6);
+    --nav-pill-border-bottom: rgba(13, 21, 99, 0.8);
+    --nav-pill-highlight: rgba(255, 255, 255, 0.35);
+
+    /* Balance / Address Light */
+    --balance-bg: rgba(118, 146, 255, 0.12);
+    --balance-border: rgba(118, 146, 255, 0.2);
+    --balance-text: #1B2CC1;
+    --address-bg: rgba(171, 210, 250, 0.15);
+    --address-border: rgba(118, 146, 255, 0.15);
   }
 
   .dark {
-    --background: #050B24;              /* Super deep navy, membuat card lebih menonjol */
-    --foreground: #F4F8FC;              /* Frost White */
-    --card: #091540;                    /* Navy utama sebagai Card */
+    --background: #050B24;
+    --foreground: #F4F8FC;
+    --card: #091540;
     --card-foreground: #F4F8FC;
-    --primary: #7692FF;                 /* Periwinkle (Lebih menyala & hidup di Dark Mode!) */
-    --primary-foreground: #091540;      /* Teks Navy di atas tombol Periwinkle */
-    --muted: rgba(118, 146, 255, 0.15); /* Periwinkle soft background */
-    --muted-foreground: #ABD2FA;        /* Azure text */
-    --border: rgba(118, 146, 255, 0.25);/* Periwinkle border */
+    --primary: #7692FF;
+    --primary-foreground: #091540;
+    --muted: rgba(118, 146, 255, 0.15);
+    --muted-foreground: #ABD2FA;
+    --border: rgba(118, 146, 255, 0.25);
+
+    /* Dynamic Island Dark */
+    --island-bg: rgba(9, 21, 64, 0.65);
+    --island-border: rgba(255, 255, 255, 0.1);
+    --island-border-bottom: rgba(0, 0, 0, 0.5);
+    --island-highlight: rgba(255, 255, 255, 0.12);
+    --island-inner-ring: rgba(255, 255, 255, 0.04);
+
+    /* Nav Capsule Dark */
+    --nav-capsule-bg: rgba(118, 146, 255, 0.1);
+    --nav-capsule-border: rgba(118, 146, 255, 0.15);
+    --nav-active-text: #091540;
+    --nav-inactive-text: rgba(171, 210, 250, 0.6);
+
+    /* Active Pill Dark */
+    --nav-pill-bg: linear-gradient(180deg, #91AAFF 0%, #7692FF 100%);
+    --nav-pill-border: rgba(118, 146, 255, 0.5);
+    --nav-pill-border-bottom: rgba(59, 83, 184, 0.8);
+    --nav-pill-highlight: rgba(255, 255, 255, 0.5);
+
+    /* Balance / Address Dark */
+    --balance-bg: rgba(118, 146, 255, 0.12);
+    --balance-border: rgba(118, 146, 255, 0.2);
+    --balance-text: #ABD2FA;
+    --address-bg: rgba(118, 146, 255, 0.08);
+    --address-border: rgba(118, 146, 255, 0.12);
   }
 }
 
@@ -206,4 +258,21 @@ body {
 }
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(118, 146, 255, 0.45);
+}
+
+/* Dynamic Island Dropdown (Mobile Menu) */
+.dynamic-island-dropdown {
+  background: rgba(255, 255, 255, 0.78);
+  backdrop-filter: blur(40px) saturate(180%);
+  -webkit-backdrop-filter: blur(40px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  border-bottom: 1px solid rgba(9, 21, 64, 0.1);
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 1), 0 20px 60px -10px rgba(9, 21, 64, 0.15);
+}
+
+.dark .dynamic-island-dropdown {
+  background: rgba(9, 21, 64, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.5);
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.1), 0 20px 60px -10px rgba(0, 0, 0, 0.5);
 }

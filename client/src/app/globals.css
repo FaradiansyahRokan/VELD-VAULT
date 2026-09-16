@@ -128,7 +128,7 @@ body {
   border: 1px solid rgba(255, 255, 255, 0.8);
   border-bottom: 1px solid rgba(9, 21, 64, 0.08);
   box-shadow: inset 0 1px 1px rgba(255, 255, 255, 1);
-  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: all 0.4s cubic-bezier(0.32, 0.72, 0, 1);
 }
 
 .dark .ios-card,
@@ -165,7 +165,7 @@ body {
   border: 1px solid #111C82;
   border-bottom: 2px solid #0D1563;
   box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.35);
-  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: all 0.35s cubic-bezier(0.32, 0.72, 0, 1);
 }
 
 .dark .btn-enterprise-primary {

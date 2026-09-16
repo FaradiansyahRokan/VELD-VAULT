@@ -30,7 +30,8 @@ import { toast } from "sonner";
 const spring = {
   type: "spring" as const,
   stiffness: 400,
-  damping: 30,
+  damping: 32,
+  mass: 0.8,
 };
 
 export default function DashboardPage() {

@@ -127,7 +127,7 @@ export default function Navbar() {
                       <motion.div
                         layoutId="activeNavPill"
                         className="absolute inset-0 bg-primary rounded-full shadow-sm border border-transparent"
-                        transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                        transition={{ type: "spring", stiffness: 400, damping: 32, mass: 0.8 }}
                       />
                     )}
                     <span className="relative z-10 flex items-center gap-1.5">
@@ -236,7 +236,7 @@ export default function Navbar() {
             initial={{ opacity: 0, y: -10, scale: 0.98 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -10, scale: 0.98 }}
-            transition={{ type: "spring", stiffness: 350, damping: 25 }}
+            transition={{ type: "spring", stiffness: 350, damping: 30, mass: 0.8 }}
             className="md:hidden fixed top-18 inset-x-4 z-50 ios-glass-pill rounded-3xl p-4 shadow-2xl border border-black/5 dark:border-white/10"
           >
             {/* Mobile Balance Display */}

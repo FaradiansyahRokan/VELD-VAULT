@@ -84,9 +84,9 @@ export default function PageAnimate({ children }: { children: React.ReactNode })
         animate="center"
         exit="exit"
         transition={{
-          x: { type: "spring", stiffness: 280, damping: 32, mass: 1 }, // Tuning Physics: Sedikit lebih berat biar mewah
-          opacity: { duration: 0.3 },
-          scale: { duration: 0.35 }
+          x: { type: "spring", stiffness: 350, damping: 35, mass: 0.8 }, // Ultra-fluid iOS physics
+          opacity: { duration: 0.3, ease: [0.32, 0.72, 0, 1] },
+          scale: { type: "spring", stiffness: 350, damping: 35, mass: 0.8 }
         }}
         className="absolute inset-0 w-full h-[100dvh] overflow-y-auto overflow-x-hidden will-change-transform"
       >

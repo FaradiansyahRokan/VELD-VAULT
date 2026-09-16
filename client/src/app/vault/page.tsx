@@ -38,8 +38,9 @@ import { useContactsStore } from "@/lib/contact-store";
 
 const spring = {
   type: "spring" as const,
-  stiffness: 380,
-  damping: 28,
+  stiffness: 400,
+  damping: 32,
+  mass: 0.8,
 };
 
 export default function VaultPage() {

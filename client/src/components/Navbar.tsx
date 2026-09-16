@@ -25,6 +25,9 @@ import {
   Coins,
   RefreshCw,
   ChevronDown,
+  Key,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 
 const NAV_ITEMS = [
@@ -106,6 +109,8 @@ export default function Navbar() {
   const { theme, setTheme } = useTheme();
 
   const [copied, setCopied] = useState(false);
+  const [copiedKey, setCopiedKey] = useState(false);
+  const [showPrivateKey, setShowPrivateKey] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [hoveredTab, setHoveredTab] = useState<string | null>(null);
@@ -131,18 +136,21 @@ export default function Navbar() {
         !desktopIslandRef.current.contains(e.target as Node)
       ) {
         setDesktopAccountOpen(false);
+        setShowPrivateKey(false);
       }
       if (
         mobileIslandRef.current &&
         !mobileIslandRef.current.contains(e.target as Node)
       ) {
         setMobileState("compact");
+        setShowPrivateKey(false);
       }
     };
     const handleEsc = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         setDesktopAccountOpen(false);
         setMobileState("compact");
+        setShowPrivateKey(false);
       }
     };
     window.addEventListener("mousedown", handleOutside);
@@ -157,6 +165,7 @@ export default function Navbar() {
   useEffect(() => {
     setMobileState("compact");
     setDesktopAccountOpen(false);
+    setShowPrivateKey(false);
   }, [pathname]);
 
   const isAuthPage = pathname === "/" || pathname === "/login";
@@ -165,9 +174,17 @@ export default function Navbar() {
     if (!wallet?.address) return;
     navigator.clipboard.writeText(wallet.address);
     setCopied(true);
-    toast.success("Address copied to clipboard!");
+    toast.success("Wallet address copied to clipboard!");
     setTimeout(() => setCopied(false), 2000);
   }, [wallet?.address]);
+
+  const handleCopyPrivateKey = useCallback(() => {
+    if (!wallet?.privateKey) return;
+    navigator.clipboard.writeText(wallet.privateKey);
+    setCopiedKey(true);
+    toast.success("Private key copied! Never share this with anyone.");
+    setTimeout(() => setCopiedKey(false), 2000);
+  }, [wallet?.privateKey]);
 
   const handleRefreshBalance = useCallback(async () => {
     setRefreshing(true);
@@ -355,7 +372,7 @@ export default function Navbar() {
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -12, scale: 0.95 }}
               transition={islandMorphSpring}
-              className="absolute top-[calc(100%+8px)] right-0 w-[295px] rounded-[26px] p-4 dynamic-island-dropdown z-50 overflow-hidden"
+              className="absolute top-[calc(100%+8px)] right-0 w-[320px] rounded-[26px] p-4 dynamic-island-dropdown z-50 overflow-hidden"
             >
               <motion.div
                 variants={waveContainerVariants}
@@ -364,7 +381,7 @@ export default function Navbar() {
                 exit="exit"
                 className="space-y-3"
               >
-                {/* Header Item */}
+                {/* 1. Header: Wallet Address */}
                 <motion.div
                   variants={waveItemVariants}
                   className="flex items-center justify-between pb-3 border-b border-border/50"
@@ -396,7 +413,7 @@ export default function Navbar() {
                   </button>
                 </motion.div>
 
-                {/* Balance Card Item */}
+                {/* 2. Available Balance Card */}
                 <motion.div
                   variants={waveItemVariants}
                   className="p-3 rounded-2xl bg-black/[0.03] dark:bg-white/[0.04] border border-border/40"
@@ -417,7 +434,53 @@ export default function Navbar() {
                   </div>
                 </motion.div>
 
-                {/* Actions Item */}
+                {/* 3. Private Key Card with Show/Hide & Copy */}
+                {wallet.privateKey && (
+                  <motion.div
+                    variants={waveItemVariants}
+                    className="p-3 rounded-2xl bg-black/[0.03] dark:bg-white/[0.04] border border-border/40"
+                  >
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                        <Key size={11} className="text-amber-500" /> Private Key
+                      </span>
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={() => setShowPrivateKey(!showPrivateKey)}
+                          className="p-1 rounded-lg hover:bg-black/[0.05] dark:hover:bg-white/[0.08] text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                          title={showPrivateKey ? "Hide Private Key" : "Reveal Private Key"}
+                        >
+                          {showPrivateKey ? <EyeOff size={13} /> : <Eye size={13} />}
+                        </button>
+                        {showPrivateKey && (
+                          <button
+                            onClick={handleCopyPrivateKey}
+                            className="p-1 rounded-lg hover:bg-black/[0.05] dark:hover:bg-white/[0.08] text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                            title="Copy Private Key"
+                          >
+                            {copiedKey ? (
+                              <Check size={13} className="text-emerald-500" />
+                            ) : (
+                              <Copy size={13} />
+                            )}
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="p-2 rounded-xl bg-black/[0.04] dark:bg-black/30 font-mono text-[10px] break-all select-all text-foreground/90 leading-relaxed">
+                      {showPrivateKey ? (
+                        wallet.privateKey
+                      ) : (
+                        <span className="tracking-widest text-muted-foreground select-none">
+                          ••••••••••••••••••••••••••••••••••••••••••••••••••••
+                        </span>
+                      )}
+                    </div>
+                  </motion.div>
+                )}
+
+                {/* 4. Actions Item */}
                 <motion.div
                   variants={waveItemVariants}
                   className="grid grid-cols-2 gap-2 pt-1"
@@ -437,6 +500,7 @@ export default function Navbar() {
                   <button
                     onClick={() => {
                       setDesktopAccountOpen(false);
+                      setShowPrivateKey(false);
                       router.push("/transfer");
                     }}
                     className="py-2 px-3 rounded-xl btn-enterprise-primary text-primary-foreground text-[11px] font-semibold flex items-center justify-center gap-1.5 cursor-pointer"
@@ -446,11 +510,12 @@ export default function Navbar() {
                   </button>
                 </motion.div>
 
-                {/* Disconnect Item */}
+                {/* 5. Disconnect Item */}
                 <motion.div variants={waveItemVariants}>
                   <button
                     onClick={() => {
                       setDesktopAccountOpen(false);
+                      setShowPrivateKey(false);
                       logout();
                       router.push("/");
                       toast.success("Disconnected wallet");
@@ -496,6 +561,7 @@ export default function Navbar() {
             <div
               onClick={() => {
                 setMobileState("compact");
+                setShowPrivateKey(false);
                 router.push(wallet ? "/dashboard" : "/");
               }}
               className="flex items-center gap-2 cursor-pointer select-none shrink-0"
@@ -515,9 +581,10 @@ export default function Navbar() {
                 <motion.button
                   whileTap={{ scale: 0.94 }}
                   transition={microSpring}
-                  onClick={() =>
-                    setMobileState(mobileState === "account" ? "compact" : "account")
-                  }
+                  onClick={() => {
+                    setShowPrivateKey(false);
+                    setMobileState(mobileState === "account" ? "compact" : "account");
+                  }}
                   className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold cursor-pointer transition-colors ${
                     mobileState === "account"
                       ? "bg-primary text-primary-foreground"
@@ -554,9 +621,10 @@ export default function Navbar() {
                 <motion.button
                   whileTap={{ scale: 0.88 }}
                   transition={microSpring}
-                  onClick={() =>
-                    setMobileState(mobileState === "menu" ? "compact" : "menu")
-                  }
+                  onClick={() => {
+                    setShowPrivateKey(false);
+                    setMobileState(mobileState === "menu" ? "compact" : "menu");
+                  }}
                   className={`p-1.5 rounded-full cursor-pointer transition-colors ${
                     mobileState === "menu"
                       ? "bg-primary text-primary-foreground"
@@ -651,7 +719,7 @@ export default function Navbar() {
               </motion.div>
             )}
 
-            {/* VIEW B: Mobile Account & Balance View */}
+            {/* VIEW B: Mobile Account & Balance View with Private Key */}
             {mobileState === "account" && wallet && (
               <motion.div
                 key="mobile-account"
@@ -667,7 +735,7 @@ export default function Navbar() {
                   className="w-10 h-1 rounded-full bg-muted-foreground/20 mx-auto -mt-1 mb-2"
                 />
 
-                {/* Identity Header */}
+                {/* 1. Identity Header: Address */}
                 <motion.div
                   variants={waveItemVariants}
                   className="flex items-center justify-between p-3 rounded-2xl bg-black/[0.03] dark:bg-white/[0.04] border border-border/40"
@@ -698,7 +766,7 @@ export default function Navbar() {
                   </button>
                 </motion.div>
 
-                {/* Large Balance Display */}
+                {/* 2. Large Balance Display */}
                 <motion.div
                   variants={waveItemVariants}
                   className="p-4 rounded-2xl bg-black/[0.03] dark:bg-white/[0.04] border border-border/40 text-center"
@@ -719,7 +787,53 @@ export default function Navbar() {
                   </div>
                 </motion.div>
 
-                {/* Actions Grid */}
+                {/* 3. Private Key Card */}
+                {wallet.privateKey && (
+                  <motion.div
+                    variants={waveItemVariants}
+                    className="p-3 rounded-2xl bg-black/[0.03] dark:bg-white/[0.04] border border-border/40"
+                  >
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                        <Key size={11} className="text-amber-500" /> Private Key
+                      </span>
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={() => setShowPrivateKey(!showPrivateKey)}
+                          className="p-1.5 rounded-lg hover:bg-black/[0.05] dark:hover:bg-white/[0.08] text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                          title={showPrivateKey ? "Hide Private Key" : "Reveal Private Key"}
+                        >
+                          {showPrivateKey ? <EyeOff size={13} /> : <Eye size={13} />}
+                        </button>
+                        {showPrivateKey && (
+                          <button
+                            onClick={handleCopyPrivateKey}
+                            className="p-1.5 rounded-lg hover:bg-black/[0.05] dark:hover:bg-white/[0.08] text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                            title="Copy Private Key"
+                          >
+                            {copiedKey ? (
+                              <Check size={13} className="text-emerald-500" />
+                            ) : (
+                              <Copy size={13} />
+                            )}
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="p-2 rounded-xl bg-black/[0.04] dark:bg-black/30 font-mono text-[10px] break-all select-all text-foreground/90 leading-relaxed">
+                      {showPrivateKey ? (
+                        wallet.privateKey
+                      ) : (
+                        <span className="tracking-widest text-muted-foreground select-none">
+                          ••••••••••••••••••••••••••••••••••••••••••••••••••••
+                        </span>
+                      )}
+                    </div>
+                  </motion.div>
+                )}
+
+                {/* 4. Actions Grid */}
                 <motion.div
                   variants={waveItemVariants}
                   className="grid grid-cols-2 gap-2 pt-1"
@@ -739,12 +853,30 @@ export default function Navbar() {
                   <button
                     onClick={() => {
                       setMobileState("compact");
+                      setShowPrivateKey(false);
                       router.push("/transfer");
                     }}
                     className="py-2.5 px-3 rounded-xl btn-enterprise-primary text-primary-foreground text-xs font-semibold flex items-center justify-center gap-1.5 cursor-pointer"
                   >
                     <Send size={13} />
                     <span>Transfer</span>
+                  </button>
+                </motion.div>
+
+                {/* 5. Disconnect Button */}
+                <motion.div variants={waveItemVariants} className="pt-1">
+                  <button
+                    onClick={() => {
+                      setMobileState("compact");
+                      setShowPrivateKey(false);
+                      logout();
+                      router.push("/");
+                      toast.success("Disconnected wallet");
+                    }}
+                    className="w-full py-2 rounded-xl text-red-500 hover:bg-red-500/10 text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                  >
+                    <LogOut size={13} />
+                    <span>Disconnect Wallet</span>
                   </button>
                 </motion.div>
               </motion.div>

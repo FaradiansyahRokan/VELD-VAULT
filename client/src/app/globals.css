@@ -77,93 +77,110 @@ body {
   overflow-x: hidden;
 }
 
-/* Enterprise Organic Glass Utilities */
+/* Enterprise Organic Glass Utilities (VisionOS / Modern iOS style) */
 .ios-glass,
 .enterprise-glass {
-  background: rgba(255, 255, 255, 0.92);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(9, 21, 64, 0.08);
-  box-shadow: 0 4px 20px -4px rgba(9, 21, 64, 0.05);
+  background: rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(24px) saturate(150%);
+  -webkit-backdrop-filter: blur(24px) saturate(150%);
+  border: 1px solid rgba(9, 21, 64, 0.05);
+  border-bottom: 1px solid rgba(9, 21, 64, 0.15);
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 1), inset 0 0 0 1px rgba(255, 255, 255, 0.4);
 }
 
 .dark .ios-glass,
 .dark .enterprise-glass {
-  background: rgba(13, 27, 77, 0.92);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(171, 210, 250, 0.14);
-  box-shadow: 0 8px 32px -4px rgba(0, 0, 0, 0.45);
+  background: rgba(13, 27, 77, 0.55);
+  backdrop-filter: blur(24px) saturate(150%);
+  -webkit-backdrop-filter: blur(24px) saturate(150%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.45);
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.15), inset 0 0 0 1px rgba(255, 255, 255, 0.05);
 }
 
 .ios-glass-pill,
 .enterprise-pill {
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(9, 21, 64, 0.08);
-  box-shadow: 0 2px 12px -2px rgba(9, 21, 64, 0.05);
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(20px) saturate(150%);
+  -webkit-backdrop-filter: blur(20px) saturate(150%);
+  border: 1px solid rgba(9, 21, 64, 0.06);
+  border-bottom: 1px solid rgba(9, 21, 64, 0.15);
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 1);
 }
 
 .dark .ios-glass-pill,
 .dark .enterprise-pill {
-  background: rgba(13, 27, 77, 0.95);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(171, 210, 250, 0.15);
-  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.5);
+  background: rgba(13, 27, 77, 0.7);
+  backdrop-filter: blur(20px) saturate(150%);
+  -webkit-backdrop-filter: blur(20px) saturate(150%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.4);
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.12);
 }
 
-/* Organic Enterprise Card */
+/* Organic Enterprise Card (Raised Bevel without drop shadow) */
 .ios-card,
 .enterprise-card {
   border-radius: 1.5rem;
-  background: var(--card);
-  border: 1px solid var(--border);
-  box-shadow: 0 2px 8px -2px rgba(9, 21, 64, 0.04);
+  background: linear-gradient(180deg, #FFFFFF 0%, #FAFCFF 100%);
+  border: 1px solid rgba(9, 21, 64, 0.06);
+  border-bottom: 1px solid rgba(9, 21, 64, 0.16);
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 1);
   transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .dark .ios-card,
 .dark .enterprise-card {
-  box-shadow: 0 4px 16px -2px rgba(0, 0, 0, 0.4);
-  border-color: rgba(171, 210, 250, 0.12);
+  background: linear-gradient(180deg, #0D1A4A 0%, #091336 100%);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.5);
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.1);
 }
 
 .ios-card:hover,
 .enterprise-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 24px -4px rgba(9, 21, 64, 0.08);
-  border-color: rgba(27, 44, 193, 0.2);
+  transform: translateY(-1px);
+  background: linear-gradient(180deg, #FFFFFF 0%, #F4F8FD 100%);
+  border-color: rgba(27, 44, 193, 0.15);
+  border-bottom-color: rgba(27, 44, 193, 0.3);
+  box-shadow: inset 0 2px 2px rgba(255, 255, 255, 1);
 }
 
 .dark .ios-card:hover,
 .dark .enterprise-card:hover {
-  box-shadow: 0 10px 30px -4px rgba(0, 0, 0, 0.65);
-  border-color: rgba(118, 146, 255, 0.28);
+  background: linear-gradient(180deg, #11215B 0%, #0A163D 100%);
+  border-color: rgba(118, 146, 255, 0.2);
+  border-bottom-color: rgba(0, 0, 0, 0.8);
+  box-shadow: inset 0 2px 2px rgba(255, 255, 255, 0.15);
 }
 
-/* Primary Enterprise Button Solid */
+/* Primary Enterprise Button Solid (Embossed Apple style) */
 .btn-enterprise-primary {
-  background: var(--primary);
+  background: linear-gradient(180deg, #2739DB 0%, #1B2CC1 100%);
   color: var(--primary-foreground);
-  border: 1px solid transparent;
-  box-shadow: 0 4px 14px -2px rgba(27, 44, 193, 0.25);
+  border: 1px solid #111C82;
+  border-bottom: 2px solid #0D1563;
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.35);
   transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .dark .btn-enterprise-primary {
-  box-shadow: 0 4px 14px -2px rgba(118, 146, 255, 0.35);
+  background: linear-gradient(180deg, #91AAFF 0%, #7692FF 100%);
+  color: #091540;
+  border: 1px solid #5A75E6;
+  border-bottom: 2px solid #3B53B8;
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.6);
 }
 
 .btn-enterprise-primary:hover {
-  opacity: 0.9;
-  box-shadow: 0 6px 20px -2px rgba(27, 44, 193, 0.35);
-  transform: translateY(-2px);
+  background: linear-gradient(180deg, #2A3EE3 0%, #1E31D6 100%);
+  transform: translateY(-1px);
+  box-shadow: inset 0 2px 1px rgba(255, 255, 255, 0.45);
 }
 
 .dark .btn-enterprise-primary:hover {
-  box-shadow: 0 6px 20px -2px rgba(118, 146, 255, 0.45);
+  background: linear-gradient(180deg, #A4BAFF 0%, #87A0FF 100%);
+  box-shadow: inset 0 2px 1px rgba(255, 255, 255, 0.7);
 }
 
 /* Solid Typography */

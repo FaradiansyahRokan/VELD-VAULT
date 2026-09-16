@@ -26,9 +26,9 @@ export const Button = ({
   };
 
   const variants = {
-    primary: "bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shadow-sm",
+    primary: "btn-enterprise-primary font-semibold",
     secondary: "bg-[#7692FF]/10 dark:bg-background/60 text-foreground font-medium border border-[#7692FF]/20 hover:bg-[#7692FF]/20 dark:hover:bg-background/90",
-    glass: "enterprise-glass text-foreground font-medium hover:bg-white/90 dark:hover:bg-card/80 shadow-sm",
+    glass: "enterprise-glass text-foreground font-medium hover:bg-white/90 dark:hover:bg-card/80",
     danger: "bg-red-500/10 text-red-600 dark:text-red-400 font-medium border border-red-500/20 hover:bg-red-500/20",
     ghost: "text-muted-foreground hover:text-foreground hover:bg-[#7692FF]/10 font-medium",
     success: "bg-emerald-500 text-primary-foreground font-semibold hover:bg-emerald-600 shadow-md shadow-emerald-500/20",

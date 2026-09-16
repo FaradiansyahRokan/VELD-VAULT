@@ -177,9 +177,23 @@ export default function Navbar() {
                           }}
                         />
                       )}
-                      <span className="relative z-10 flex items-center gap-1.5">
-                        <Icon size={13} style={{ opacity: isActive ? 1 : 0.6 }} />
-                        {item.label}
+                      <span className="relative z-10 flex items-center gap-1.5 whitespace-nowrap">
+                        <motion.div layout transition={fluidSpring}>
+                          <Icon size={13} style={{ opacity: isActive ? 1 : 0.6 }} />
+                        </motion.div>
+                        <AnimatePresence mode="popLayout">
+                          {(isActive || isExpanded) && (
+                            <motion.span
+                              layout
+                              initial={{ opacity: 0, width: 0, filter: "blur(4px)" }}
+                              animate={{ opacity: 1, width: "auto", filter: "blur(0px)" }}
+                              exit={{ opacity: 0, width: 0, filter: "blur(4px)" }}
+                              transition={fluidSpring}
+                            >
+                              {item.label}
+                            </motion.span>
+                          )}
+                        </AnimatePresence>
                       </span>
                     </motion.button>
                   );
@@ -218,9 +232,9 @@ export default function Navbar() {
                   <AnimatePresence>
                     {isExpanded && (
                       <motion.div
-                        initial={{ width: 0, opacity: 0 }}
-                        animate={{ width: "auto", opacity: 1 }}
-                        exit={{ width: 0, opacity: 0 }}
+                        initial={{ width: 0, opacity: 0, filter: "blur(4px)" }}
+                        animate={{ width: "auto", opacity: 1, filter: "blur(0px)" }}
+                        exit={{ width: 0, opacity: 0, filter: "blur(4px)" }}
                         transition={gentleSpring}
                         className="hidden sm:flex items-center gap-1.5 overflow-hidden"
                       >

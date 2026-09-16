@@ -5,14 +5,13 @@ import { Toaster } from 'sonner';
 import { ThemeProvider } from "@/components/theme-provider";
 import Navbar from "@/components/Navbar";
 import PageAnimate from "@/components/PageAnimate";
-import CustomCursor from "@/components/CustomCursor";
 
 const inter = Inter({ subsets: ["latin"], variable: '--font-inter' });
 const mono = JetBrains_Mono({ subsets: ["latin"], variable: '--font-mono' });
 
 export const metadata: Metadata = {
-  title: "CipherVault",
-  description: "Secure Decentralized Storage",
+  title: "CipherVault — Decentralized Encrypted Vault & Marketplace",
+  description: "Secure Web3 data marketplace with client-side encryption and IPFS storage on BridgeStone L1",
   icons: {
     icon: "/icon.png",
     apple: "/apple-icon.png",
@@ -22,25 +21,28 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode; }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${inter.variable} ${mono.variable} font-sans antialiased bg-background text-foreground overflow-hidden`}>
+      <body className={`${inter.variable} ${mono.variable} font-sans antialiased bg-background text-foreground`}>
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem disableTransitionOnChange>
-
-          {/* 1. NAVBAR FIXED (LAYER PALING ATAS, DIAM DI TEMPAT) */}
-          {/* z-index 50 biar selalu di atas konten yg bergerak */}
-          <div className="fixed top-0 left-0 right-0 z-50">
-            <Navbar />
+          {/* Floating iOS Navbar Header */}
+          <div className="fixed top-0 left-0 right-0 z-50 pointer-events-none">
+            <div className="pointer-events-auto">
+              <Navbar />
+            </div>
           </div>
 
-          {/* 2. AREA KONTEN (LAYER BAWAH, BERGERAK) */}
-          {/* overflow-hidden biar gak ada scrollbar horizontal pas animasi */}
+          {/* Main Viewport */}
           <main className="fixed inset-0 w-full h-[100dvh] overflow-hidden bg-background">
             <PageAnimate>
               {children}
             </PageAnimate>
           </main>
 
-          <Toaster position="bottom-center" />
-          <CustomCursor />
+          <Toaster 
+            position="bottom-center"
+            toastOptions={{
+              className: "ios-glass-pill !rounded-2xl !text-sm !font-medium !shadow-xl !border !border-black/5 dark:!border-white/10",
+            }}
+          />
         </ThemeProvider>
       </body>
     </html>

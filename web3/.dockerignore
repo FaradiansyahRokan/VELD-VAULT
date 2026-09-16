@@ -1,0 +1,10 @@
+node_modules
+cache
+artifacts
+src/abis
+.git
+.gitignore
+.env*.local
+*.log
+error.txt
+out.txt

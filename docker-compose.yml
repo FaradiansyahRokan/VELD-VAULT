@@ -1,0 +1,75 @@
+services:
+  # ─── 1. Frontend & API Server (Next.js 16) ─────────────
+  client:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_RPC_URL: ${NEXT_PUBLIC_RPC_URL:-http://212.47.73.139:9656/ext/bc/2WTeq6wMqLTuzvHXtJYXKwrwwRqE7vzLST6FtKsKohudhReysh/rpc}
+        NEXT_PUBLIC_CONTRACT_ADDRESS: ${NEXT_PUBLIC_CONTRACT_ADDRESS:-0xF06CB869b3f5EF3F997b747D9C119971664141aF}
+        NEXT_PUBLIC_IPFS_URL: ${NEXT_PUBLIC_IPFS_URL:-http://127.0.0.1:5001}
+        NEXT_PUBLIC_IPFS_GATEWAY: ${NEXT_PUBLIC_IPFS_GATEWAY:-http://212.47.73.139:8088}
+        NEXT_PUBLIC_CHAIN_ID: ${NEXT_PUBLIC_CHAIN_ID:-666999}
+        NEXT_PUBLIC_NETWORK_NAME: ${NEXT_PUBLIC_NETWORK_NAME:-bridgestone}
+        NEXT_PUBLIC_TOKEN_SYMBOL: ${NEXT_PUBLIC_TOKEN_SYMBOL:-VELD}
+        NEXT_PUBLIC_TOKEN_NAME: ${NEXT_PUBLIC_TOKEN_NAME:-VELD Token}
+        NEXT_PUBLIC_EXPLORER_URL: ${NEXT_PUBLIC_EXPLORER_URL:-}
+    container_name: veld-vault-client
+    restart: unless-stopped
+    network_mode: host
+    env_file:
+      - .env
+    environment:
+      - NODE_ENV=production
+      - PORT=3005
+    depends_on:
+      - ipfs
+      - rpc-proxy
+
+  # ─── 2. Decentralized Storage (IPFS Kubo Node) ─────────
+  ipfs:
+    image: ipfs/kubo:v0.32.0
+    container_name: veld-vault-ipfs
+    restart: unless-stopped
+    environment:
+      - IPFS_PATH=/data/ipfs
+      - IPFS_LOGGING=info
+    ports:
+      - "${IPFS_SWARM_PORT:-4001}:4001/tcp"
+      - "${IPFS_SWARM_PORT:-4001}:4001/udp"
+      - "${IPFS_API_PORT:-5001}:5001"
+      # Port 8080 sudah dipakai oleh evolution-api di VPS, gateway dialihkan ke 8088
+      - "${IPFS_GATEWAY_PORT:-8088}:8080"
+    volumes:
+      - ipfs_data:/data/ipfs
+      - ipfs_staging:/export
+      - ./docker/ipfs/01-cors.sh:/container-init.d/01-cors.sh:ro
+
+  # ─── 3. Avalanche RPC Public Forwarder ─────────────────
+  # Forward port 127.0.0.1:9654 ke 0.0.0.0:9656 agar bisa diakses MetaMask & browser publik
+  rpc-proxy:
+    image: alpine/socat
+    container_name: veld-vault-rpc-proxy
+    restart: unless-stopped
+    network_mode: host
+    command: tcp-listen:9656,fork,reuseaddr tcp-connect:127.0.0.1:9654
+
+  # ─── 4. Local EVM Testnet (Hardhat Node - Opsional) ────
+  # Jalankan dengan: docker compose --profile local-chain up -d
+  hardhat:
+    build:
+      context: ./web3
+      dockerfile: Dockerfile
+    container_name: veld-vault-hardhat
+    restart: unless-stopped
+    ports:
+      - "${HARDHAT_RPC_PORT:-8545}:8545"
+    profiles:
+      - local-chain
+      - all
+
+volumes:
+  ipfs_data:
+    driver: local
+  ipfs_staging:
+    driver: local

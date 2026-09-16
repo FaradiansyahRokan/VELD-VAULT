@@ -11,7 +11,7 @@
  * Dipakai oleh semua API routes: /api/rpc, /api/ipfs, /api/faucet, /api/health
  */
 
-import { kv } from "@vercel/kv";
+import { kv } from "./local-kv";
 
 const DEFAULT_RPC =
   process.env.NEXT_PUBLIC_RPC_URL ||
@@ -32,7 +32,7 @@ export async function getActiveRpcUrl(): Promise<string> {
   } catch {
     // KV tidak tersedia (dev lokal tanpa KV) — langsung fallback
   }
-  return DEFAULT_RPC;
+  return process.env.INTERNAL_RPC_URL || process.env.NEXT_PUBLIC_RPC_URL || DEFAULT_RPC;
 }
 
 /**
@@ -45,5 +45,5 @@ export async function getActiveIpfsUrl(): Promise<string> {
   } catch {
     // silent fallback
   }
-  return DEFAULT_IPFS;
+  return process.env.INTERNAL_IPFS_URL || process.env.NEXT_PUBLIC_IPFS_URL || DEFAULT_IPFS;
 }

@@ -19,7 +19,7 @@
  */
 
 import { NextRequest } from "next/server";
-import { kv } from "@vercel/kv";
+import { kv } from "@/lib/local-kv";
 
 export async function POST(request: NextRequest) {
   try {

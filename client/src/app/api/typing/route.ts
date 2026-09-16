@@ -8,7 +8,7 @@
  */
 
 import { NextRequest } from "next/server";
-import { kv } from "@vercel/kv";
+import { kv } from "@/lib/local-kv";
 
 // GET /api/typing?address=SENDER&peerAddress=VIEWER
 // → Cek apakah `address` sedang mengetik pesan untuk `peerAddress`

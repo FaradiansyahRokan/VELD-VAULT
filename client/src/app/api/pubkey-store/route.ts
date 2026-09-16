@@ -21,7 +21,7 @@ import { NextRequest } from "next/server";
 // }
 
 // ── OPTION B: Vercel KV (production) — uncomment kalau deploy
-import { kv } from "@vercel/kv";
+import { kv } from "@/lib/local-kv";
 async function storeGet(address: string): Promise<string | null> {
   return kv.get<string>(`pubkey:${address}`);
 }

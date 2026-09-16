@@ -25,23 +25,24 @@ import { NETWORK_CONFIG } from "@/lib/constants";
 import { ethers } from "ethers";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
+import { getSubtleCrypto } from "@/lib/webcrypto-shim";
 
 /* ── Constants ───────────────────────────────────────────────── */
-const SERIF = "'EB Garamond', Georgia, serif";
-const MONO = "'DM Mono', monospace";
+const SERIF = "-apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Roboto, sans-serif";
+const MONO = "'JetBrains Mono', 'Courier New', monospace";
 const EASE: [number, number, number, number] = [0.16, 1, 0.3, 1];
 
 const EMOJIS = ["🦊", "🐺", "🦁", "🐯", "🦅", "🦋", "🐉", "🌙", "⚡", "🔮", "🎯", "🛡️", "🌊", "🔥", "❄️", "🎭"];
 
 /* ── Tool registry ───────────────────────────────────────────── */
 const TOOLS = [
-  { id: "contacts", num: "I", label: "Contact Manager", hint: "Add, edit & organise wallet contacts" },
-  { id: "explorer", num: "II", label: "Address Explorer", hint: "Inspect any address — balance & assets" },
-  { id: "history", num: "III", label: "Tx History", hint: "Filter & search your transaction log" },
-  { id: "sign-doc", num: "IV", label: "Sign Document", hint: "Upload a file, sign its hash, verify" },
-  { id: "hash", num: "V", label: "Hash Verifier", hint: "Compare file SHA-256 vs any known hash" },
-  { id: "multisig", num: "VI", label: "Multi-Signer", hint: "Simulate 2-of-N approval signing flows" },
-  { id: "analytics", num: "VII", label: "Analytics", hint: "Activity charts & balance distribution" },
+  { id: "contacts", num: "01", label: "Contact Manager", hint: "Add, edit & organise wallet contacts" },
+  { id: "explorer", num: "02", label: "Address Explorer", hint: "Inspect any address — balance & assets" },
+  { id: "history", num: "03", label: "Tx History", hint: "Filter & search your transaction log" },
+  { id: "sign-doc", num: "04", label: "Sign Document", hint: "Upload a file, sign its hash, verify" },
+  { id: "hash", num: "05", label: "Hash Verifier", hint: "Compare file SHA-256 vs any known hash" },
+  { id: "multisig", num: "06", label: "Multi-Signer", hint: "Simulate 2-of-N approval signing flows" },
+  { id: "analytics", num: "07", label: "Analytics", hint: "Activity charts & balance distribution" },
 ] as const;
 type ToolId = typeof TOOLS[number]["id"];
 
@@ -49,36 +50,35 @@ type ToolId = typeof TOOLS[number]["id"];
 /*  GLOBAL CSS                                                    */
 /* ══════════════════════════════════════════════════════════════ */
 const CSS = `
-@import url('https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;1,400;1,500&family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Mono:wght@300;400;500&display=swap');
 
 /* ── Variables ── */
 :root {
-  --t-bg:     #fafaf8;
-  --t-fg:     #0e0e0e;
-  --t-muted:  #6b6b6b;
-  --t-border: #d8d4cc;
-  --t-lite:   #edeae4;
-  --t-card:   #ffffff;
-  --t-surf:   #f4f2ee;
-  --t-ink:    #111109;   /* rail bg light-mode */
-  --t-rail-t: #c5c0b5;   /* rail text */
-  --t-rail-m: #7a756e;   /* rail muted */
-  --t-up:     #2a6b3f;
-  --t-dn:     #7a2828;
+  --t-bg:     #F8FAFC;
+  --t-fg:     #091540;
+  --t-muted:  #475569;
+  --t-border: rgba(9, 21, 64, 0.08);
+  --t-lite:   rgba(9, 21, 64, 0.05);
+  --t-card:   #FFFFFF;
+  --t-surf:   #F8FAFC;
+  --t-ink:    #091540;   /* rail bg light-mode */
+  --t-rail-t: #F4F8FC;   /* rail text */
+  --t-rail-m: #8E9EC5;   /* rail muted */
+  --t-up:     #10B981;
+  --t-dn:     #EF4444;
 }
 .dark {
-  --t-bg:     #0a0a08;
-  --t-fg:     #f0ede6;
-  --t-muted:  #8a857c;
-  --t-border: #2a2820;
-  --t-lite:   #1e1c18;
-  --t-card:   #111109;
-  --t-surf:   #161410;
-  --t-ink:    #050504;
-  --t-rail-t: #a09a90;
-  --t-rail-m: #5a5550;
-  --t-up:     #4a9b62;
-  --t-dn:     #b05050;
+  --t-bg:     #091540;
+  --t-fg:     #F4F8FC;
+  --t-muted:  #8E9EC5;
+  --t-border: rgba(171, 210, 250, 0.16);
+  --t-lite:   rgba(171, 210, 250, 0.08);
+  --t-card:   #0D1B4D;
+  --t-surf:   #091540;
+  --t-ink:    #060E2C;
+  --t-rail-t: #F4F8FC;
+  --t-rail-m: #7692FF;
+  --t-up:     #34D399;
+  --t-dn:     #F87171;
 }
 
 /* ── Root split layout ── */
@@ -106,7 +106,7 @@ const CSS = `
   width: 240px;
   flex-shrink: 0;
   background: var(--t-ink);
-  border-right: 1px solid rgba(255,255,255,0.05);
+  border-right: 1px solid rgba(171, 210, 250, 0.1);
   display: flex;
   flex-direction: column;
   overflow-y: auto;
@@ -115,7 +115,7 @@ const CSS = `
   height: calc(100vh - 92px);
 }
 .tk-rail::-webkit-scrollbar { width: 2px; }
-.tk-rail::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); }
+.tk-rail::-webkit-scrollbar-thumb { background: rgba(171, 210, 250, 0.12); }
 @media (max-width: 768px) {
   .tk-rail {
     position: static;
@@ -125,7 +125,7 @@ const CSS = `
     overflow-x: auto;
     overflow-y: hidden;
     border-right: none;
-    border-bottom: 1px solid rgba(255,255,255,0.06);
+    border-bottom: 1px solid rgba(171, 210, 250, 0.12);
     -webkit-overflow-scrolling: touch;
     scroll-snap-type: x mandatory;
   }
@@ -145,7 +145,7 @@ const CSS = `
   color: var(--t-rail-m); margin-bottom: 4px;
 }
 .tk-rail-title {
-  font-family: 'Playfair Display', serif;
+  font-family: inherit;
   font-size: 17px; font-weight: 700; font-style: italic;
   color: var(--t-rail-t); letter-spacing: -0.01em;
 }
@@ -168,14 +168,14 @@ const CSS = `
 }
 .tk-rail-item::before {
   content: ''; position: absolute;
-  left: 0; top: 0; bottom: 0; width: 2px;
-  background: var(--t-fg);
+  left: 0; top: 0; bottom: 0; width: 3px;
+  background: #7692FF;
   transform: scaleY(0); transform-origin: center;
   transition: transform 0.25s cubic-bezier(0.16,1,0.3,1);
 }
-.tk-rail-item.active { background: rgba(255,255,255,0.05); }
+.tk-rail-item.active { background: rgba(118, 146, 255, 0.12); }
 .tk-rail-item.active::before { transform: scaleY(1); }
-.tk-rail-item:hover:not(.active) { background: rgba(255,255,255,0.03); }
+.tk-rail-item:hover:not(.active) { background: rgba(118, 146, 255, 0.05); }
 
 @media (max-width: 768px) {
   .tk-rail-item {
@@ -184,11 +184,11 @@ const CSS = `
     border-bottom: 2px solid transparent;
   }
   .tk-rail-item::before { display: none; }
-  .tk-rail-item.active { border-bottom-color: var(--t-fg); background: transparent; }
+  .tk-rail-item.active { border-bottom-color: #7692FF; background: transparent; }
 }
 
 .tk-rail-num {
-  font-family: 'Playfair Display', serif;
+  font-family: inherit;
   font-size: 13px; font-style: italic;
   color: var(--t-rail-m); flex-shrink: 0; width: 20px;
   transition: color 0.18s;
@@ -197,7 +197,7 @@ const CSS = `
 @media (max-width: 768px) { .tk-rail-num { display: none; } }
 
 .tk-rail-label {
-  font-family: 'EB Garamond', serif;
+  font-family: inherit;
   font-size: 14px; color: var(--t-rail-m);
   transition: color 0.18s; white-space: nowrap;
   line-height: 1;
@@ -246,14 +246,14 @@ const CSS = `
   color: var(--t-muted); margin-bottom: 8px; font-style: italic;
 }
 .tk-ws-title {
-  font-family: 'Playfair Display', serif;
+  font-family: inherit;
   font-size: clamp(28px, 4vw, 42px);
   font-weight: 700; letter-spacing: -0.025em; line-height: 1;
   color: var(--t-fg);
 }
 .tk-ws-title em { font-style: italic; font-weight: 400; color: var(--t-muted); }
 .tk-ws-sub {
-  font-family: 'EB Garamond', serif;
+  font-family: inherit;
   font-size: 16px; color: var(--t-muted);
   margin-top: 10px; line-height: 1.6;
   max-width: 560px;
@@ -310,26 +310,33 @@ const CSS = `
 
 .tk-btn-primary {
   display: inline-flex; align-items: center; justify-content: center; gap: 9px;
-  height: 44px; padding: 0 28px;
-  background: var(--t-fg); color: var(--t-bg); border: none; cursor: pointer;
-  font-family: 'EB Garamond', serif; font-style: italic;
-  font-size: 18px; letter-spacing: 0.05em;
-  transition: opacity 0.2s, transform 0.15s;
+  height: 42px; padding: 0 24px;
+  background: #1B2CC1;
+  color: #FFFFFF; border: 1px solid rgba(171, 210, 250, 0.25);
+  border-radius: 14px; cursor: pointer;
+  font-family: inherit; font-style: normal; font-weight: 700;
+  font-size: 13px; letter-spacing: 0.02em;
+  box-shadow: 0 4px 14px rgba(27, 44, 193, 0.28);
+  transition: all 0.2s;
 }
-.tk-btn-primary:hover { opacity: 0.82; }
+.tk-btn-primary:hover {
+  background: #15229E;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(27, 44, 193, 0.38);
+}
 .tk-btn-primary:active { transform: scale(0.98); }
-.tk-btn-primary:disabled { opacity: 0.35; cursor: not-allowed; }
+.tk-btn-primary:disabled { opacity: 0.35; cursor: not-allowed; transform: none; box-shadow: none; }
 
 .tk-btn-ghost {
   display: inline-flex; align-items: center; justify-content: center; gap: 8px;
   height: 38px; padding: 0 18px;
-  background: transparent; color: var(--t-muted);
-  border: 1px solid var(--t-lite); cursor: pointer;
+  background: rgba(118, 146, 255, 0.06); color: var(--t-muted);
+  border: 1px solid var(--t-lite); border-radius: 12px; cursor: pointer;
   font-family: 'DM Mono', monospace; font-size: 11px;
-  letter-spacing: 0.16em; text-transform: uppercase;
+  letter-spacing: 0.12em; text-transform: uppercase; font-weight: 600;
   transition: all 0.2s;
 }
-.tk-btn-ghost:hover { border-color: var(--t-fg); color: var(--t-fg); }
+.tk-btn-ghost:hover { border-color: #7692FF; color: var(--t-fg); background: rgba(118, 146, 255, 0.12); }
 .tk-btn-ghost.danger:hover { border-color: var(--t-dn); color: var(--t-dn); }
 .tk-btn-ghost:disabled { opacity: 0.35; cursor: not-allowed; }
 
@@ -340,6 +347,7 @@ const CSS = `
 /* ── Result block ── */
 .tk-result {
   background: var(--t-surf); border: 1px solid var(--t-lite);
+  border-radius: 16px;
   padding: 16px 18px; margin-top: 16px;
 }
 .tk-result-label {
@@ -357,18 +365,20 @@ const CSS = `
   color: var(--t-dn); padding: 10px 12px;
   border: 1px solid rgba(122,40,40,0.2);
   background: rgba(122,40,40,0.04);
+  border-radius: 10px;
 }
 
 /* ── Copy pill ── */
 .tk-copy {
   display: inline-flex; align-items: center; gap: 5px;
   background: none; border: 1px solid var(--t-lite); padding: 4px 10px;
+  border-radius: 8px;
   font-family: 'DM Mono', monospace; font-size: 11px;
   letter-spacing: 0.1em; text-transform: uppercase;
   color: var(--t-muted); cursor: pointer; transition: all 0.2s;
   white-space: nowrap; flex-shrink: 0;
 }
-.tk-copy:hover { border-color: var(--t-fg); color: var(--t-fg); }
+.tk-copy:hover { border-color: #7692FF; color: var(--t-fg); }
 .tk-copy.done  { border-color: var(--t-up); color: var(--t-up); }
 
 .tk-row { display: flex; align-items: flex-start; gap: 10px; }
@@ -383,7 +393,7 @@ const CSS = `
   padding: 8px 12px; border-bottom: 1px solid var(--t-lite);
 }
 .tk-table td {
-  font-family: 'EB Garamond', serif; font-size: 15px;
+  font-family: inherit; font-size: 15px;
   color: var(--t-fg); padding: 12px 12px;
   border-bottom: 1px solid var(--t-lite);
   vertical-align: middle;
@@ -395,14 +405,16 @@ const CSS = `
 /* ── Contact card ── */
 .tk-contact-card {
   border: 1px solid var(--t-lite); background: var(--t-card);
+  border-radius: 16px;
   display: flex; align-items: center; gap: 14px;
-  padding: 14px 16px; margin-bottom: 6px;
-  transition: border-color 0.2s;
+  padding: 14px 16px; margin-bottom: 8px;
+  transition: all 0.2s;
 }
-.tk-contact-card:hover { border-color: var(--t-border); }
+.tk-contact-card:hover { border-color: rgba(118, 146, 255, 0.4); box-shadow: 0 4px 14px rgba(9, 21, 64, 0.05); }
 .tk-avatar {
-  width: 40px; height: 40px; border: 1px solid var(--t-lite);
-  background: var(--t-surf); display: flex; align-items: center;
+  width: 40px; height: 40px; border: 1px solid rgba(171, 210, 250, 0.25);
+  border-radius: 12px;
+  background: rgba(118, 146, 255, 0.1); display: flex; align-items: center;
   justify-content: center; font-size: 20px; flex-shrink: 0;
 }
 
@@ -428,7 +440,7 @@ const CSS = `
   border-color: var(--t-fg); background: var(--t-surf);
 }
 .tk-dropzone-label {
-  font-family: 'EB Garamond', serif; font-size: 17px;
+  font-family: inherit; font-size: 17px;
   font-style: italic; color: var(--t-muted); margin-bottom: 6px;
 }
 .tk-dropzone-hint {
@@ -495,7 +507,7 @@ const CSS = `
 }
 .tk-stat-cell:last-child { border-right: none; }
 .tk-stat-val {
-  font-family: 'Playfair Display', serif;
+  font-family: inherit;
   font-size: 28px; font-weight: 700; color: var(--t-fg);
   letter-spacing: -0.02em; line-height: 1; margin-bottom: 5px;
 }
@@ -514,7 +526,7 @@ const CSS = `
 .tk-search {
   width: 100%; background: transparent; border: none;
   border-bottom: 1px solid var(--t-lite);
-  padding: 10px 0 10px 24px; font-family: 'EB Garamond', serif;
+  padding: 10px 0 10px 24px; font-family: inherit;
   font-size: 16px; font-style: italic; color: var(--t-fg); outline: none;
   transition: border-color 0.25s;
 }
@@ -877,7 +889,7 @@ function SignDocument({ wallet, signer }: { wallet: any; signer: any }) {
   const hashFile = async (f: File) => {
     setFile(f); setHash(""); setSig(""); setVerified(null); setPhase("idle");
     const buf = await f.arrayBuffer();
-    const raw = await crypto.subtle.digest("SHA-256", buf);
+    const raw = await getSubtleCrypto().digest("SHA-256", buf);
     const hex = "0x" + Array.from(new Uint8Array(raw)).map(b => b.toString(16).padStart(2, "0")).join("");
     setHash(hex); setPhase("hashed");
     toast.success("File hashed — ready to sign");
@@ -999,7 +1011,7 @@ function HashVerifier() {
     setFile(f); setComputed(""); setResult(null); setLoading(true);
     try {
       const buf = await f.arrayBuffer();
-      const raw = await crypto.subtle.digest("SHA-256", buf);
+      const raw = await getSubtleCrypto().digest("SHA-256", buf);
       const hex = Array.from(new Uint8Array(raw)).map(b => b.toString(16).padStart(2, "0")).join("");
       setComputed(hex);
     } catch { toast.error("Hash computation failed"); }
@@ -1256,7 +1268,7 @@ function Analytics({ walletAddr, balance }: { walletAddr: string; balance: strin
       <div className="tk-result">
         <div className="tk-result-label">Current Position</div>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", flexWrap: "wrap", gap: 12 }}>
-          <span style={{ fontFamily: "'Playfair Display',serif", fontSize: 36, fontWeight: 700, color: "var(--t-fg)", letterSpacing: "-0.025em" }}>
+          <span style={{ fontFamily: SERIF, fontSize: 36, fontWeight: 700, color: "var(--t-fg)", letterSpacing: "-0.025em" }}>
             {totalBal.toFixed(4)} <em style={{ fontSize: 18, fontWeight: 400, color: "var(--t-muted)" }}>{NETWORK_CONFIG.tokenSymbol}</em>
           </span>
           <span className={`tk-badge ${totalBal > 0 ? "ok" : "info"}`}>

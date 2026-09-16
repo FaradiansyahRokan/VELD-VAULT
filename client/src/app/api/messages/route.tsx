@@ -46,7 +46,7 @@ interface StoredMessage {
 // Install: npm install @vercel/kv
 // Uncomment below, comment out OPTION A above.
 //
-import { kv } from "@vercel/kv";
+import { kv } from "@/lib/local-kv";
 async function saveMessage(msg: StoredMessage) {
     await kv.lpush(`msgs:${msg.to}`, JSON.stringify(msg));
     await kv.lpush(`msgs:${msg.from}`, JSON.stringify(msg));

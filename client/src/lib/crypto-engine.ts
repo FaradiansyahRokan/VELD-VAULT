@@ -2,6 +2,10 @@ import { ethers } from "ethers";
 import { create } from "kubo-rpc-client";
 import { getTunnelUrls } from "./tunnel-sync";
 import { KEY_DERIVATION_MESSAGE, ENCRYPTION_VERSION } from "./constants";
+import { getSubtleCrypto, getRandomValues } from "./webcrypto-shim";
+
+const getSubtle = () => getSubtleCrypto();
+const getRandom = <T extends ArrayBufferView | null>(arr: T): T => getRandomValues(arr);
 
 // ============================================================
 // VERSI ENKRIPSI
@@ -41,19 +45,19 @@ async function getClient() {
 // signMessage() hanya dipanggil SEKALI saat unlockVaultKey().
 // Upload & decrypt berikutnya memakai key dari cache (tanpa popup MetaMask).
 
-const wrapKeyCache = new Map<string, CryptoKey>();
+const wrapKeyCache = new Map<string, CryptoKey | any>();
 
-async function deriveAndCache(signer: ethers.Signer): Promise<CryptoKey> {
+async function deriveAndCache(signer: ethers.Signer): Promise<CryptoKey | any> {
   const signature = await signer.signMessage(KEY_DERIVATION_MESSAGE);
   const sigBytes = ethers.getBytes(signature);
-  const wrapKeyRaw = await crypto.subtle.digest("SHA-256", toArrayBuffer(sigBytes));
-  return crypto.subtle.importKey("raw", wrapKeyRaw, "AES-GCM", false, [
+  const wrapKeyRaw = await getSubtle().digest("SHA-256", toArrayBuffer(sigBytes));
+  return getSubtle().importKey("raw", wrapKeyRaw, "AES-GCM", false, [
     "encrypt",
     "decrypt",
   ]);
 }
 
-async function getWrapKey(signer: ethers.Signer): Promise<CryptoKey> {
+async function getWrapKey(signer: ethers.Signer): Promise<CryptoKey | any> {
   const address = await signer.getAddress();
   if (wrapKeyCache.has(address)) {
     return wrapKeyCache.get(address)!;
@@ -104,18 +108,18 @@ export const encryptAndUpload = async (
     const ipfs = await getClient();
 
     // 1. Generate random AES file key & IV
-    const fileKey = crypto.getRandomValues(new Uint8Array(32));
-    const fileIv = crypto.getRandomValues(new Uint8Array(12));
+    const fileKey = getRandom(new Uint8Array(32));
+    const fileIv = getRandom(new Uint8Array(12));
 
     // 2. Enkripsi konten file
-    const fileCryptoKey = await crypto.subtle.importKey(
+    const fileCryptoKey = await getSubtle().importKey(
       "raw",
       fileKey,
       "AES-GCM",
       true,
       ["encrypt"]
     );
-    const encryptedContent = await crypto.subtle.encrypt(
+    const encryptedContent = await getSubtle().encrypt(
       { name: "AES-GCM", iv: fileIv },
       fileCryptoKey,
       await file.arrayBuffer()
@@ -123,8 +127,8 @@ export const encryptAndUpload = async (
 
     // 3. Wrap file key dengan wallet-derived key (dari cache)
     const wrapKey = await getWrapKey(signer);
-    const wrapIv = crypto.getRandomValues(new Uint8Array(12));
-    const encryptedFileKey = await crypto.subtle.encrypt(
+    const wrapIv = getRandom(new Uint8Array(12));
+    const encryptedFileKey = await getSubtle().encrypt(
       { name: "AES-GCM", iv: wrapIv },
       wrapKey,
       fileKey
@@ -188,7 +192,7 @@ export const reEncryptForBuyer = async (
     if (metadata.version === 2) {
       // v2: unwrap dengan seller wallet-derived key (file original milik seller)
       const wrapKey = await getWrapKey(sellerSigner);
-      fileKeyBuffer = await crypto.subtle.decrypt(
+      fileKeyBuffer = await getSubtle().decrypt(
         { name: "AES-GCM", iv: toArrayBuffer(ethers.getBytes(metadata.wrapIv)) },
         wrapKey,
         base64ToArrayBuffer(metadata.encryptedKey)
@@ -202,11 +206,11 @@ export const reEncryptForBuyer = async (
       }
       const sharedSecretHex = wallet.signingKey.computeSharedSecret(metadata.sellerPublicKey);
       const sharedSecretBytes = ethers.getBytes(sharedSecretHex);
-      const ecdhKeyRaw = await crypto.subtle.digest("SHA-256", toArrayBuffer(sharedSecretBytes));
-      const ecdhWrapKey = await crypto.subtle.importKey(
+      const ecdhKeyRaw = await getSubtle().digest("SHA-256", toArrayBuffer(sharedSecretBytes));
+      const ecdhWrapKey = await getSubtle().importKey(
         "raw", ecdhKeyRaw, "AES-GCM", false, ["decrypt"]
       );
-      fileKeyBuffer = await crypto.subtle.decrypt(
+      fileKeyBuffer = await getSubtle().decrypt(
         { name: "AES-GCM", iv: toArrayBuffer(ethers.getBytes(metadata.wrapIv)) },
         ecdhWrapKey,
         base64ToArrayBuffer(metadata.encryptedKey)
@@ -221,11 +225,11 @@ export const reEncryptForBuyer = async (
     // Hitung ECDH shared secret: seller privkey × buyer pubkey
     const sharedSecretHex = wallet.signingKey.computeSharedSecret(buyerPublicKey);
     const sharedSecretBytes = ethers.getBytes(sharedSecretHex);
-    const ecdhKeyRaw = await crypto.subtle.digest(
+    const ecdhKeyRaw = await getSubtle().digest(
       "SHA-256",
       toArrayBuffer(sharedSecretBytes)
     );
-    const ecdhWrapKey = await crypto.subtle.importKey(
+    const ecdhWrapKey = await getSubtle().importKey(
       "raw",
       ecdhKeyRaw,
       "AES-GCM",
@@ -234,8 +238,8 @@ export const reEncryptForBuyer = async (
     );
 
     // Re-wrap file key dengan ECDH shared secret
-    const newWrapIv = crypto.getRandomValues(new Uint8Array(12));
-    const newEncryptedFileKey = await crypto.subtle.encrypt(
+    const newWrapIv = getRandom(new Uint8Array(12));
+    const newEncryptedFileKey = await getSubtle().encrypt(
       { name: "AES-GCM", iv: newWrapIv },
       ecdhWrapKey,
       fileKeyBuffer
@@ -301,7 +305,7 @@ export const reEncryptForTransfer = async (
     if (metadata.version === 2) {
       // Sender adalah original uploader — pakai wallet-derived key
       const wrapKey = await getWrapKey(senderSigner);
-      fileKeyBuffer = await crypto.subtle.decrypt(
+      fileKeyBuffer = await getSubtle().decrypt(
         { name: "AES-GCM", iv: toArrayBuffer(ethers.getBytes(metadata.wrapIv)) },
         wrapKey,
         base64ToArrayBuffer(metadata.encryptedKey)
@@ -311,11 +315,11 @@ export const reEncryptForTransfer = async (
       if (!metadata.sellerPublicKey) throw new Error("sellerPublicKey tidak ada di metadata v3");
       const sharedSecretHex = wallet.signingKey.computeSharedSecret(metadata.sellerPublicKey);
       const sharedSecretBytes = ethers.getBytes(sharedSecretHex);
-      const ecdhKeyRaw = await crypto.subtle.digest("SHA-256", toArrayBuffer(sharedSecretBytes));
-      const ecdhWrapKey = await crypto.subtle.importKey(
+      const ecdhKeyRaw = await getSubtle().digest("SHA-256", toArrayBuffer(sharedSecretBytes));
+      const ecdhWrapKey = await getSubtle().importKey(
         "raw", ecdhKeyRaw, "AES-GCM", false, ["decrypt"]
       );
-      fileKeyBuffer = await crypto.subtle.decrypt(
+      fileKeyBuffer = await getSubtle().decrypt(
         { name: "AES-GCM", iv: toArrayBuffer(ethers.getBytes(metadata.wrapIv)) },
         ecdhWrapKey,
         base64ToArrayBuffer(metadata.encryptedKey)
@@ -329,13 +333,13 @@ export const reEncryptForTransfer = async (
     // Re-wrap untuk recipient: ECDH(sender_privkey × recipient_pubkey)
     const sharedSecretHex = wallet.signingKey.computeSharedSecret(recipientPublicKey);
     const sharedSecretBytes = ethers.getBytes(sharedSecretHex);
-    const ecdhKeyRaw = await crypto.subtle.digest("SHA-256", toArrayBuffer(sharedSecretBytes));
-    const ecdhWrapKey = await crypto.subtle.importKey(
+    const ecdhKeyRaw = await getSubtle().digest("SHA-256", toArrayBuffer(sharedSecretBytes));
+    const ecdhWrapKey = await getSubtle().importKey(
       "raw", ecdhKeyRaw, "AES-GCM", true, ["encrypt", "decrypt"]
     );
 
-    const newWrapIv = crypto.getRandomValues(new Uint8Array(12));
-    const newEncryptedFileKey = await crypto.subtle.encrypt(
+    const newWrapIv = getRandom(new Uint8Array(12));
+    const newEncryptedFileKey = await getSubtle().encrypt(
       { name: "AES-GCM", iv: newWrapIv },
       ecdhWrapKey,
       fileKeyBuffer
@@ -383,7 +387,7 @@ export const decryptFile = async (
     // --- v2: wallet-bound key unwrap ---
     if (metadata.version === 2) {
       const wrapKey = await getWrapKey(signer); // dari cache, tidak sign ulang
-      const fileKeyBuffer = await crypto.subtle.decrypt(
+      const fileKeyBuffer = await getSubtle().decrypt(
         { name: "AES-GCM", iv: toArrayBuffer(ethers.getBytes(metadata.wrapIv)) },
         wrapKey,
         base64ToArrayBuffer(metadata.encryptedKey)
@@ -406,13 +410,13 @@ export const decryptFile = async (
       let fileKeyBuffer: ArrayBuffer;
       try {
         const sharedSecretHex = wallet.signingKey.computeSharedSecret(metadata.sellerPublicKey);
-        const ecdhKeyRaw = await crypto.subtle.digest(
+        const ecdhKeyRaw = await getSubtle().digest(
           "SHA-256", toArrayBuffer(ethers.getBytes(sharedSecretHex))
         );
-        const ecdhWrapKey = await crypto.subtle.importKey(
+        const ecdhWrapKey = await getSubtle().importKey(
           "raw", ecdhKeyRaw, "AES-GCM", false, ["decrypt"]
         );
-        fileKeyBuffer = await crypto.subtle.decrypt(
+        fileKeyBuffer = await getSubtle().decrypt(
           { name: "AES-GCM", iv: toArrayBuffer(ethers.getBytes(metadata.wrapIv)) },
           ecdhWrapKey,
           base64ToArrayBuffer(metadata.encryptedKey)
@@ -423,7 +427,7 @@ export const decryptFile = async (
         console.warn("[decryptFile] v3 ECDH failed, trying v2 fallback:", ecdhErr);
         try {
           const wrapKey = await getWrapKey(signer);
-          fileKeyBuffer = await crypto.subtle.decrypt(
+          fileKeyBuffer = await getSubtle().decrypt(
             { name: "AES-GCM", iv: toArrayBuffer(ethers.getBytes(metadata.wrapIv)) },
             wrapKey,
             base64ToArrayBuffer(metadata.encryptedKey)
@@ -441,14 +445,14 @@ export const decryptFile = async (
     // --- v1 legacy fallback (plaintext key) ---
     const aesKey = ethers.getBytes(metadata.key);
     const iv = ethers.getBytes(metadata.iv);
-    const cryptoKey = await crypto.subtle.importKey(
+    const cryptoKey = await getSubtle().importKey(
       "raw",
       toArrayBuffer(aesKey),
       "AES-GCM",
       true,
       ["decrypt"]
     );
-    const decrypted = await crypto.subtle.decrypt(
+    const decrypted = await getSubtle().decrypt(
       { name: "AES-GCM", iv: toArrayBuffer(iv) },
       cryptoKey,
       base64ToArrayBuffer(metadata.content)
@@ -482,14 +486,14 @@ async function decryptContent(
   fileKeyBuffer: ArrayBuffer,
   metadata: any
 ): Promise<File> {
-  const fileCryptoKey = await crypto.subtle.importKey(
+  const fileCryptoKey = await getSubtle().importKey(
     "raw",
     fileKeyBuffer,
     "AES-GCM",
     false,
     ["decrypt"]
   );
-  const decrypted = await crypto.subtle.decrypt(
+  const decrypted = await getSubtle().decrypt(
     { name: "AES-GCM", iv: toArrayBuffer(ethers.getBytes(metadata.iv)) },
     fileCryptoKey,
     base64ToArrayBuffer(metadata.content)

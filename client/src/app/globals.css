@@ -2,7 +2,7 @@
 
 @plugin "tailwindcss-animate";
 
-/* Konfigurasi Tema Tailwind v4 */
+/* Konfigurasi Tema Tailwind v4 dengan Palet Enterprise Organik */
 @theme {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -17,69 +17,163 @@
   --color-muted-foreground: var(--muted-foreground);
   
   --color-border: var(--border);
+
+  /* Enterprise Organic Color Palette */
+  --color-navy: #091540;
+  --color-cobalt: #1B2CC1;
+  --color-periwinkle: #7692FF;
+  --color-azure: #ABD2FA;
   
-  /* Radius ala iOS */
-  --radius-lg: var(--radius);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-sm: calc(var(--radius) - 4px);
+  --radius-xl: 1.25rem;
+  --radius-2xl: 1.5rem;
+  --radius-3xl: 2rem;
+  --radius-full: 9999px;
 }
 
 /* CSS Variables untuk Light & Dark Mode */
 @layer base {
   :root {
-    --background: #F2F2F7;       /* Apple System Grey 6 (Light) */
-    --foreground: #000000;
-    --card: #FFFFFF;             /* Pure White Cards */
-    --card-foreground: #000000;
-    --primary: #000000;          /* Tombol Hitam Solid */
+    --background: #F8FAFC;              /* Clean Crisp Porcelain Slate */
+    --foreground: #091540;              /* Deep Prussian Midnight Navy */
+    --card: #FFFFFF;                    /* Solid Pure White Cards */
+    --card-foreground: #091540;
+    --primary: #1B2CC1;                 /* Solid Royal Cobalt Blue */
     --primary-foreground: #FFFFFF;
-    --muted: #E5E5EA;            /* Apple System Grey 5 */
-    --muted-foreground: #8E8E93; /* Apple System Grey */
-    --border: #D1D1D6;
-    --radius: 1.8rem;            /* Rounded Besar Premium */
+    --muted: #F1F5F9;                   /* Clean Light Slate Surface */
+    --muted-foreground: #475569;        /* High-Contrast Readable Slate Text */
+    --border: rgba(9, 21, 64, 0.08);    /* Delicate High-Precision Border */
   }
 
   .dark {
-    --background: #000000;       /* OLED Black */
-    --foreground: #FFFFFF;
-    --card: #1C1C1E;             /* Apple Dark Grey Surface */
-    --card-foreground: #FFFFFF;
-    --primary: #FFFFFF;          /* Tombol Putih Solid */
-    --primary-foreground: #000000;
-    --muted: #2C2C2E;            /* Apple System Grey 5 Dark */
-    --muted-foreground: #98989D;
-    --border: #3A3A3C;
+    --background: #091540;              /* Rich Prussian Midnight Navy Ground */
+    --foreground: #F4F8FC;              /* Crisp Frost White */
+    --card: #0D1B4D;                    /* Solid Elevated Navy Chamber Surface */
+    --card-foreground: #F4F8FC;
+    --primary: #1B2CC1;                 /* Royal Cobalt Blue */
+    --primary-foreground: #FFFFFF;
+    --muted: #0B1742;                   /* Deep Chamber Inset */
+    --muted-foreground: #9BB4E8;        /* Soft Azure Slate */
+    --border: rgba(171, 210, 250, 0.14);/* Ice Azure border */
   }
 }
 
 /* Base Styles */
+html {
+  scroll-behavior: smooth;
+}
+
 body {
   background-color: var(--background);
   color: var(--foreground);
-  font-feature-settings: "ss01", "ss02", "cv01", "cv02";
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Inter", sans-serif;
   -webkit-font-smoothing: antialiased;
-  transition: background-color 0.5s ease, color 0.5s ease; /* Transisi Halus saat ganti tema */
+  -moz-osx-font-smoothing: grayscale;
+  transition: background-color 0.25s ease, color 0.25s ease;
+  overflow-x: hidden;
 }
 
-/* Glassmorphism Premium v4 */
-.glass {
-  background: rgba(255, 255, 255, 0.65);
-  backdrop-filter: blur(20px) saturate(180%);
-  -webkit-backdrop-filter: blur(20px) saturate(180%);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+/* Enterprise Organic Glass Utilities */
+.ios-glass,
+.enterprise-glass {
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(9, 21, 64, 0.08);
+  box-shadow: 0 4px 20px -4px rgba(9, 21, 64, 0.05);
 }
 
-.dark .glass {
-  background: rgba(30, 30, 30, 0.60);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+.dark .ios-glass,
+.dark .enterprise-glass {
+  background: rgba(13, 27, 77, 0.92);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(171, 210, 250, 0.14);
+  box-shadow: 0 8px 32px -4px rgba(0, 0, 0, 0.45);
 }
 
-/* Input Styles ala iOS */
-.ios-input {
-  @apply transition-all duration-300;
-}
-.ios-input:focus {
-  @apply ring-2 ring-primary/20 border-primary/50;
+.ios-glass-pill,
+.enterprise-pill {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(9, 21, 64, 0.08);
+  box-shadow: 0 2px 12px -2px rgba(9, 21, 64, 0.05);
 }
 
-* { cursor: none !important; }
+.dark .ios-glass-pill,
+.dark .enterprise-pill {
+  background: rgba(13, 27, 77, 0.95);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(171, 210, 250, 0.15);
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.5);
+}
+
+/* Organic Enterprise Card */
+.ios-card,
+.enterprise-card {
+  border-radius: 1.5rem;
+  background: var(--card);
+  border: 1px solid var(--border);
+  box-shadow: 0 2px 8px -2px rgba(9, 21, 64, 0.04);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.dark .ios-card,
+.dark .enterprise-card {
+  box-shadow: 0 4px 16px -2px rgba(0, 0, 0, 0.4);
+  border-color: rgba(171, 210, 250, 0.12);
+}
+
+.ios-card:hover,
+.enterprise-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px -4px rgba(9, 21, 64, 0.08);
+  border-color: rgba(27, 44, 193, 0.2);
+}
+
+.dark .ios-card:hover,
+.dark .enterprise-card:hover {
+  box-shadow: 0 10px 30px -4px rgba(0, 0, 0, 0.65);
+  border-color: rgba(118, 146, 255, 0.28);
+}
+
+/* Primary Enterprise Button Solid */
+.btn-enterprise-primary {
+  background: #1B2CC1;
+  color: #FFFFFF;
+  border: 1px solid transparent;
+  box-shadow: 0 2px 6px -1px rgba(27, 44, 193, 0.25);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.btn-enterprise-primary:hover {
+  background: #15229E;
+  box-shadow: 0 4px 12px -1px rgba(27, 44, 193, 0.35);
+  transform: translateY(-1px);
+}
+
+/* Solid Typography */
+.text-gradient-enterprise {
+  color: #091540;
+}
+
+.dark .text-gradient-enterprise {
+  color: #F4F8FC;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(118, 146, 255, 0.25);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(118, 146, 255, 0.45);
+}

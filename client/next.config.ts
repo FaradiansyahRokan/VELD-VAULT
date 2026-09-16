@@ -1,6 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  output: "standalone",
   reactCompiler: true,
 
   // 1. Matikan error Turbopack vs Webpack
@@ -13,7 +14,7 @@ const nextConfig: NextConfig = {
     },
   },
 
-  // 3. Konfigurasi Gambar agar Preview muncul di HP
+  // 3. Konfigurasi Gambar agar Preview muncul di HP / IPFS
   images: {
     remotePatterns: [
       {
@@ -23,6 +24,14 @@ const nextConfig: NextConfig = {
       {
         protocol: 'https',
         hostname: 'ipfs.io',
+      },
+      {
+        protocol: 'http',
+        hostname: '**',
+      },
+      {
+        protocol: 'https',
+        hostname: '**',
       },
     ],
   },

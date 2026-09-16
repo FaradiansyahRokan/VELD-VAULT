@@ -11,7 +11,7 @@
  */
 
 import { NextRequest } from "next/server";
-import { kv } from "@vercel/kv";
+import { kv } from "@/lib/local-kv";
 import { ethers } from "ethers";
 
 // GET /api/cid-override?tokenId=123

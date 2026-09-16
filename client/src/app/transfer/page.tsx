@@ -9,23 +9,51 @@ import { NETWORK_CONFIG } from "@/lib/constants";
 import { ethers } from "ethers";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
-import { ArrowRight, Search, Check, X, ChevronLeft, UserCircle2 } from "lucide-react";
+import {
+  ArrowRight,
+  Search,
+  Check,
+  X,
+  ChevronLeft,
+  UserCircle2,
+  Send,
+  Coins,
+  QrCode,
+  Sparkles,
+  ExternalLink,
+  ShieldCheck,
+  CheckCircle2,
+} from "lucide-react";
 import QRModal from "@/components/QRModal";
 
-const SERIF = "'EB Garamond', 'Cormorant Garamond', Georgia, serif";
-const MONO = "'JetBrains Mono', 'Courier New', monospace";
-const ease: [number, number, number, number] = [0.16, 1, 0.3, 1];
+const spring = {
+  type: "spring" as const,
+  stiffness: 380,
+  damping: 28,
+};
 
 const RECENT_KEY = "cv_recent_transfers";
-interface RecentEntry { address: string; amount: string; timestamp: number; }
+interface RecentEntry {
+  address: string;
+  amount: string;
+  timestamp: number;
+}
+
 function loadRecent(): RecentEntry[] {
   if (typeof window === "undefined") return [];
-  try { return JSON.parse(localStorage.getItem(RECENT_KEY) || "[]"); } catch { return []; }
+  try {
+    return JSON.parse(localStorage.getItem(RECENT_KEY) || "[]");
+  } catch {
+    return [];
+  }
 }
+
 function saveRecent(address: string, amount: string) {
   const prev = loadRecent().filter((r) => r.address.toLowerCase() !== address.toLowerCase());
   const next = [{ address: address.toLowerCase(), amount, timestamp: Date.now() }, ...prev].slice(0, 8);
-  try { localStorage.setItem(RECENT_KEY, JSON.stringify(next)); } catch { }
+  try {
+    localStorage.setItem(RECENT_KEY, JSON.stringify(next));
+  } catch {}
 }
 
 type Step = "input" | "confirm" | "success";
@@ -49,7 +77,10 @@ export default function TransferPage() {
 
   useEffect(() => {
     setMounted(true);
-    if (!wallet) { router.push("/"); return; }
+    if (!wallet) {
+      router.push("/login");
+      return;
+    }
     refreshBalance();
     setRecent(loadRecent());
   }, [wallet, router, refreshBalance]);
@@ -63,7 +94,7 @@ export default function TransferPage() {
 
   const addressError = useMemo(() => {
     if (!toAddress) return null;
-    if (!isValidAddress) return "Invalid address format";
+    if (!isValidAddress) return "Invalid wallet address format";
     if (isSelf) return "Cannot transfer to your own wallet";
     return null;
   }, [toAddress, isValidAddress, isSelf]);
@@ -71,16 +102,19 @@ export default function TransferPage() {
   const amountError = useMemo(() => {
     if (!amount) return null;
     if (amountNum <= 0) return "Amount must be greater than 0";
-    if (amountNum > maxSendable) return `Insufficient funds (max ${maxSendable.toFixed(4)} ${NETWORK_CONFIG.tokenSymbol})`;
+    if (amountNum > maxSendable)
+      return `Insufficient funds (max ${maxSendable.toFixed(4)} ${NETWORK_CONFIG.tokenSymbol})`;
     return null;
   }, [amount, amountNum, maxSendable]);
 
   const canContinue = isValidAddress && !isSelf && amountNum > 0 && !amountError;
 
   const filteredContacts = search
-    ? contacts.filter((c) =>
-      c.name.toLowerCase().includes(search.toLowerCase()) ||
-      c.address.toLowerCase().includes(search.toLowerCase()))
+    ? contacts.filter(
+        (c) =>
+          c.name.toLowerCase().includes(search.toLowerCase()) ||
+          c.address.toLowerCase().includes(search.toLowerCase())
+      )
     : contacts;
 
   const handleSend = async () => {
@@ -102,314 +136,368 @@ export default function TransferPage() {
         type: "transfer_out",
         title: "Transfer executed",
         description: `${amount} ${NETWORK_CONFIG.tokenSymbol} → ${toAddress.trim().slice(0, 6)}...${toAddress.trim().slice(-4)}`,
-        walletAddress: wallet.address, amount, address: toAddress.trim(),
+        walletAddress: wallet.address,
+        amount,
+        address: toAddress.trim(),
       });
       await refreshBalance();
       setStep("success");
     } catch (e: any) {
       const msg = e?.message || "Transfer failed";
-      toast.error(msg.length > 120 ? "Transfer failed. Check console for details." : msg);
-    } finally { setSending(false); }
+      toast.error(msg.length > 120 ? "Transfer failed. Check connection." : msg);
+    } finally {
+      setSending(false);
+    }
   };
 
-  const handleReset = () => { setStep("input"); setToAddress(""); setAmount(""); setTxHash(""); };
+  const handleReset = () => {
+    setStep("input");
+    setToAddress("");
+    setAmount("");
+    setTxHash("");
+  };
+
   const contact = getByAddress(toAddress.trim());
 
   if (!mounted || !wallet) return null;
 
   return (
-    <div className="min-h-screen" style={{ background: "var(--cv-bg)", color: "var(--cv-fg)" }}>
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;1,400;1,500&display=swap');
-        :root { --cv-bg:#FAFAF8;--cv-fg:#0A0A0A;--cv-muted:#6B6B6B;--cv-border:#D8D4CC;--cv-border-light:#EDEAE4;--cv-card:#FFFFFF;--cv-surface:#F4F2EE;--cv-ink-light:#3A3A3A; }
-        .dark { --cv-bg:#0A0A08;--cv-fg:#F0EDE6;--cv-muted:#8A857C;--cv-border:#2A2820;--cv-border-light:#1E1C18;--cv-card:#111109;--cv-surface:#161410;--cv-ink-light:#C5BFB5; }
-        .cv-input { width:100%;background:transparent;border:none;border-bottom:1px solid var(--cv-border);padding:14px 0;font-family:${MONO};font-size:13px;letter-spacing:0.04em;color:var(--cv-fg);outline:none;transition:border-color 0.3s; }
-        .cv-input:focus { border-bottom-color:var(--cv-fg); }
-        .cv-input::placeholder { color:var(--cv-muted);font-style:italic;font-family:${SERIF}; }
-        .cv-input.error { border-bottom-color:#dc2626; }
-        .cv-input.valid { border-bottom-color:#16a34a; }
-        .cv-btn { background:var(--cv-fg);color:var(--cv-bg);border:1px solid var(--cv-fg);font-family:${SERIF};letter-spacing:0.12em;text-transform:uppercase;font-size:11px;font-weight:400;padding:14px 32px;transition:all 0.35s cubic-bezier(0.16,1,0.3,1);position:relative;overflow:hidden;width:100%;display:flex;align-items:center;justify-content:center;gap:12px; }
-        .cv-btn::before { content:'';position:absolute;inset:0;background:var(--cv-bg);transform:scaleX(0);transform-origin:right;transition:transform 0.45s cubic-bezier(0.16,1,0.3,1); }
-        .cv-btn:hover::before { transform:scaleX(1);transform-origin:left; }
-        .cv-btn:hover { color:var(--cv-fg); }
-        .cv-btn span { position:relative;z-index:1; }
-        .cv-btn:disabled { background:var(--cv-border);color:var(--cv-muted);border-color:var(--cv-border);cursor:not-allowed; }
-        .cv-btn:disabled::before { display:none; }
-        .cv-ghost { background:transparent;color:var(--cv-muted);border:none;font-family:${SERIF};letter-spacing:0.14em;text-transform:uppercase;font-size:10px;padding:8px 0;cursor:pointer;transition:color 0.25s; }
-        .cv-ghost:hover { color:var(--cv-fg); }
-        .cv-contact-row { width:100%;background:transparent;border:none;border-bottom:1px solid var(--cv-border-light);padding:14px 0;display:flex;align-items:center;gap:14px;text-align:left;cursor:pointer;transition:all 0.3s;font-family:${SERIF}; }
-        .cv-contact-row:hover { padding-left:8px; }
-        .cv-tab { flex:1;background:transparent;border:none;padding:10px 0;font-family:${SERIF};font-size:9px;letter-spacing:0.22em;text-transform:uppercase;color:var(--cv-muted);cursor:pointer;transition:all 0.25s;border-bottom:1px solid transparent; }
-        .cv-tab.active { color:var(--cv-fg);border-bottom-color:var(--cv-fg); }
-      `}</style>
+    <div className="min-h-screen pt-24 pb-20 px-4 md:px-8 max-w-2xl mx-auto font-sans">
+      {/* Top Breadcrumb & Actions */}
+      <div className="flex items-center justify-between mb-6">
+        <motion.button
+          whileTap={{ scale: 0.95 }}
+          onClick={() => router.back()}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-black/[0.04] dark:bg-white/[0.06] text-muted-foreground hover:text-foreground text-xs font-semibold cursor-pointer"
+        >
+          <ChevronLeft size={16} />
+          <span>Back</span>
+        </motion.button>
 
-      <div style={{ maxWidth: "520px", margin: "0 auto", padding: "120px 32px 80px" }}>
+        <motion.button
+          whileTap={{ scale: 0.95 }}
+          onClick={() => setShowQR(true)}
+          className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-black/[0.04] dark:bg-white/[0.06] text-foreground text-xs font-semibold hover:bg-black/[0.08] cursor-pointer"
+        >
+          <QrCode size={14} />
+          <span>Receive QR</span>
+        </motion.button>
+      </div>
 
-        {/* ── Masthead ── */}
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, ease }}>
-          <button onClick={() => router.back()} style={{ background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: "8px", fontSize: "9px", letterSpacing: "0.22em", textTransform: "uppercase", color: "var(--cv-muted)", fontFamily: SERIF, marginBottom: "40px", padding: 0 }}>
-            <ChevronLeft size={12} strokeWidth={1.5} /> Back
-          </button>
-
-          <p style={{ fontSize: "9px", letterSpacing: "0.28em", textTransform: "uppercase", color: "var(--cv-muted)", fontFamily: SERIF, fontStyle: "italic", marginBottom: "16px" }}>
-            CipherVault · {NETWORK_CONFIG.name} · {NETWORK_CONFIG.tokenSymbol}
-          </p>
-          <div style={{ display: "flex", alignItems: "center", gap: "16px", marginBottom: "16px" }}>
-            <div style={{ flex: 1, height: "1px", background: "var(--cv-border-light)" }} />
-            <div style={{ width: "5px", height: "5px", border: "1px solid var(--cv-border)", transform: "rotate(45deg)", flexShrink: 0 }} />
-            <div style={{ flex: 1, height: "1px", background: "var(--cv-border-light)" }} />
-          </div>
-          <h1 style={{ fontFamily: SERIF, fontSize: "clamp(40px, 8vw, 56px)", fontWeight: 400, letterSpacing: "-0.02em", lineHeight: 0.95, marginBottom: "8px" }}>
-            Transfer<br /><em style={{ color: "var(--cv-muted)" }}>Funds.</em>
-          </h1>
-          <div style={{ display: "flex", alignItems: "center", gap: "16px", marginTop: "16px", marginBottom: "40px" }}>
-            <div style={{ flex: 1, height: "1px", background: "var(--cv-border-light)" }} />
-            <div style={{ width: "5px", height: "5px", border: "1px solid var(--cv-border)", transform: "rotate(45deg)", flexShrink: 0 }} />
-            <div style={{ flex: 1, height: "1px", background: "var(--cv-border-light)" }} />
-          </div>
-        </motion.div>
-
+      {/* Main Transfer Container */}
+      <motion.div
+        initial={{ opacity: 0, y: 15 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={spring}
+        className="rounded-3xl p-6 md:p-8 bg-white dark:bg-[#0D1B4D] border border-slate-200/80 dark:border-[#ABD2FA]/15 shadow-sm"
+      >
         <AnimatePresence mode="wait">
-
-          {/* ══ INPUT ══ */}
+          {/* ── STEP 1: INPUT ── */}
           {step === "input" && (
-            <motion.div key="input" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.55, ease }}>
-
-              {/* Balance block */}
-              <div style={{ border: "1px solid var(--cv-border-light)", padding: "24px 28px", background: "var(--cv-surface)", marginBottom: "32px", display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
-                <div>
-                  <p style={{ fontSize: "9px", letterSpacing: "0.24em", textTransform: "uppercase", color: "var(--cv-muted)", fontFamily: SERIF, marginBottom: "10px" }}>Available Balance</p>
-                  <p style={{ fontFamily: SERIF, fontSize: "36px", fontWeight: 400, letterSpacing: "-0.025em", lineHeight: 1, color: "var(--cv-fg)" }}>
-                    {balanceNum.toFixed(4)} <em style={{ fontSize: "16px", color: "var(--cv-muted)" }}>{NETWORK_CONFIG.tokenSymbol}</em>
-                  </p>
-                </div>
-                <div>
-                  <p style={{ fontSize: "9px", letterSpacing: "0.16em", color: "var(--cv-muted)", fontFamily: SERIF, fontStyle: "italic", textAlign: "right", marginBottom: "4px" }}>Max sendable</p>
-                  <p style={{ fontFamily: MONO, fontSize: "11px", color: "var(--cv-ink-light)", textAlign: "right" }}>{maxSendable.toFixed(4)}</p>
+            <motion.div
+              key="input"
+              initial={{ opacity: 0, x: -10 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 10 }}
+              transition={{ duration: 0.2 }}
+              className="space-y-6"
+            >
+              {/* Header */}
+              <div>
+                <span className="text-xs font-bold uppercase tracking-wider text-[#1B2CC1] dark:text-[#ABD2FA]">
+                  Send Native Tokens
+                </span>
+                <h2 className="text-2xl md:text-3xl font-extrabold text-foreground mt-1">
+                  Transfer {NETWORK_CONFIG.tokenSymbol}
+                </h2>
+                <div className="flex items-center justify-between mt-2 p-3 rounded-2xl bg-slate-50 dark:bg-[#091540] border border-slate-200/60 dark:border-[#ABD2FA]/15">
+                  <span className="text-xs text-muted-foreground">Available Balance:</span>
+                  <span className="text-xs font-bold text-foreground">
+                    {Number(balance || 0).toLocaleString(undefined, { maximumFractionDigits: 4 })}{" "}
+                    {NETWORK_CONFIG.tokenSymbol}
+                  </span>
                 </div>
               </div>
 
-              {/* Recipient */}
-              <div style={{ marginBottom: "28px" }}>
-                <label style={{ display: "block", fontSize: "9px", letterSpacing: "0.24em", textTransform: "uppercase", color: "var(--cv-muted)", fontFamily: SERIF, marginBottom: "10px" }}>Recipient Address</label>
-                <div style={{ position: "relative" }}>
-                  <input value={toAddress} onChange={(e) => setToAddress(e.target.value)} placeholder="0x…" spellCheck={false}
-                    className={`cv-input ${addressError ? "error" : toAddress && !addressError ? "valid" : ""}`} />
-                  {toAddress && (
-                    <div style={{ position: "absolute", right: 0, bottom: "14px" }}>
-                      {addressError ? <X size={12} color="#dc2626" strokeWidth={1.5} /> : <Check size={12} color="#16a34a" strokeWidth={1.5} />}
+              {/* Amount Input */}
+              <div>
+                <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+                  Transfer Amount
+                </label>
+                <div className="relative">
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.001"
+                    value={amount}
+                    onChange={(e) => setAmount(e.target.value)}
+                    placeholder="0.00"
+                    className="w-full text-3xl md:text-4xl font-black px-4 py-3 rounded-2xl bg-slate-50 dark:bg-[#091540] border border-slate-200 dark:border-[#ABD2FA]/20 text-foreground outline-none focus:border-[#1B2CC1] dark:focus:border-[#7692FF] focus:ring-4 focus:ring-[#7692FF]/15 transition-all tabular-nums"
+                  />
+                  <div className="absolute right-3.5 top-1/2 -translate-y-1/2 flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setAmount(maxSendable.toFixed(4))}
+                      className="px-2.5 py-1 rounded-xl bg-[#7692FF]/15 text-[#1B2CC1] dark:text-[#ABD2FA] border border-[#7692FF]/25 text-xs font-bold hover:bg-[#7692FF]/25 cursor-pointer transition-colors"
+                    >
+                      MAX
+                    </button>
+                    <span className="text-sm font-bold text-muted-foreground">
+                      {NETWORK_CONFIG.tokenSymbol}
+                    </span>
+                  </div>
+                </div>
+                {amountError && (
+                  <p className="text-xs text-red-500 font-medium mt-1.5">{amountError}</p>
+                )}
+              </div>
+
+              {/* Recipient Address */}
+              <div>
+                <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+                  Recipient Address
+                </label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={toAddress}
+                    onChange={(e) => setToAddress(e.target.value)}
+                    placeholder="0x..."
+                    className="w-full px-4 py-3 rounded-2xl bg-slate-50 dark:bg-[#091540] border border-slate-200 dark:border-[#ABD2FA]/20 text-xs font-mono text-foreground outline-none focus:border-[#1B2CC1] dark:focus:border-[#7692FF] focus:ring-4 focus:ring-[#7692FF]/15 transition-all"
+                  />
+                  {contact && (
+                    <div className="absolute right-3 top-1/2 -translate-y-1/2 px-2.5 py-1 rounded-xl bg-[#7692FF]/15 text-[#1B2CC1] dark:text-[#ABD2FA] border border-[#7692FF]/25 text-xs font-bold">
+                      {contact.emoji} {contact.name}
                     </div>
                   )}
                 </div>
-                <AnimatePresence>
-                  {contact && !addressError && (
-                    <motion.p initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-                      style={{ fontSize: "10px", fontStyle: "italic", color: "var(--cv-muted)", fontFamily: SERIF, marginTop: "8px" }}>
-                      {contact.emoji} {contact.name}
-                    </motion.p>
-                  )}
-                  {addressError && (
-                    <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-                      style={{ fontSize: "10px", color: "#dc2626", fontFamily: SERIF, fontStyle: "italic", marginTop: "8px" }}>
-                      {addressError}
-                    </motion.p>
-                  )}
-                </AnimatePresence>
+                {addressError && (
+                  <p className="text-xs text-red-500 font-medium mt-1.5">{addressError}</p>
+                )}
               </div>
 
-              {/* Amount */}
-              <div style={{ marginBottom: "32px" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "10px" }}>
-                  <label style={{ fontSize: "9px", letterSpacing: "0.24em", textTransform: "uppercase", color: "var(--cv-muted)", fontFamily: SERIF }}>
-                    Amount ({NETWORK_CONFIG.tokenSymbol})
-                  </label>
-                  <button onClick={() => setAmount(maxSendable.toFixed(6))} style={{ background: "none", border: "none", cursor: "pointer", fontSize: "9px", letterSpacing: "0.18em", textTransform: "uppercase", color: "var(--cv-muted)", fontFamily: SERIF, padding: 0, transition: "color 0.2s" }}
-                    onMouseEnter={(e) => (e.currentTarget.style.color = "var(--cv-fg)")}
-                    onMouseLeave={(e) => (e.currentTarget.style.color = "var(--cv-muted)")}>
-                    Max
+              {/* Segmented Picker: Contacts / Recent */}
+              <div>
+                <div className="flex p-1 rounded-2xl bg-slate-100 dark:bg-[#091540] border border-slate-200/60 dark:border-[#ABD2FA]/15 mb-3">
+                  <button
+                    onClick={() => setContactTab("contacts")}
+                    className={`flex-1 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                      contactTab === "contacts"
+                        ? "bg-white dark:bg-[#1B2CC1] text-foreground dark:text-white shadow-sm"
+                        : "text-muted-foreground"
+                    }`}
+                  >
+                    Saved Contacts ({contacts.length})
+                  </button>
+                  <button
+                    onClick={() => setContactTab("recent")}
+                    className={`flex-1 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                      contactTab === "recent"
+                        ? "bg-white dark:bg-[#1B2CC1] text-foreground dark:text-white shadow-sm"
+                        : "text-muted-foreground"
+                    }`}
+                  >
+                    Recent Transfers ({recent.length})
                   </button>
                 </div>
-                <input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0.0000" min="0" step="0.0001"
-                  className={`cv-input ${amountError ? "error" : amount && !amountError ? "valid" : ""}`}
-                  style={{ fontSize: "28px", fontFamily: SERIF, letterSpacing: "-0.02em" }} />
-                {amountError && (
-                  <p style={{ fontSize: "10px", color: "#dc2626", fontFamily: SERIF, fontStyle: "italic", marginTop: "8px" }}>{amountError}</p>
-                )}
-                {amount && !amountError && (
-                  <p style={{ fontSize: "10px", color: "var(--cv-muted)", fontFamily: SERIF, fontStyle: "italic", marginTop: "8px" }}>
-                    Est. gas: ~{GAS_COST.toFixed(5)} {NETWORK_CONFIG.tokenSymbol}
-                  </p>
+
+                {contactTab === "contacts" ? (
+                  <div className="max-h-40 overflow-y-auto space-y-1.5 pr-1">
+                    {filteredContacts.length === 0 ? (
+                      <p className="text-xs text-muted-foreground text-center py-4">
+                        No contacts found. Add contacts in Tools.
+                      </p>
+                    ) : (
+                      filteredContacts.map((c) => (
+                        <div
+                          key={c.id}
+                          onClick={() => setToAddress(c.address)}
+                          className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 dark:bg-[#091540]/50 border border-slate-200/60 dark:border-[#ABD2FA]/10 hover:border-[#1B2CC1]/40 dark:hover:border-[#7692FF]/30 hover:bg-slate-100 dark:hover:bg-[#091540]/80 transition-colors cursor-pointer"
+                        >
+                          <div className="flex items-center gap-2.5">
+                            <span className="text-base">{c.emoji}</span>
+                            <div>
+                              <p className="text-xs font-bold text-foreground">{c.name}</p>
+                              <p className="text-[10px] font-mono text-muted-foreground">
+                                {c.address.slice(0, 6)}…{c.address.slice(-4)}
+                              </p>
+                            </div>
+                          </div>
+                          <span className="text-[10px] text-[#1B2CC1] dark:text-[#7692FF] font-bold">Select</span>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                ) : (
+                  <div className="max-h-40 overflow-y-auto space-y-1.5 pr-1">
+                    {recent.length === 0 ? (
+                      <p className="text-xs text-muted-foreground text-center py-4">
+                        No recent transfers recorded.
+                      </p>
+                    ) : (
+                      recent.map((r, i) => (
+                        <div
+                          key={i}
+                          onClick={() => {
+                            setToAddress(r.address);
+                            setAmount(r.amount);
+                          }}
+                          className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 dark:bg-[#091540]/50 border border-slate-200/60 dark:border-[#ABD2FA]/10 hover:border-[#1B2CC1]/40 dark:hover:border-[#7692FF]/30 hover:bg-slate-100 dark:hover:bg-[#091540]/80 transition-colors cursor-pointer"
+                        >
+                          <span className="text-xs font-mono text-foreground">
+                            {r.address.slice(0, 8)}…{r.address.slice(-6)}
+                          </span>
+                          <span className="text-xs font-bold text-foreground">
+                            {r.amount} {NETWORK_CONFIG.tokenSymbol}
+                          </span>
+                        </div>
+                      ))
+                    )}
+                  </div>
                 )}
               </div>
 
-              <button onClick={() => setStep("confirm")} disabled={!canContinue} className="cv-btn" style={{ marginBottom: "40px" }}>
+              {/* Submit Button */}
+              <motion.button
+                whileHover={{ scale: 1.01 }}
+                whileTap={{ scale: 0.97 }}
+                disabled={!canContinue}
+                onClick={() => setStep("confirm")}
+                className="w-full py-4 rounded-2xl bg-[#1B2CC1] hover:bg-[#15229E] text-white text-xs font-bold shadow-sm transition-all disabled:opacity-50 cursor-pointer flex items-center justify-center gap-2"
+              >
                 <span>Review Transfer</span>
-                <ArrowRight size={12} strokeWidth={1.5} style={{ position: "relative", zIndex: 1 }} />
-              </button>
-
-              {/* Contact Picker */}
-              {(contacts.length > 0 || recent.length > 0) && (
-                <div style={{ borderTop: "1px solid var(--cv-border-light)", paddingTop: "28px" }}>
-                  {/* Tabs */}
-                  <div style={{ display: "flex", borderBottom: "1px solid var(--cv-border-light)", marginBottom: "20px" }}>
-                    <button className={`cv-tab ${contactTab === "contacts" ? "active" : ""}`} onClick={() => setContactTab("contacts")}>
-                      Contacts · {contacts.length}
-                    </button>
-                    <button className={`cv-tab ${contactTab === "recent" ? "active" : ""}`} onClick={() => setContactTab("recent")}>
-                      Recent · {recent.length}
-                    </button>
-                  </div>
-
-                  {/* Search */}
-                  {contactTab === "contacts" && contacts.length > 3 && (
-                    <div style={{ position: "relative", marginBottom: "16px" }}>
-                      <Search size={11} style={{ position: "absolute", left: 0, top: "50%", transform: "translateY(-50%)", color: "var(--cv-muted)" }} />
-                      <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search name or address…"
-                        style={{ width: "100%", background: "transparent", border: "none", borderBottom: "1px solid var(--cv-border-light)", padding: "10px 0 10px 20px", fontFamily: SERIF, fontSize: "12px", color: "var(--cv-fg)", outline: "none" }} />
-                    </div>
-                  )}
-
-                  <AnimatePresence mode="wait">
-                    {contactTab === "contacts" && (
-                      <motion.div key="contacts" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                        {filteredContacts.length === 0
-                          ? <p style={{ fontSize: "11px", fontStyle: "italic", color: "var(--cv-muted)", fontFamily: SERIF, padding: "20px 0" }}>{search ? "No matching contacts." : "No contacts yet."}</p>
-                          : filteredContacts.map((c) => {
-                            const selected = toAddress.toLowerCase() === c.address.toLowerCase();
-                            return (
-                              <button key={c.id} onClick={() => setToAddress(c.address)} className="cv-contact-row"
-                                style={{ background: selected ? "var(--cv-surface)" : "transparent" }}>
-                                <span style={{ fontSize: "18px", flexShrink: 0 }}>{c.emoji}</span>
-                                <div style={{ flex: 1, minWidth: 0 }}>
-                                  <p style={{ fontFamily: SERIF, fontSize: "14px", color: "var(--cv-fg)", marginBottom: "2px" }}>{c.name}</p>
-                                  <p style={{ fontFamily: MONO, fontSize: "10px", color: "var(--cv-muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                                    {c.address.slice(0, 12)}…{c.address.slice(-8)}
-                                  </p>
-                                </div>
-                                {selected && <Check size={12} strokeWidth={1.5} color="var(--cv-fg)" />}
-                              </button>
-                            );
-                          })
-                        }
-                      </motion.div>
-                    )}
-                    {contactTab === "recent" && (
-                      <motion.div key="recent" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                        {recent.length === 0
-                          ? <p style={{ fontSize: "11px", fontStyle: "italic", color: "var(--cv-muted)", fontFamily: SERIF, padding: "20px 0" }}>No transfer history.</p>
-                          : recent.map((r) => {
-                            const rc = getByAddress(r.address);
-                            return (
-                              <button key={r.address} onClick={() => { setToAddress(r.address); setAmount(r.amount); }} className="cv-contact-row">
-                                <span style={{ fontSize: "18px", flexShrink: 0 }}>{rc?.emoji || <UserCircle2 size={16} />}</span>
-                                <div style={{ flex: 1, minWidth: 0 }}>
-                                  <p style={{ fontFamily: SERIF, fontSize: "14px", color: "var(--cv-fg)", marginBottom: "2px" }}>
-                                    {rc?.name || `${r.address.slice(0, 8)}…${r.address.slice(-6)}`}
-                                  </p>
-                                  <p style={{ fontFamily: SERIF, fontSize: "10px", color: "var(--cv-muted)", fontStyle: "italic" }}>
-                                    {new Date(r.timestamp).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}
-                                  </p>
-                                </div>
-                                <div style={{ textAlign: "right" }}>
-                                  <p style={{ fontFamily: SERIF, fontSize: "13px", color: "var(--cv-fg)" }}>{r.amount}</p>
-                                  <p style={{ fontFamily: SERIF, fontSize: "9px", color: "var(--cv-muted)", fontStyle: "italic" }}>{NETWORK_CONFIG.tokenSymbol}</p>
-                                </div>
-                              </button>
-                            );
-                          })
-                        }
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </div>
-              )}
+                <ArrowRight size={16} />
+              </motion.button>
             </motion.div>
           )}
 
-          {/* ══ CONFIRM ══ */}
+          {/* ── STEP 2: CONFIRM ── */}
           {step === "confirm" && (
-            <motion.div key="confirm" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.55, ease }}>
-              <button onClick={() => setStep("input")} className="cv-ghost" style={{ marginBottom: "28px" }}>← Edit</button>
-
-              {/* Summary infobox */}
-              <div style={{ border: "1px solid var(--cv-border-light)", marginBottom: "28px" }}>
-                <div style={{ padding: "20px 28px 0", borderBottom: "1px solid var(--cv-border-light)" }}>
-                  <p style={{ fontSize: "9px", letterSpacing: "0.24em", textTransform: "uppercase", color: "var(--cv-muted)", fontFamily: SERIF, marginBottom: "20px" }}>Transaction Summary</p>
-                  <div style={{ textAlign: "center", paddingBottom: "24px" }}>
-                    <p style={{ fontFamily: SERIF, fontSize: "clamp(44px, 10vw, 64px)", fontWeight: 400, letterSpacing: "-0.03em", lineHeight: 1, color: "var(--cv-fg)" }}>
-                      {parseFloat(amount).toFixed(4)}
-                    </p>
-                    <p style={{ fontFamily: SERIF, fontSize: "16px", color: "var(--cv-muted)", fontStyle: "italic", marginTop: "4px" }}>{NETWORK_CONFIG.tokenSymbol}</p>
-                  </div>
+            <motion.div
+              key="confirm"
+              initial={{ opacity: 0, x: 10 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -10 }}
+              transition={{ duration: 0.2 }}
+              className="space-y-6"
+            >
+              <div className="text-center py-2">
+                <span className="text-xs font-bold uppercase tracking-wider text-[#1B2CC1] dark:text-[#ABD2FA]">
+                  Confirm Transaction
+                </span>
+                <div className="flex items-baseline justify-center gap-2 my-2">
+                  <span className="text-4xl font-black text-foreground tabular-nums">
+                    {amount}
+                  </span>
+                  <span className="text-xl font-bold text-[#1B2CC1] dark:text-[#7692FF]">
+                    {NETWORK_CONFIG.tokenSymbol}
+                  </span>
                 </div>
-                {[
-                  { label: "From", val: `${wallet.address.slice(0, 10)}…${wallet.address.slice(-8)}`, mono: true },
-                  { label: "To", val: contact ? `${contact.emoji} ${contact.name} · ${toAddress.slice(0, 8)}…` : `${toAddress.slice(0, 10)}…${toAddress.slice(-8)}`, mono: !contact },
-                  { label: "Network", val: NETWORK_CONFIG.name, mono: false },
-                  { label: "Est. Gas", val: `~${GAS_COST.toFixed(5)} ${NETWORK_CONFIG.tokenSymbol}`, mono: true },
-                  { label: "Total Out", val: `~${(amountNum + GAS_COST).toFixed(5)} ${NETWORK_CONFIG.tokenSymbol}`, mono: true },
-                ].map(({ label, val, mono }) => (
-                  <div key={label} style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", padding: "14px 28px", borderBottom: "1px solid var(--cv-border-light)" }}>
-                    <span style={{ fontSize: "10px", letterSpacing: "0.14em", color: "var(--cv-muted)", fontFamily: SERIF, fontStyle: "italic" }}>{label}</span>
-                    <span style={{ fontFamily: mono ? MONO : SERIF, fontSize: mono ? "11px" : "13px", color: "var(--cv-fg)" }}>{val}</span>
-                  </div>
-                ))}
-              </div>
-
-              {/* Warning */}
-              <div style={{ display: "flex", gap: "14px", padding: "16px 20px", border: "1px solid var(--cv-border-light)", background: "var(--cv-surface)", marginBottom: "24px" }}>
-                <div style={{ width: "1px", background: "var(--cv-fg)", flexShrink: 0, alignSelf: "stretch" }} />
-                <p style={{ fontSize: "11px", color: "var(--cv-muted)", fontFamily: SERIF, fontStyle: "italic", lineHeight: 1.7 }}>
-                  Blockchain transactions are permanent and irreversible. Verify the recipient address before proceeding.
+                <p className="text-xs text-muted-foreground">
+                  Verify recipient address and transaction details before signing.
                 </p>
               </div>
 
-              <button onClick={handleSend} disabled={sending} className="cv-btn" style={{ marginBottom: "12px" }}>
-                {sending
-                  ? <><span>Transmitting</span><span style={{ fontStyle: "italic", position: "relative", zIndex: 1 }}>···</span></>
-                  : <><span>Execute Transfer</span><ArrowRight size={12} strokeWidth={1.5} style={{ position: "relative", zIndex: 1 }} /></>
-                }
-              </button>
-              <button onClick={() => setStep("input")} disabled={sending} className="cv-ghost" style={{ width: "100%", textAlign: "center" }}>Cancel</button>
+              <div className="p-4 rounded-2xl bg-slate-50 dark:bg-[#091540] border border-slate-200/60 dark:border-[#ABD2FA]/15 space-y-3 text-xs">
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">Recipient</span>
+                  <span className="font-mono font-bold text-foreground">
+                    {toAddress.slice(0, 10)}…{toAddress.slice(-8)}
+                  </span>
+                </div>
+                {contact && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-muted-foreground">Recipient Name</span>
+                    <span className="font-bold text-foreground">{contact.emoji} {contact.name}</span>
+                  </div>
+                )}
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">Network</span>
+                  <span className="font-bold text-foreground">{NETWORK_CONFIG.name} (L1)</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">Estimated Gas</span>
+                  <span className="font-bold text-emerald-600 dark:text-emerald-400">
+                    &lt; 0.001 {NETWORK_CONFIG.tokenSymbol}
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <motion.button
+                  whileTap={{ scale: 0.96 }}
+                  onClick={() => setStep("input")}
+                  className="flex-1 py-3.5 rounded-2xl bg-slate-100 dark:bg-white/[0.06] text-foreground text-xs font-semibold cursor-pointer hover:bg-slate-200/70"
+                >
+                  Back & Edit
+                </motion.button>
+                <motion.button
+                  whileTap={{ scale: 0.96 }}
+                  disabled={sending}
+                  onClick={handleSend}
+                  className="flex-2 py-3.5 rounded-2xl bg-[#1B2CC1] hover:bg-[#15229E] text-white text-xs font-bold shadow-sm cursor-pointer disabled:opacity-50"
+                >
+                  {sending ? "Broadcasting on Chain…" : "Sign & Send"}
+                </motion.button>
+              </div>
             </motion.div>
           )}
 
-          {/* ══ SUCCESS ══ */}
+          {/* ── STEP 3: SUCCESS ── */}
           {step === "success" && (
-            <motion.div key="success" initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.7, ease }} style={{ textAlign: "center" }}>
-              <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ delay: 0.2, type: "spring", stiffness: 260, damping: 20 }}
-                style={{ width: "80px", height: "80px", border: "1px solid var(--cv-border-light)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 28px", background: "var(--cv-surface)" }}>
-                <Check size={28} strokeWidth={1.5} />
-              </motion.div>
-
-              <p style={{ fontFamily: SERIF, fontSize: "28px", fontWeight: 400, letterSpacing: "-0.01em", marginBottom: "12px" }}>Transfer Complete.</p>
-              <p style={{ fontFamily: SERIF, fontSize: "13px", fontStyle: "italic", color: "var(--cv-muted)", marginBottom: "32px", lineHeight: 1.7 }}>
-                {parseFloat(amount).toFixed(4)} {NETWORK_CONFIG.tokenSymbol} transmitted to{" "}
-                {contact ? `${contact.emoji} ${contact.name}` : `${toAddress.slice(0, 8)}…${toAddress.slice(-6)}`}.
+            <motion.div
+              key="success"
+              initial={{ opacity: 0, scale: 0.96 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={spring}
+              className="text-center py-6 space-y-4"
+            >
+              <div className="w-16 h-16 rounded-3xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center mx-auto mb-2 border border-emerald-500/20">
+                <CheckCircle2 size={32} />
+              </div>
+              <h3 className="text-2xl font-extrabold text-foreground">
+                Transfer Completed!
+              </h3>
+              <p className="text-xs text-muted-foreground max-w-sm mx-auto">
+                {amount} {NETWORK_CONFIG.tokenSymbol} has been sent and confirmed on BridgeStone L1.
               </p>
 
               {txHash && (
-                <div style={{ border: "1px solid var(--cv-border-light)", padding: "16px 20px", marginBottom: "28px", textAlign: "left" }}>
-                  <p style={{ fontSize: "8px", letterSpacing: "0.22em", textTransform: "uppercase", color: "var(--cv-muted)", fontFamily: SERIF, marginBottom: "8px" }}>Transaction Hash</p>
-                  <p style={{ fontFamily: MONO, fontSize: "10px", color: "var(--cv-fg)", wordBreak: "break-all", lineHeight: 1.8 }}>{txHash}</p>
+                <div className="p-3 rounded-2xl bg-black/[0.02] dark:bg-[#091540]/60 border border-black/[0.04] dark:border-[#ABD2FA]/15 text-xs font-mono text-muted-foreground break-all max-w-md mx-auto">
+                  Tx: {txHash}
                 </div>
               )}
 
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "2px" }}>
-                <button onClick={handleReset} style={{ background: "var(--cv-surface)", border: "1px solid var(--cv-border-light)", padding: "14px", fontFamily: SERIF, fontSize: "11px", letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--cv-fg)", cursor: "pointer" }}>
-                  New Transfer
-                </button>
-                <button onClick={() => router.push("/dashboard")} className="cv-btn" style={{ width: "auto" }}>
-                  <span>Dashboard</span>
-                </button>
+              <div className="flex items-center gap-3 pt-2">
+                <motion.button
+                  whileTap={{ scale: 0.96 }}
+                  onClick={handleReset}
+                  className="flex-1 py-3.5 rounded-2xl bg-black/[0.04] dark:bg-white/[0.06] text-foreground text-xs font-semibold cursor-pointer"
+                >
+                  Send Another
+                </motion.button>
+                <motion.button
+                  whileTap={{ scale: 0.96 }}
+                  onClick={() => router.push("/dashboard")}
+                  className="flex-1 py-3.5 rounded-2xl bg-[#1B2CC1] hover:bg-[#15229E] text-white text-xs font-bold shadow-sm cursor-pointer"
+                >
+                  Return to Dashboard
+                </motion.button>
               </div>
             </motion.div>
           )}
         </AnimatePresence>
-      </div>
+      </motion.div>
 
-      <QRModal isOpen={showQR} onClose={() => setShowQR(false)} address={wallet.address}
-        label={`Wallet ${wallet.address.slice(0, 6)}…${wallet.address.slice(-4)}`} />
+      {/* QR Modal */}
+      {showQR && (
+        <QRModal
+          isOpen={showQR}
+          onClose={() => setShowQR(false)}
+          address={wallet.address}
+          label={NETWORK_CONFIG.tokenSymbol}
+        />
+      )}
     </div>
   );
 }

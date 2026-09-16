@@ -1,4 +1,8 @@
 import { ethers } from "ethers";
+import { getSubtleCrypto, getRandomValues } from "./webcrypto-shim";
+
+const getSubtle = () => getSubtleCrypto();
+const getRandom = <T extends ArrayBufferView | null>(arr: T): T => getRandomValues(arr);
 
 export interface EncryptedMessage {
   encryptedContent: string; // base64
@@ -25,13 +29,13 @@ export async function encryptMessage(
   const sharedSecretBytes = ethers.getBytes(sharedSecretHex);
 
   // 2. Derive AES key
-  const keyRaw = await crypto.subtle.digest("SHA-256", toArrayBuffer(sharedSecretBytes));
-  const aesKey = await crypto.subtle.importKey("raw", keyRaw, "AES-GCM", false, ["encrypt"]);
+  const keyRaw = await getSubtle().digest("SHA-256", toArrayBuffer(sharedSecretBytes));
+  const aesKey = await getSubtle().importKey("raw", keyRaw, "AES-GCM", false, ["encrypt"]);
 
   // 3. Encrypt
-  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const iv = getRandom(new Uint8Array(12));
   const encoded = new TextEncoder().encode(plaintext);
-  const encrypted = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, aesKey, encoded);
+  const encrypted = await getSubtle().encrypt({ name: "AES-GCM", iv }, aesKey, encoded);
 
   return {
     encryptedContent: arrayBufferToBase64(encrypted),
@@ -52,13 +56,13 @@ export async function decryptMessage(
   const sharedSecretBytes = ethers.getBytes(sharedSecretHex);
 
   // 2. Derive AES key
-  const keyRaw = await crypto.subtle.digest("SHA-256", toArrayBuffer(sharedSecretBytes));
-  const aesKey = await crypto.subtle.importKey("raw", keyRaw, "AES-GCM", false, ["decrypt"]);
+  const keyRaw = await getSubtle().digest("SHA-256", toArrayBuffer(sharedSecretBytes));
+  const aesKey = await getSubtle().importKey("raw", keyRaw, "AES-GCM", false, ["decrypt"]);
 
   // 3. Decrypt
   const iv = toArrayBuffer(ethers.getBytes(encrypted.iv));
   const ciphertext = base64ToArrayBuffer(encrypted.encryptedContent);
-  const decrypted = await crypto.subtle.decrypt({ name: "AES-GCM", iv }, aesKey, ciphertext);
+  const decrypted = await getSubtle().decrypt({ name: "AES-GCM", iv }, aesKey, ciphertext);
 
   return new TextDecoder().decode(decrypted);
 }
@@ -68,7 +72,7 @@ export async function signDocument(
   fileBuffer: ArrayBuffer,
   wallet: ethers.Wallet
 ): Promise<{ hash: string; signature: string; signer: string; timestamp: number }> {
-  const hashBuffer = await crypto.subtle.digest("SHA-256", fileBuffer);
+  const hashBuffer = await getSubtle().digest("SHA-256", fileBuffer);
   const hash = ethers.hexlify(new Uint8Array(hashBuffer));
   const timestamp = Date.now();
   const message = `CipherVault Document Signature\nHash: ${hash}\nTimestamp: ${timestamp}`;
@@ -84,7 +88,7 @@ export async function verifyDocument(
   timestamp: number
 ): Promise<{ valid: boolean; reason?: string }> {
   try {
-    const hashBuffer = await crypto.subtle.digest("SHA-256", fileBuffer);
+    const hashBuffer = await getSubtle().digest("SHA-256", fileBuffer);
     const hash = ethers.hexlify(new Uint8Array(hashBuffer));
     const message = `CipherVault Document Signature\nHash: ${hash}\nTimestamp: ${timestamp}`;
     const recovered = ethers.verifyMessage(message, signature);
@@ -106,11 +110,11 @@ function arrayBufferToBase64(buffer: ArrayBuffer): string {
   let binary = "";
   const bytes = new Uint8Array(buffer);
   for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i]);
-  return window.btoa(binary);
+  return typeof window !== "undefined" ? window.btoa(binary) : Buffer.from(binary, "binary").toString("base64");
 }
 
 function base64ToArrayBuffer(base64: string): ArrayBuffer {
-  const binary = window.atob(base64);
+  const binary = typeof window !== "undefined" ? window.atob(base64) : Buffer.from(base64, "base64").toString("binary");
   const bytes = new Uint8Array(binary.length);
   for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
   return bytes.buffer as ArrayBuffer;

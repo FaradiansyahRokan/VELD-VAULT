@@ -8,8 +8,12 @@ import { useContext, useRef, useState, useEffect } from "react";
 // Urutan Halaman
 const routes: Record<string, number> = {
   "/": 0,
-  "/vault": 1,
-  "/market": 2
+  "/dashboard": 1,
+  "/vault": 2,
+  "/market": 3,
+  "/messages": 4,
+  "/transfer": 5,
+  "/tools": 6,
 };
 
 function FrozenRouter(props: { children: React.ReactNode }) {

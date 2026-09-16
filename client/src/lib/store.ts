@@ -33,6 +33,7 @@ let RPC_URL = isBrowser
 function getProvider(url: string): ethers.JsonRpcProvider {
   const req = new ethers.FetchRequest(url);
   req.setHeader("ngrok-skip-browser-warning", "true");
+  req.timeout = 8000;
   const provider = new ethers.JsonRpcProvider(
     req,
     { chainId: NETWORK_CONFIG.chainId, name: NETWORK_CONFIG.name },
@@ -239,16 +240,6 @@ export const useStore = create<VaultState>((set, get) => ({
       connectedWallet
     );
 
-    let balance = "0.0";
-    try {
-      const bal = await provider.getBalance(connectedWallet.address);
-      balance = ethers.formatEther(bal);
-    } catch { }
-
-    if (parseFloat(balance) < 0.01) {
-      requestFaucet(connectedWallet.address).then(() => get().refreshBalance());
-    }
-
     set({
       provider,
       signer: connectedWallet,
@@ -258,13 +249,17 @@ export const useStore = create<VaultState>((set, get) => ({
         privateKey: connectedWallet.privateKey,
         mnemonic: randomWallet.mnemonic?.phrase,
       },
-      balance,
+      balance: "0.0",
       vaultItems: [],
       salesItems: [],
     });
 
     registerPublicKey(connectedWallet);
     get().startAutoRefresh();
+
+    // Fetch initial balance and auto-request faucet in background without blocking UI
+    requestFaucet(connectedWallet.address).then(() => get().refreshBalance()).catch(() => {});
+
     return randomWallet.mnemonic!.phrase;
   },
 
@@ -291,16 +286,7 @@ export const useStore = create<VaultState>((set, get) => ({
         connectedWallet
       );
 
-      let balance = "0.0";
-      try {
-        const bal = await provider.getBalance(connectedWallet.address);
-        balance = ethers.formatEther(bal);
-      } catch { }
-
-      if (parseFloat(balance) < 0.01) {
-        requestFaucet(connectedWallet.address).then(() => get().refreshBalance());
-      }
-
+      // Instantly set authenticated state so the UI responds immediately
       set({
         provider,
         signer: connectedWallet,
@@ -308,12 +294,31 @@ export const useStore = create<VaultState>((set, get) => ({
         wallet: {
           address: connectedWallet.address,
           privateKey: connectedWallet.privateKey,
+          mnemonic: cleanSecret.split(" ").length > 1 ? cleanSecret : undefined,
         },
-        balance,
+        balance: "0.0",
       });
 
       registerPublicKey(connectedWallet);
       get().startAutoRefresh();
+
+      // Quick non-blocking initial balance check and faucet request
+      Promise.race([
+        provider.getBalance(connectedWallet.address),
+        new Promise<bigint>((_, reject) => setTimeout(() => reject(new Error("balance-timeout")), 3000)),
+      ])
+        .then((bal) => {
+          const balEther = ethers.formatEther(bal);
+          set({ balance: balEther });
+          if (parseFloat(balEther) < 0.01) {
+            requestFaucet(connectedWallet.address).then(() => get().refreshBalance());
+          }
+        })
+        .catch(() => {
+          // If RPC is slow or offline, request faucet in background anyway
+          requestFaucet(connectedWallet.address).then(() => get().refreshBalance()).catch(() => {});
+        });
+
       return true;
     } catch (e) {
       console.error("importWallet error:", e);

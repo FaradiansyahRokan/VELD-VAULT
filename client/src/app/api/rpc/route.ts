@@ -25,6 +25,7 @@ export async function POST(request: Request) {
         "cf-skip-browser-warning": "true",
       },
       body,
+      signal: AbortSignal.timeout(8000),
     });
 
     const data = await response.text();

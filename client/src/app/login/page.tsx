@@ -48,6 +48,8 @@ export default function LoginPage() {
     setMnemonic("");
     setConfirmed(false);
     setImportInput("");
+    setIsLoading(false);
+    setIsCreating(false);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleCreate = async () => {
@@ -56,26 +58,33 @@ export default function LoginPage() {
       const phrase = await createWallet();
       setMnemonic(phrase);
       setView("CREATE");
-    } catch {
-      toast.error("Failed to generate vault credentials");
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to generate vault credentials");
+    } finally {
+      setIsCreating(false);
     }
-    setIsCreating(false);
   };
 
   const handleImport = async () => {
-    if (!importInput.trim()) return toast.error("Please enter a seed phrase or private key");
+    const secret = importInput.trim();
+    if (!secret) return toast.error("Please enter a seed phrase or private key");
     setIsLoading(true);
     try {
-      const success = await importWallet(importInput.trim());
+      // Set safety timeout (8 seconds) so verification never freezes the UI
+      const importPromise = importWallet(secret);
+      const timeoutPromise = new Promise<boolean>((_, reject) =>
+        setTimeout(() => reject(new Error("Verification timed out. Please check your network connection.")), 8000)
+      );
+      const success = await Promise.race([importPromise, timeoutPromise]);
       if (success) {
         toast.success("Vault accessed successfully!");
         router.push("/dashboard");
       } else {
         toast.error("Invalid credentials. Verify your seed phrase or key.");
-        setIsLoading(false);
       }
-    } catch {
-      toast.error("Import failed");
+    } catch (err: any) {
+      toast.error(err?.message || "Import failed. Please try again.");
+    } finally {
       setIsLoading(false);
     }
   };
@@ -271,7 +280,10 @@ export default function LoginPage() {
             >
               <div className="flex items-center justify-between">
                 <button
-                  onClick={() => setView("MENU")}
+                  onClick={() => {
+                    setView("MENU");
+                    setIsLoading(false);
+                  }}
                   className="flex items-center gap-1 text-xs font-semibold text-muted-foreground hover:text-foreground cursor-pointer"
                 >
                   <ChevronLeft size={16} />
@@ -313,9 +325,16 @@ export default function LoginPage() {
                 whileTap={{ scale: 0.97 }}
                 onClick={handleImport}
                 disabled={isLoading || !importInput.trim()}
-                className="w-full py-3.5 rounded-2xl btn-enterprise-primary text-primary-foreground transition-all disabled:opacity-50 cursor-pointer"
+                className="w-full py-3.5 rounded-2xl btn-enterprise-primary text-primary-foreground transition-all disabled:opacity-50 cursor-pointer flex items-center justify-center gap-2"
               >
-                {isLoading ? "Verifying On-Chain…" : "Unlock Vault"}
+                {isLoading ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
+                    <span>Verifying On-Chain…</span>
+                  </>
+                ) : (
+                  <span>Unlock Vault</span>
+                )}
               </motion.button>
             </motion.div>
           )}

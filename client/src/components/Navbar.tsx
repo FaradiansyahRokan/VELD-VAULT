@@ -113,28 +113,28 @@ export default function Navbar() {
             {NAV_ITEMS.map((item) => {
               const Icon = item.icon;
               const isActive = pathname === item.href;
-              return (
-                <button
-                  key={item.id}
-                  onClick={() => router.push(item.href)}
-                  className={`relative px-3.5 py-1.5 rounded-full text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer select-none ${
-                    isActive
-                      ? "text-foreground font-bold"
-                      : "text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  {isActive && (
-                    <motion.div
-                      layoutId="activeNavPill"
-                      className="absolute inset-0 bg-white dark:bg-primary rounded-full shadow-sm border border-slate-200/80 dark:border-transparent"
-                      transition={{ type: "spring", stiffness: 380, damping: 30 }}
-                    />
-                  )}
-                  <span className="relative z-10 flex items-center gap-1.5">
-                    <Icon size={14} className={isActive ? "text-[#1B2CC1] dark:text-primary-foreground" : "opacity-70"} />
-                    {item.label}
-                  </span>
-                </button>
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => router.push(item.href)}
+                    className={`relative px-3.5 py-1.5 rounded-full text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer select-none ${
+                      isActive
+                        ? "text-primary-foreground"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    {isActive && (
+                      <motion.div
+                        layoutId="activeNavPill"
+                        className="absolute inset-0 bg-primary rounded-full shadow-sm border border-transparent"
+                        transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                      />
+                    )}
+                    <span className="relative z-10 flex items-center gap-1.5">
+                      <Icon size={14} className={isActive ? "text-primary-foreground" : "opacity-70"} />
+                      {item.label}
+                    </span>
+                  </button>
               );
             })}
           </div>

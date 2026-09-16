@@ -70,7 +70,7 @@ body {
   background-attachment: fixed;
   color: var(--foreground);
 
-  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Inter", sans-serif;
+  font-family: var(--font-jakarta), -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   transition: background-color 0.25s ease, color 0.25s ease;

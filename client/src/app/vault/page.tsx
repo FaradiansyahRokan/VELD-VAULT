@@ -232,9 +232,9 @@ export default function VaultPage() {
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.96 }}
             onClick={() => setModals((p) => ({ ...p, batchUpload: true }))}
-            className="px-4 py-2.5 rounded-2xl bg-white dark:bg-[#091540] hover:bg-slate-50 dark:hover:bg-[#0c1a4d] text-foreground text-xs font-semibold border border-border flex items-center gap-2 cursor-pointer transition-all shadow-sm"
+            className="px-4 py-2.5 rounded-2xl bg-card hover:bg-muted text-foreground text-xs font-semibold border border-border flex items-center gap-2 cursor-pointer transition-all shadow-sm"
           >
-            <FolderUp size={15} className="text-[#1B2CC1] dark:text-[#7692FF]" />
+            <FolderUp size={15} className="text-primary" />
             <span>Batch Upload</span>
           </motion.button>
 

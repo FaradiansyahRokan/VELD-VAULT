@@ -91,12 +91,6 @@ export default function DashboardPage() {
         className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8"
       >
         <div>
-          <div className="flex items-center gap-2 mb-2">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-semibold bg-[#7692FF]/15 text-[#1B2CC1] dark:text-[#ABD2FA] border border-[#7692FF]/25">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shadow-sm shadow-emerald-400/50" />
-              {NETWORK_CONFIG.name} · Chain ID {NETWORK_CONFIG.chainId}
-            </span>
-          </div>
           <h1 className="text-3xl md:text-5xl font-extrabold tracking-tight text-foreground">
             Vault <span className="text-muted-foreground font-normal">Dashboard</span>
           </h1>
@@ -141,10 +135,6 @@ export default function DashboardPage() {
                 <span className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
                   Available Balance
                 </span>
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/15">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                  Live Sync
-                </span>
               </div>
 
               <div className="flex items-baseline gap-3 my-2">
@@ -160,7 +150,7 @@ export default function DashboardPage() {
               </div>
 
               <p className="text-xs md:text-sm text-muted-foreground mt-1">
-                Native token for storage fees, asset purchases, and gas on BridgeStone L1.
+                Native token for storage fees, asset purchases, and transfers.
               </p>
             </div>
 

@@ -58,23 +58,6 @@ export default function LandingPage() {
 
       {/* ── HERO SECTION ── */}
       <section className="pt-32 md:pt-40 pb-20 px-4 md:px-8 max-w-6xl mx-auto text-center relative z-10">
-        {/* Network Pill Badge */}
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={spring}
-          className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white dark:bg-background border border-border shadow-sm mb-6"
-        >
-          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shadow-sm shadow-emerald-500/50" />
-          <span className="text-xs font-semibold text-foreground">
-            {NETWORK_CONFIG.name} · Chain ID {NETWORK_CONFIG.chainId}
-          </span>
-          {blockHeight !== null && (
-            <span className="text-xs font-mono font-bold text-[#1B2CC1] dark:text-[#ABD2FA] ml-1">
-              Block #{blockHeight.toLocaleString()}
-            </span>
-          )}
-        </motion.div>
 
         {/* Hero Headline */}
         <motion.h1

@@ -64,12 +64,6 @@ export default function MarketPage() {
         className="flex flex-col md:flex-row md:items-end justify-between gap-5 mb-8 pb-6 border-b border-black/[0.05] dark:border-[#ABD2FA]/15"
       >
         <div>
-          <div className="flex items-center gap-2 mb-2">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-semibold bg-[#7692FF]/15 text-[#1B2CC1] dark:text-[#ABD2FA] border border-[#7692FF]/25">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shadow-sm shadow-emerald-400/50" />
-              Decentralized Marketplace · {NETWORK_CONFIG.name}
-            </span>
-          </div>
           <h1 className="text-3xl md:text-5xl font-extrabold tracking-tight text-foreground">
             Digital <span className="text-muted-foreground font-normal">Marketplace</span>
           </h1>

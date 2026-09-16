@@ -121,12 +121,6 @@ export default function LoginPage() {
           <h2 className="text-2xl font-extrabold text-foreground tracking-tight">
             CipherVault
           </h2>
-          <div className="flex items-center gap-1.5 mt-1">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-            <span className="text-xs font-semibold text-muted-foreground">
-              {NETWORK_CONFIG.name} · Chain ID {NETWORK_CONFIG.chainId}
-            </span>
-          </div>
         </div>
 
         <AnimatePresence mode="wait">

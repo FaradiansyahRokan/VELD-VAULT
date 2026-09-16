@@ -213,17 +213,11 @@ export default function VaultPage() {
         className="flex flex-col md:flex-row md:items-end justify-between gap-5 mb-8 pb-6 border-b border-black/[0.05] dark:border-white/[0.08]"
       >
         <div>
-          <div className="flex items-center gap-2 mb-2">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-semibold bg-[#7692FF]/15 text-[#1B2CC1] dark:text-[#ABD2FA] border border-[#7692FF]/25">
-              <ShieldCheck size={13} className="text-[#1B2CC1] dark:text-[#7692FF]" />
-              End-to-End Encrypted (AES-GCM + EIP-191)
-            </span>
-          </div>
           <h1 className="text-3xl md:text-5xl font-extrabold tracking-tight text-foreground">
             Encrypted <span className="text-muted-foreground font-normal">Vault</span>
           </h1>
           <p className="text-xs md:text-sm text-muted-foreground mt-1.5">
-            {vaultItems.length} secured file{vaultItems.length !== 1 ? "s" : ""} on BridgeStone L1 IPFS cluster
+            {vaultItems.length} secured file{vaultItems.length !== 1 ? "s" : ""} in decentralized storage
           </p>
         </div>
 
@@ -389,7 +383,7 @@ export default function VaultPage() {
           </div>
           <h3 className="text-xl font-bold text-foreground">Your Vault is Empty</h3>
           <p className="text-xs text-muted-foreground max-w-sm mt-1 mb-6">
-            Upload files to store them end-to-end encrypted on IPFS with decentralized ownership verified on BridgeStone L1.
+            Upload files to store them end-to-end encrypted on IPFS with decentralized ownership verified on-chain.
           </p>
           <label className="cursor-pointer">
             <div className="px-5 py-2.5 rounded-2xl btn-enterprise-primary text-primary-foreground flex items-center gap-2 cursor-pointer transition-all">

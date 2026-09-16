@@ -25,9 +25,6 @@ import {
   Coins,
   RefreshCw,
   ChevronDown,
-  Activity,
-  Zap,
-  ExternalLink,
 } from "lucide-react";
 
 const NAV_ITEMS = [
@@ -167,19 +164,9 @@ export default function Navbar() {
                 <div className="absolute inset-0 bg-gradient-to-tr from-white/0 via-white/30 to-white/0 animate-pulse" />
               </div>
 
-              <div className="flex flex-col leading-none">
-                <div className="flex items-center gap-1.5">
-                  <span className="text-[13px] font-bold tracking-tight text-foreground">
-                    CipherVault
-                  </span>
-                  <span className="px-1.5 py-[1px] text-[8.5px] font-bold bg-[#7692FF]/15 text-[#1B2CC1] dark:text-[#ABD2FA] border border-[#7692FF]/20 rounded-md tracking-wider">
-                    L1
-                  </span>
-                </div>
-                <span className="text-[9.5px] text-muted-foreground font-medium mt-0.5">
-                  BridgeStone
-                </span>
-              </div>
+              <span className="text-[14px] font-bold tracking-tight text-foreground">
+                CipherVault
+              </span>
             </motion.div>
 
             {/* 2. CENTER: Fluid Viscous Tab Bar (Desktop Only) */}
@@ -256,29 +243,21 @@ export default function Navbar() {
                     whileTap={{ scale: 0.97 }}
                     transition={microSpring}
                     onClick={() => setHudOpen(!hudOpen)}
-                    title="Open Dynamic Island HUD"
-                    className="flex items-center gap-2 pl-2.5 pr-2 py-1 rounded-full text-xs font-semibold cursor-pointer select-none transition-all"
+                    title="Account details"
+                    className="flex items-center gap-1.5 pl-3 pr-2.5 py-1.5 rounded-full text-xs font-semibold cursor-pointer select-none transition-all"
                     style={{
                       background: hudOpen ? "var(--muted)" : "var(--balance-bg)",
                       border: "1px solid var(--balance-border)",
                       color: "var(--balance-text)",
                     }}
                   >
-                    {/* Live Ping Pulse */}
-                    <div className="relative flex items-center justify-center w-2 h-2">
-                      <span className="absolute w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping opacity-60" />
-                      <span className="relative w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                    </div>
-
-                    {/* Balance */}
+                    <Coins size={13} className="opacity-80" />
                     <span className="font-semibold text-[11.5px] tabular-nums">
                       {Number(balance || 0).toLocaleString(undefined, {
                         maximumFractionDigits: 2,
                       })}{" "}
                       {NETWORK_CONFIG.tokenSymbol}
                     </span>
-
-                    {/* Chevron Indicator */}
                     <motion.div
                       animate={{ rotate: hudOpen ? 180 : 0 }}
                       transition={{ duration: 0.25 }}
@@ -348,7 +327,7 @@ export default function Navbar() {
           </div>
         </motion.nav>
 
-        {/* ── 4. Dynamic Island Expanded HUD Dropdown (Apple Island Telemetry) ── */}
+        {/* ── 4. Dynamic Island Expanded HUD Dropdown ── */}
         <AnimatePresence>
           {hudOpen && wallet && (
             <motion.div
@@ -356,7 +335,7 @@ export default function Navbar() {
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -12, scale: 0.95 }}
               transition={hudSpring}
-              className="absolute top-[calc(100%+8px)] right-0 w-[310px] rounded-[24px] p-4 ios-glass border border-white/60 dark:border-white/10 shadow-2xl z-50 overflow-hidden"
+              className="absolute top-[calc(100%+8px)] right-0 w-[290px] rounded-[24px] p-4 ios-glass border border-white/60 dark:border-white/10 shadow-2xl z-50 overflow-hidden"
               style={{
                 boxShadow:
                   "0 24px 48px -12px rgba(9, 21, 64, 0.25), inset 0 1px 1px rgba(255,255,255,0.8)",
@@ -370,7 +349,7 @@ export default function Navbar() {
                   </div>
                   <div className="flex flex-col">
                     <span className="text-xs font-bold text-foreground">
-                      BridgeStone Sovereign
+                      Connected Wallet
                     </span>
                     <span className="text-[10px] text-muted-foreground font-mono">
                       {wallet.address.slice(0, 6)}...{wallet.address.slice(-4)}
@@ -391,32 +370,19 @@ export default function Navbar() {
                 </button>
               </div>
 
-              {/* Telemetry Metrics */}
-              <div className="space-y-2 mb-3.5">
-                <div className="flex items-center justify-between p-2.5 rounded-xl bg-black/[0.02] dark:bg-white/[0.03] border border-border/40 text-[11px]">
-                  <span className="text-muted-foreground flex items-center gap-1.5">
-                    <Activity size={12} className="text-emerald-500" /> Network Status
+              {/* Balance Card */}
+              <div className="p-3 rounded-2xl bg-black/[0.02] dark:bg-white/[0.03] border border-border/40 mb-3.5">
+                <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider block mb-1">
+                  Total Balance
+                </span>
+                <div className="flex items-baseline gap-1.5">
+                  <span className="text-xl font-bold text-foreground tabular-nums">
+                    {Number(balance || 0).toLocaleString(undefined, {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 4,
+                    })}
                   </span>
-                  <span className="font-semibold text-emerald-500 flex items-center gap-1">
-                    🟢 Online • 14ms
-                  </span>
-                </div>
-
-                <div className="flex items-center justify-between p-2.5 rounded-xl bg-black/[0.02] dark:bg-white/[0.03] border border-border/40 text-[11px]">
-                  <span className="text-muted-foreground flex items-center gap-1.5">
-                    <Zap size={12} className="text-[#7692FF]" /> Gas Fee
-                  </span>
-                  <span className="font-semibold text-foreground font-mono">
-                    0.001 Gwei
-                  </span>
-                </div>
-
-                <div className="flex items-center justify-between p-2.5 rounded-xl bg-black/[0.02] dark:bg-white/[0.03] border border-border/40 text-[11px]">
-                  <span className="text-muted-foreground flex items-center gap-1.5">
-                    <Coins size={12} className="text-[#1B2CC1] dark:text-[#ABD2FA]" /> Vault Total
-                  </span>
-                  <span className="font-bold text-foreground">
-                    {Number(balance || 0).toLocaleString()}{" "}
+                  <span className="text-xs font-semibold text-[#1B2CC1] dark:text-[#ABD2FA]">
                     {NETWORK_CONFIG.tokenSymbol}
                   </span>
                 </div>

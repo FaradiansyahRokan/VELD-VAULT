@@ -465,15 +465,29 @@ export const decryptFile = async (
 };
 
 // ============================================================
-// UNPIN (bersihkan IPFS saat burn)
+// UNPIN (bersihkan IPFS saat burn & free up disk VPS)
 // ============================================================
 export const unpinFile = async (cid: string): Promise<boolean> => {
   try {
+    if (!cid) return false;
     const ipfs = await getClient();
     await ipfs.pin.rm(cid);
+
+    // Jalankan Garbage Collection (GC) di background agar blok data fisik
+    // langsung dihapus dari disk penyimpanan VPS / node IPFS.
+    (async () => {
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        for await (const _ of ipfs.repo.gc()) {}
+      } catch {
+        // GC background silent fail if already running
+      }
+    })();
+
     return true;
-  } catch {
-    return true; // Tetap true — unpin bukan critical path
+  } catch (err) {
+    console.warn("[unpinFile] Warning:", err);
+    return true; // Tetap true — unpin bukan critical path transaksi on-chain
   }
 };
 

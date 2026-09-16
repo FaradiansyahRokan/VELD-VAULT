@@ -11,6 +11,7 @@ import {
   decryptFile,
   unlockVaultKey,
   clearVaultKey,
+  unpinFile,
 } from "./crypto-engine";
 import { recordPriceEvent } from "@/components/PriceHistory";
 import { useActivityStore } from "./activity-store";
@@ -860,12 +861,24 @@ export const useStore = create<VaultState>((set, get) => ({
   // BURN ASSET
   // FIX: Tambah ensureGas() — sama seperti listAssetForSale.
   // ----------------------------------------------------------
-  burnAsset: async (tokenId, _cid) => {
-    const { contract, syncAll } = get();
+  burnAsset: async (tokenId, cid) => {
+    const { contract, syncAll, vaultItems } = get();
     try {
       await get().ensureGas(); // inside try-catch agar error-nya tertangkap
+
+      // Resolve CID target dari parameter atau lookup dari vaultItems
+      const targetCid = cid || vaultItems.find((i) => i.id === tokenId)?.cid;
+
       const tx = await contract!.burnAsset(tokenId, gasOverride("burnAsset"));
       await tx.wait();
+
+      // Hapus & unpin file dari IPFS node / VPS agar storage disk tidak menumpuk
+      if (targetCid) {
+        unpinFile(targetCid).catch((err) =>
+          console.warn("[burnAsset] IPFS unpin warning:", err)
+        );
+      }
+
       await syncAll();
       return true;
     } catch (error: any) {

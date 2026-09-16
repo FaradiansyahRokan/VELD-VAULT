@@ -9,6 +9,7 @@ import {
     Timer, Eye,
 } from "lucide-react";
 import { toast } from "sonner";
+import { copyToClipboard } from "@/lib/clipboard";
 import { NETWORK_CONFIG } from "@/lib/constants";
 
 interface ShareLink {
@@ -69,7 +70,7 @@ export default function ShareWithExpiry({
 
     const handleCopy = () => {
         if (!link) return;
-        navigator.clipboard.writeText(link.url);
+        copyToClipboard(link.url);
         setCopied(true);
         toast.success("Link disalin!");
         setTimeout(() => setCopied(false), 2000);

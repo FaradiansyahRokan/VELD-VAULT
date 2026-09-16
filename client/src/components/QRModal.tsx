@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Copy, Check, Download } from "lucide-react";
+import { copyToClipboard } from "@/lib/clipboard";
 
 interface QRModalProps {
   isOpen: boolean;
@@ -28,7 +29,7 @@ export default function QRModal({ isOpen, onClose, address, label }: QRModalProp
   }, [isOpen, onClose]);
 
   const handleCopy = () => {
-    navigator.clipboard.writeText(address);
+    copyToClipboard(address);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };

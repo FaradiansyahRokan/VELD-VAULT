@@ -26,6 +26,7 @@ import {
   Zap,
 } from "lucide-react";
 import { toast } from "sonner";
+import { copyToClipboard } from "@/lib/clipboard";
 
 const spring = {
   type: "spring" as const,
@@ -87,7 +88,7 @@ export default function DashboardPage() {
   const shortAddr = `${wallet.address.slice(0, 6)}...${wallet.address.slice(-4)}`;
 
   const handleCopyAddr = () => {
-    navigator.clipboard.writeText(wallet.address);
+    copyToClipboard(wallet.address);
     setCopied(true);
     toast.success("Wallet address copied to clipboard");
     setTimeout(() => setCopied(false), 2000);

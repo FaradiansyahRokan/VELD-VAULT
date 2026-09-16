@@ -7,6 +7,7 @@ import { useTheme } from "next-themes";
 import { NETWORK_CONFIG } from "@/lib/constants";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
+import { copyToClipboard } from "@/lib/clipboard";
 import {
   LayoutDashboard,
   Shield,
@@ -171,7 +172,7 @@ export default function Navbar() {
 
   const handleCopy = useCallback(() => {
     if (!wallet?.address) return;
-    navigator.clipboard.writeText(wallet.address);
+    copyToClipboard(wallet.address);
     setCopied(true);
     toast.success("Wallet address copied to clipboard!");
     setTimeout(() => setCopied(false), 2000);
@@ -179,7 +180,7 @@ export default function Navbar() {
 
   const handleCopyPrivateKey = useCallback(() => {
     if (!wallet?.privateKey) return;
-    navigator.clipboard.writeText(wallet.privateKey);
+    copyToClipboard(wallet.privateKey);
     setCopiedKey(true);
     toast.success("Private key copied! Keep it secret.");
     setTimeout(() => setCopiedKey(false), 2000);

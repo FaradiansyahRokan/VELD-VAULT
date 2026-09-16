@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { ethers } from "ethers";
 import { Users, Plus, Search, Pencil, Trash2, X, Check, Copy, MessageSquare } from "lucide-react";
 import { toast } from "sonner";
+import { copyToClipboard } from "../lib/clipboard";
 import { useRouter } from "next/navigation";
 
 const EMOJIS = ["🦊", "🐺", "🦁", "🐯", "🦅", "🦋", "🐉", "🌙", "⚡", "🔮", "🎯", "🛡️", "🌊", "🔥", "❄️", "🎭"];
@@ -73,7 +74,7 @@ export default function ContactsBook() {
   };
 
   const copyAddress = (address: string, id: string) => {
-    navigator.clipboard.writeText(address);
+    copyToClipboard(address);
     setCopiedId(id);
     setTimeout(() => setCopiedId(null), 2000);
     toast.success("Address disalin!");

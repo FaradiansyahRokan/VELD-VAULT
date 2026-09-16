@@ -19,6 +19,7 @@ import {
   EyeOff,
 } from "lucide-react";
 import { toast } from "sonner";
+import { copyToClipboard } from "@/lib/clipboard";
 import { NETWORK_CONFIG } from "@/lib/constants";
 
 type View = "MENU" | "CREATE" | "IMPORT";
@@ -90,7 +91,7 @@ export default function LoginPage() {
   };
 
   const copyMnemonic = () => {
-    navigator.clipboard.writeText(mnemonic);
+    copyToClipboard(mnemonic);
     setIsCopied(true);
     toast.success("Recovery phrase copied to clipboard");
     setTimeout(() => setIsCopied(false), 2000);

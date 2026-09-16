@@ -11,6 +11,7 @@ import {
   Shield, Clock, AlertTriangle, Loader2, Copy, Check,
 } from "lucide-react";
 import { toast } from "sonner";
+import { copyToClipboard as safeCopy } from "@/lib/clipboard";
 import { NETWORK_CONFIG } from "@/lib/constants";
 
 interface SignatureRecord {
@@ -96,7 +97,7 @@ export default function DocumentSigner() {
   }, [verifyFile, sigInput]);
 
   const copyToClipboard = (text: string, key: string) => {
-    navigator.clipboard.writeText(text);
+    safeCopy(text);
     setCopied(key);
     setTimeout(() => setCopied(null), 2000);
   };

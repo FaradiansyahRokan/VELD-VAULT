@@ -25,6 +25,7 @@ import { NETWORK_CONFIG } from "@/lib/constants";
 import { ethers } from "ethers";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
+import { copyToClipboard } from "@/lib/clipboard";
 import { getSubtleCrypto } from "@/lib/webcrypto-shim";
 
 /* ── Constants ───────────────────────────────────────────────── */
@@ -94,7 +95,7 @@ function ContactManager({ walletAddr }: { walletAddr: string }) {
     setShowForm(false); setEditId(null);
   };
   const del = (id: string, name: string) => { if (confirm(`Remove "${name}"?`)) { removeContact(id); toast.success("Removed"); } };
-  const copy = (addr: string, id: string) => { navigator.clipboard.writeText(addr); setCopiedId(id); setTimeout(() => setCopiedId(null), 2000); };
+  const copy = (addr: string, id: string) => { copyToClipboard(addr); setCopiedId(id); setTimeout(() => setCopiedId(null), 2000); };
 
   return (
     <div>
@@ -456,7 +457,7 @@ function SignDocument({ wallet, signer }: { wallet: any; signer: any }) {
             <div className="font-mono text-[11px] tracking-widest uppercase text-muted-foreground mb-2.5">File fingerprint (SHA-256)</div>
             <div className="flex items-start gap-2.5">
               <div className="font-mono text-[12px] text-foreground break-all leading-relaxed flex-1">{hash}</div>
-              <button className="inline-flex items-center gap-1.5 bg-transparent border border-border px-2.5 py-1 rounded-lg font-mono text-[11px] tracking-widest uppercase text-muted-foreground cursor-pointer transition-colors whitespace-nowrap shrink-0 hover:border-primary hover:text-foreground" onClick={() => { navigator.clipboard.writeText(hash); toast.success("Copied") }}><Ic.Copy /></button>
+              <button className="inline-flex items-center gap-1.5 bg-transparent border border-border px-2.5 py-1 rounded-lg font-mono text-[11px] tracking-widest uppercase text-muted-foreground cursor-pointer transition-colors whitespace-nowrap shrink-0 hover:border-primary hover:text-foreground" onClick={() => { copyToClipboard(hash); toast.success("Copied") }}><Ic.Copy /></button>
             </div>
           </div>
 
@@ -480,7 +481,7 @@ function SignDocument({ wallet, signer }: { wallet: any; signer: any }) {
             <div className="font-mono text-[11px] tracking-widest uppercase text-muted-foreground mb-2.5">EIP-191 Signature</div>
             <div className="flex items-start gap-2.5">
               <div className="font-mono text-[12px] text-foreground break-all leading-relaxed flex-1 break-all">{sig}</div>
-              <button className="inline-flex items-center gap-1.5 bg-transparent border border-border px-2.5 py-1 rounded-lg font-mono text-[11px] tracking-widest uppercase text-muted-foreground cursor-pointer transition-colors whitespace-nowrap shrink-0 hover:border-primary hover:text-foreground" onClick={() => { navigator.clipboard.writeText(sig); toast.success("Copied") }}><Ic.Copy /></button>
+              <button className="inline-flex items-center gap-1.5 bg-transparent border border-border px-2.5 py-1 rounded-lg font-mono text-[11px] tracking-widest uppercase text-muted-foreground cursor-pointer transition-colors whitespace-nowrap shrink-0 hover:border-primary hover:text-foreground" onClick={() => { copyToClipboard(sig); toast.success("Copied") }}><Ic.Copy /></button>
             </div>
           </div>
 
@@ -558,7 +559,7 @@ function HashVerifier() {
             <div className="font-mono text-[11px] tracking-widest uppercase text-muted-foreground mb-2.5">Computed SHA-256</div>
             <div className="flex items-start gap-2.5">
               <div className="font-mono text-[12px] text-foreground break-all leading-relaxed flex-1">{computed}</div>
-              <button className="inline-flex items-center gap-1.5 bg-transparent border border-border px-2.5 py-1 rounded-lg font-mono text-[11px] tracking-widest uppercase text-muted-foreground cursor-pointer transition-colors whitespace-nowrap shrink-0 hover:border-primary hover:text-foreground" onClick={() => { navigator.clipboard.writeText(computed); toast.success("Copied") }}><Ic.Copy /></button>
+              <button className="inline-flex items-center gap-1.5 bg-transparent border border-border px-2.5 py-1 rounded-lg font-mono text-[11px] tracking-widest uppercase text-muted-foreground cursor-pointer transition-colors whitespace-nowrap shrink-0 hover:border-primary hover:text-foreground" onClick={() => { copyToClipboard(computed); toast.success("Copied") }}><Ic.Copy /></button>
             </div>
           </div>
 

@@ -110,7 +110,7 @@ export default function LandingPage() {
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.97 }}
             onClick={() => router.push(wallet ? "/dashboard" : "/login")}
-            className="w-full sm:w-auto px-8 py-4 rounded-2xl bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-sm shadow-sm flex items-center justify-center gap-2 cursor-pointer transition-all"
+            className="w-full sm:w-auto px-8 py-4 rounded-2xl btn-enterprise-primary text-primary-foreground flex items-center justify-center gap-2 cursor-pointer transition-all"
           >
             <span>{wallet ? "Open Dashboard" : "Launch Vault App"}</span>
             <ArrowRight size={16} />
@@ -134,7 +134,7 @@ export default function LandingPage() {
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ ...spring, delay: 0.2 }}
-          className="rounded-3xl p-6 md:p-8 bg-card border border-border shadow-sm grid grid-cols-2 md:grid-cols-4 gap-4"
+          className="rounded-3xl p-6 md:p-8 ios-card grid grid-cols-2 md:grid-cols-4 gap-4"
         >
           <div className="p-4 rounded-2xl bg-background border border-border">
             <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block mb-1">
@@ -201,7 +201,7 @@ export default function LandingPage() {
           {/* Card 1 */}
           <motion.div
             whileHover={{ y: -3 }}
-            className="p-7 rounded-3xl bg-card border border-border shadow-sm hover:shadow-md transition-all flex flex-col justify-between"
+            className="p-7 rounded-3xl ios-card transition-all flex flex-col justify-between"
           >
             <div>
               <div className="w-12 h-12 rounded-2xl bg-primary/10 text-[#1B2CC1] dark:text-[#7692FF] flex items-center justify-center mb-5 border border-[#1B2CC1]/15">
@@ -219,7 +219,7 @@ export default function LandingPage() {
           {/* Card 2 */}
           <motion.div
             whileHover={{ y: -3 }}
-            className="p-7 rounded-3xl bg-card border border-border shadow-sm hover:shadow-md transition-all flex flex-col justify-between"
+            className="p-7 rounded-3xl ios-card transition-all flex flex-col justify-between"
           >
             <div>
               <div className="w-12 h-12 rounded-2xl bg-[#7692FF]/15 text-[#1B2CC1] dark:text-[#ABD2FA] flex items-center justify-center mb-5 border border-[#7692FF]/20">
@@ -237,7 +237,7 @@ export default function LandingPage() {
           {/* Card 3 */}
           <motion.div
             whileHover={{ y: -3 }}
-            className="p-7 rounded-3xl bg-card border border-border shadow-sm hover:shadow-md transition-all flex flex-col justify-between"
+            className="p-7 rounded-3xl ios-card transition-all flex flex-col justify-between"
           >
             <div>
               <div className="w-12 h-12 rounded-2xl bg-[#ABD2FA]/20 text-[#091540] dark:text-[#ABD2FA] flex items-center justify-center mb-5 border border-[#ABD2FA]/25">

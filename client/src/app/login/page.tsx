@@ -108,7 +108,7 @@ export default function LoginPage() {
         initial={{ opacity: 0, scale: 0.96, y: 15 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         transition={spring}
-        className="relative z-10 w-full max-w-md rounded-3xl p-7 md:p-9 bg-card border border-border shadow-sm"
+        className="relative z-10 w-full max-w-md rounded-3xl p-7 md:p-9 ios-card"
       >
         {/* Top App Icon & Title */}
         <div className="flex flex-col items-center text-center mb-6">
@@ -150,7 +150,7 @@ export default function LoginPage() {
                 whileTap={{ scale: 0.97 }}
                 onClick={handleCreate}
                 disabled={isCreating}
-                className="w-full p-4 rounded-2xl bg-primary hover:opacity-90 text-primary-foreground flex items-center justify-between shadow-sm cursor-pointer transition-all"
+                className="w-full p-4 rounded-2xl btn-enterprise-primary text-primary-foreground cursor-pointer transition-all"
               >
                 <div className="flex items-center gap-3 text-left">
                   <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center">
@@ -258,7 +258,7 @@ export default function LoginPage() {
                 whileTap={{ scale: 0.97 }}
                 onClick={enterVault}
                 disabled={!confirmed}
-                className="w-full py-3.5 rounded-2xl bg-primary hover:opacity-90 text-primary-foreground text-xs font-bold shadow-sm transition-all disabled:opacity-50 cursor-pointer"
+                className="w-full py-3.5 rounded-2xl btn-enterprise-primary text-primary-foreground transition-all disabled:opacity-50 cursor-pointer"
               >
                 Enter Vault Dashboard
               </motion.button>
@@ -319,7 +319,7 @@ export default function LoginPage() {
                 whileTap={{ scale: 0.97 }}
                 onClick={handleImport}
                 disabled={isLoading || !importInput.trim()}
-                className="w-full py-3.5 rounded-2xl bg-primary hover:opacity-90 text-primary-foreground text-xs font-bold shadow-sm transition-all disabled:opacity-50 cursor-pointer"
+                className="w-full py-3.5 rounded-2xl btn-enterprise-primary text-primary-foreground transition-all disabled:opacity-50 cursor-pointer"
               >
                 {isLoading ? "Verifying On-Chain…" : "Unlock Vault"}
               </motion.button>

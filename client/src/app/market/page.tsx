@@ -118,7 +118,7 @@ export default function MarketPage() {
         <motion.div
           initial={{ opacity: 0, scale: 0.98 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="rounded-3xl p-16 text-center bg-card border border-border shadow-sm flex flex-col items-center justify-center"
+          className="rounded-3xl p-16 text-center ios-card flex flex-col items-center justify-center"
         >
           <div className="w-16 h-16 rounded-3xl bg-[#7692FF]/15 text-[#1B2CC1] dark:text-[#7692FF] flex items-center justify-center mb-4 border border-[#7692FF]/20">
             <ShoppingBag size={28} />
@@ -135,7 +135,7 @@ export default function MarketPage() {
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.96 }}
             onClick={() => router.push("/vault")}
-            className="px-5 py-2.5 rounded-2xl bg-primary hover:bg-[#15229E] text-primary-foreground text-xs font-semibold shadow-sm"
+            className="px-5 py-2.5 rounded-2xl btn-enterprise-primary text-primary-foreground"
           >
             Go to My Vault
           </motion.button>
@@ -152,7 +152,7 @@ export default function MarketPage() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ ...spring, delay: i * 0.04 }}
-                className="rounded-3xl bg-card border border-border shadow-sm hover:shadow-md transition-all flex flex-col justify-between overflow-hidden group hover:border-primary/50"
+                className="rounded-3xl ios-card transition-all flex flex-col justify-between overflow-hidden group hover:border-primary/50"
               >
                 {/* Image / Thumbnail Container */}
                 <div className="relative h-48 bg-background/60 flex items-center justify-center overflow-hidden border-b border-border">

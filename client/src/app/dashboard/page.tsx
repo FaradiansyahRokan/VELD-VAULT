@@ -133,7 +133,7 @@ export default function DashboardPage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ ...spring, delay: 0.05 }}
-          className="lg:col-span-2 relative overflow-hidden rounded-3xl p-7 md:p-9 bg-card border border-border shadow-sm"
+          className="lg:col-span-2 relative overflow-hidden rounded-3xl p-7 md:p-9 ios-card"
         >
           <div className="relative z-10 flex flex-col justify-between h-full">
             <div>
@@ -170,7 +170,7 @@ export default function DashboardPage() {
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.97 }}
                 onClick={() => router.push("/vault")}
-                className="px-5 py-3 rounded-2xl bg-primary hover:bg-[#15229E] text-primary-foreground font-semibold text-sm shadow-sm flex items-center gap-2 cursor-pointer transition-all"
+                className="px-5 py-3 rounded-2xl btn-enterprise-primary text-primary-foreground flex items-center gap-2 cursor-pointer transition-all"
               >
                 <Shield size={16} />
                 <span>Open Vault</span>
@@ -204,7 +204,7 @@ export default function DashboardPage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ ...spring, delay: 0.1 }}
-          className="rounded-3xl p-7 bg-card border border-border shadow-sm flex flex-col justify-between"
+          className="rounded-3xl p-7 ios-card flex flex-col justify-between"
         >
           <div>
             <div className="w-12 h-12 rounded-2xl bg-[#7692FF]/15 text-[#1B2CC1] dark:text-[#ABD2FA] flex items-center justify-center mb-5 border border-[#7692FF]/20">
@@ -242,7 +242,7 @@ export default function DashboardPage() {
           whileHover={{ y: -3, scale: 1.01 }}
           whileTap={{ scale: 0.98 }}
           onClick={() => router.push("/vault")}
-          className="p-5 rounded-3xl bg-card border border-border shadow-sm hover:shadow-md transition-all cursor-pointer group"
+          className="p-5 rounded-3xl ios-card transition-all cursor-pointer group"
         >
           <div className="flex items-center justify-between mb-3">
             <div className="w-10 h-10 rounded-2xl bg-primary/15 text-[#1B2CC1] dark:text-[#7692FF] flex items-center justify-center group-hover:scale-110 transition-transform border border-[#1B2CC1]/20">
@@ -263,7 +263,7 @@ export default function DashboardPage() {
           whileHover={{ y: -3, scale: 1.01 }}
           whileTap={{ scale: 0.98 }}
           onClick={() => router.push("/vault")}
-          className="p-5 rounded-3xl bg-card border border-border shadow-sm hover:shadow-md transition-all cursor-pointer group"
+          className="p-5 rounded-3xl ios-card transition-all cursor-pointer group"
         >
           <div className="flex items-center justify-between mb-3">
             <div className="w-10 h-10 rounded-2xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center group-hover:scale-110 transition-transform border border-emerald-500/15">
@@ -284,7 +284,7 @@ export default function DashboardPage() {
           whileHover={{ y: -3, scale: 1.01 }}
           whileTap={{ scale: 0.98 }}
           onClick={() => router.push("/market")}
-          className="p-5 rounded-3xl bg-card border border-border shadow-sm hover:shadow-md transition-all cursor-pointer group"
+          className="p-5 rounded-3xl ios-card transition-all cursor-pointer group"
         >
           <div className="flex items-center justify-between mb-3">
             <div className="w-10 h-10 rounded-2xl bg-[#7692FF]/15 text-[#1B2CC1] dark:text-[#ABD2FA] flex items-center justify-center group-hover:scale-110 transition-transform border border-[#7692FF]/20">
@@ -305,7 +305,7 @@ export default function DashboardPage() {
           whileHover={{ y: -3, scale: 1.01 }}
           whileTap={{ scale: 0.98 }}
           onClick={() => router.push("/tools")}
-          className="p-5 rounded-3xl bg-card border border-border shadow-sm hover:shadow-md transition-all cursor-pointer group"
+          className="p-5 rounded-3xl ios-card transition-all cursor-pointer group"
         >
           <div className="flex items-center justify-between mb-3">
             <div className="w-10 h-10 rounded-2xl bg-[#ABD2FA]/20 text-[#091540] dark:text-[#ABD2FA] flex items-center justify-center group-hover:scale-110 transition-transform border border-[#ABD2FA]/25">
@@ -325,7 +325,7 @@ export default function DashboardPage() {
       {/* ── Two Column: Quick Actions & Recent Activity ── */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* iOS Settings-style Grouped Quick Actions */}
-        <div className="rounded-3xl p-6 bg-card border border-border shadow-sm">
+        <div className="rounded-3xl p-6 ios-card">
           <div className="flex items-center gap-2 mb-4 px-1">
             <Zap size={16} className="text-[#1B2CC1] dark:text-[#7692FF]" />
             <h2 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">
@@ -394,7 +394,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Recent Activity Card */}
-        <div className="rounded-3xl p-6 bg-card border border-border shadow-sm">
+        <div className="rounded-3xl p-6 ios-card">
           <div className="flex items-center justify-between mb-4 px-1">
             <div className="flex items-center gap-2">
               <Activity size={16} className="text-emerald-500" />

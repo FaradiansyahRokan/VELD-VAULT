@@ -189,7 +189,7 @@ export default function TransferPage() {
         initial={{ opacity: 0, y: 15 }}
         animate={{ opacity: 1, y: 0 }}
         transition={spring}
-        className="rounded-3xl p-6 md:p-8 bg-card border border-border shadow-sm"
+        className="rounded-3xl p-6 md:p-8 ios-card"
       >
         <AnimatePresence mode="wait">
           {/* ── STEP 1: INPUT ── */}
@@ -363,7 +363,7 @@ export default function TransferPage() {
                 whileTap={{ scale: 0.97 }}
                 disabled={!canContinue}
                 onClick={() => setStep("confirm")}
-                className="w-full py-4 rounded-2xl bg-primary hover:opacity-90 text-primary-foreground text-xs font-bold shadow-sm transition-all disabled:opacity-50 cursor-pointer flex items-center justify-center gap-2"
+                className="w-full py-4 rounded-2xl btn-enterprise-primary text-primary-foreground transition-all disabled:opacity-50 cursor-pointer flex items-center justify-center gap-2"
               >
                 <span>Review Transfer</span>
                 <ArrowRight size={16} />
@@ -435,7 +435,7 @@ export default function TransferPage() {
                   whileTap={{ scale: 0.96 }}
                   disabled={sending}
                   onClick={handleSend}
-                  className="flex-2 py-3.5 rounded-2xl bg-primary hover:opacity-90 text-primary-foreground text-xs font-bold shadow-sm cursor-pointer disabled:opacity-50"
+                  className="flex-2 py-3.5 rounded-2xl btn-enterprise-primary text-primary-foreground cursor-pointer disabled:opacity-50"
                 >
                   {sending ? "Broadcasting on Chain…" : "Sign & Send"}
                 </motion.button>
@@ -479,7 +479,7 @@ export default function TransferPage() {
                 <motion.button
                   whileTap={{ scale: 0.96 }}
                   onClick={() => router.push("/dashboard")}
-                  className="flex-1 py-3.5 rounded-2xl bg-primary hover:opacity-90 text-primary-foreground text-xs font-bold shadow-sm cursor-pointer"
+                  className="flex-1 py-3.5 rounded-2xl btn-enterprise-primary text-primary-foreground cursor-pointer"
                 >
                   Return to Dashboard
                 </motion.button>

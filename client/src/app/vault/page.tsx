@@ -243,7 +243,7 @@ export default function VaultPage() {
             <motion.div
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.96 }}
-              className="px-5 py-2.5 rounded-2xl bg-primary hover:bg-[#15229E] text-primary-foreground text-xs font-semibold shadow-sm flex items-center gap-2 transition-all cursor-pointer"
+              className="px-5 py-2.5 rounded-2xl btn-enterprise-primary text-primary-foreground flex items-center gap-2 transition-all cursor-pointer"
             >
               <Upload size={15} />
               <span>{loading ? "Encrypting…" : "Upload File"}</span>
@@ -392,7 +392,7 @@ export default function VaultPage() {
             Upload files to store them end-to-end encrypted on IPFS with decentralized ownership verified on BridgeStone L1.
           </p>
           <label className="cursor-pointer">
-            <div className="px-5 py-2.5 rounded-2xl bg-primary hover:bg-[#15229E] text-primary-foreground text-xs font-semibold shadow-sm flex items-center gap-2 cursor-pointer transition-all">
+            <div className="px-5 py-2.5 rounded-2xl btn-enterprise-primary text-primary-foreground flex items-center gap-2 cursor-pointer transition-all">
               <Upload size={14} />
               <span>Upload Your First File</span>
             </div>
@@ -415,7 +415,7 @@ export default function VaultPage() {
                 initial={{ opacity: 0, y: 15 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ ...spring, delay: i * 0.03 }}
-                className={`rounded-3xl bg-card border border-border shadow-sm hover:shadow-md transition-all flex flex-col justify-between overflow-hidden group ${
+                className={`rounded-3xl ios-card transition-all flex flex-col justify-between overflow-hidden group ${
                   inEscrow ? "ring-2 ring-amber-500/30 bg-amber-50/20 dark:bg-amber-950/10" : ""
                 }`}
               >
@@ -583,7 +583,7 @@ export default function VaultPage() {
                       <motion.button
                         whileTap={{ scale: 0.95 }}
                         onClick={() => handleDecrypt(file.cid, "PREVIEW")}
-                        className="flex-1 py-2 px-3.5 rounded-xl bg-primary hover:bg-[#15229E] text-primary-foreground text-xs font-semibold shadow-sm flex items-center justify-center gap-1.5 cursor-pointer transition-all"
+                        className="flex-1 py-2 px-3.5 rounded-xl btn-enterprise-primary text-primary-foreground flex items-center justify-center gap-1.5 cursor-pointer transition-all"
                       >
                         <Eye size={14} />
                         <span>Decrypt & Open</span>
@@ -732,7 +732,7 @@ export default function VaultPage() {
                 whileTap={{ scale: 0.98 }}
                 onClick={handleListForSale}
                 disabled={!formData.price || loading}
-                className="w-full py-3.5 rounded-2xl bg-primary hover:bg-[#15229E] text-primary-foreground text-xs font-bold shadow-sm transition-all disabled:opacity-50 cursor-pointer"
+                className="w-full py-3.5 rounded-2xl btn-enterprise-primary text-primary-foreground transition-all disabled:opacity-50 cursor-pointer"
               >
                 {loading ? "Listing on Chain…" : "Publish Listing"}
               </motion.button>
@@ -767,7 +767,7 @@ export default function VaultPage() {
                     toast.error(e.message);
                   }
                 }}
-                className="w-full py-3.5 rounded-2xl bg-primary hover:bg-[#15229E] text-primary-foreground text-xs font-bold shadow-sm transition-all cursor-pointer"
+                className="w-full py-3.5 rounded-2xl btn-enterprise-primary text-primary-foreground transition-all cursor-pointer"
               >
                 Update Price
               </motion.button>
@@ -904,7 +904,7 @@ export default function VaultPage() {
                   }
                 }}
                 disabled={!formData.address || loading}
-                className="w-full py-3.5 rounded-2xl bg-primary hover:bg-[#15229E] text-primary-foreground text-xs font-bold shadow-sm transition-all disabled:opacity-50 cursor-pointer"
+                className="w-full py-3.5 rounded-2xl btn-enterprise-primary text-primary-foreground transition-all disabled:opacity-50 cursor-pointer"
               >
                 {loading ? "Confirming…" : "Execute Transfer"}
               </motion.button>

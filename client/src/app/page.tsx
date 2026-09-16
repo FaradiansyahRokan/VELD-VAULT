@@ -53,7 +53,7 @@ export default function LandingPage() {
   return (
     <div className="relative min-h-screen overflow-hidden font-sans">
       {/* Background Soft Ambient Light Blobs — Subtle & Clean */}
-      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-[#1B2CC1]/[0.04] dark:bg-[#1B2CC1]/20 rounded-full blur-[140px] pointer-events-none" />
+      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-primary/[0.04] dark:bg-primary/20 rounded-full blur-[140px] pointer-events-none" />
       <div className="absolute top-2/3 right-1/4 w-[450px] h-[450px] bg-[#7692FF]/[0.03] dark:bg-[#7692FF]/15 rounded-full blur-[120px] pointer-events-none" />
 
       {/* ── HERO SECTION ── */}
@@ -63,7 +63,7 @@ export default function LandingPage() {
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={spring}
-          className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white dark:bg-[#091540] border border-slate-200 dark:border-[#ABD2FA]/20 shadow-sm mb-6"
+          className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white dark:bg-background border border-border shadow-sm mb-6"
         >
           <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shadow-sm shadow-emerald-500/50" />
           <span className="text-xs font-semibold text-foreground">
@@ -110,7 +110,7 @@ export default function LandingPage() {
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.97 }}
             onClick={() => router.push(wallet ? "/dashboard" : "/login")}
-            className="w-full sm:w-auto px-8 py-4 rounded-2xl bg-[#1B2CC1] hover:bg-[#15229E] text-white font-bold text-sm shadow-sm flex items-center justify-center gap-2 cursor-pointer transition-all"
+            className="w-full sm:w-auto px-8 py-4 rounded-2xl bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-sm shadow-sm flex items-center justify-center gap-2 cursor-pointer transition-all"
           >
             <span>{wallet ? "Open Dashboard" : "Launch Vault App"}</span>
             <ArrowRight size={16} />
@@ -120,7 +120,7 @@ export default function LandingPage() {
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.97 }}
             onClick={() => router.push("/market")}
-            className="w-full sm:w-auto px-7 py-4 rounded-2xl bg-white dark:bg-[#0D1B4D] hover:bg-slate-50 dark:hover:bg-[#112366] text-foreground font-semibold text-sm border border-slate-200 dark:border-[#ABD2FA]/20 shadow-sm flex items-center justify-center gap-2 cursor-pointer transition-all"
+            className="w-full sm:w-auto px-7 py-4 rounded-2xl bg-card hover:bg-slate-50 dark:hover:bg-[#112366] text-foreground font-semibold text-sm border border-border shadow-sm flex items-center justify-center gap-2 cursor-pointer transition-all"
           >
             <ShoppingBag size={16} className="text-[#1B2CC1] dark:text-[#7692FF]" />
             <span>Explore Marketplace</span>
@@ -134,9 +134,9 @@ export default function LandingPage() {
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ ...spring, delay: 0.2 }}
-          className="rounded-3xl p-6 md:p-8 bg-white dark:bg-[#0D1B4D] border border-slate-200/80 dark:border-[#ABD2FA]/15 shadow-sm grid grid-cols-2 md:grid-cols-4 gap-4"
+          className="rounded-3xl p-6 md:p-8 bg-card border border-border shadow-sm grid grid-cols-2 md:grid-cols-4 gap-4"
         >
-          <div className="p-4 rounded-2xl bg-slate-50 dark:bg-[#091540] border border-slate-200/60 dark:border-[#ABD2FA]/10">
+          <div className="p-4 rounded-2xl bg-background border border-border">
             <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block mb-1">
               Consensus VM
             </span>
@@ -148,7 +148,7 @@ export default function LandingPage() {
             </span>
           </div>
 
-          <div className="p-4 rounded-2xl bg-slate-50 dark:bg-[#091540] border border-slate-200/60 dark:border-[#ABD2FA]/10">
+          <div className="p-4 rounded-2xl bg-background border border-border">
             <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block mb-1">
               Native Token
             </span>
@@ -160,7 +160,7 @@ export default function LandingPage() {
             </span>
           </div>
 
-          <div className="p-4 rounded-2xl bg-slate-50 dark:bg-[#091540] border border-slate-200/60 dark:border-[#ABD2FA]/10">
+          <div className="p-4 rounded-2xl bg-background border border-border">
             <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block mb-1">
               Block Latency
             </span>
@@ -172,7 +172,7 @@ export default function LandingPage() {
             </span>
           </div>
 
-          <div className="p-4 rounded-2xl bg-slate-50 dark:bg-[#091540] border border-slate-200/60 dark:border-[#ABD2FA]/10">
+          <div className="p-4 rounded-2xl bg-background border border-border">
             <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block mb-1">
               Storage Layer
             </span>
@@ -201,10 +201,10 @@ export default function LandingPage() {
           {/* Card 1 */}
           <motion.div
             whileHover={{ y: -3 }}
-            className="p-7 rounded-3xl bg-white dark:bg-[#0D1B4D] border border-slate-200/80 dark:border-[#ABD2FA]/15 shadow-sm hover:shadow-md transition-all flex flex-col justify-between"
+            className="p-7 rounded-3xl bg-card border border-border shadow-sm hover:shadow-md transition-all flex flex-col justify-between"
           >
             <div>
-              <div className="w-12 h-12 rounded-2xl bg-[#1B2CC1]/10 text-[#1B2CC1] dark:text-[#7692FF] flex items-center justify-center mb-5 border border-[#1B2CC1]/15">
+              <div className="w-12 h-12 rounded-2xl bg-primary/10 text-[#1B2CC1] dark:text-[#7692FF] flex items-center justify-center mb-5 border border-[#1B2CC1]/15">
                 <Shield size={22} className="stroke-[2.2]" />
               </div>
               <h3 className="text-lg font-bold text-foreground mb-2">
@@ -219,7 +219,7 @@ export default function LandingPage() {
           {/* Card 2 */}
           <motion.div
             whileHover={{ y: -3 }}
-            className="p-7 rounded-3xl bg-white dark:bg-[#0D1B4D] border border-slate-200/80 dark:border-[#ABD2FA]/15 shadow-sm hover:shadow-md transition-all flex flex-col justify-between"
+            className="p-7 rounded-3xl bg-card border border-border shadow-sm hover:shadow-md transition-all flex flex-col justify-between"
           >
             <div>
               <div className="w-12 h-12 rounded-2xl bg-[#7692FF]/15 text-[#1B2CC1] dark:text-[#ABD2FA] flex items-center justify-center mb-5 border border-[#7692FF]/20">
@@ -237,7 +237,7 @@ export default function LandingPage() {
           {/* Card 3 */}
           <motion.div
             whileHover={{ y: -3 }}
-            className="p-7 rounded-3xl bg-white dark:bg-[#0D1B4D] border border-slate-200/80 dark:border-[#ABD2FA]/15 shadow-sm hover:shadow-md transition-all flex flex-col justify-between"
+            className="p-7 rounded-3xl bg-card border border-border shadow-sm hover:shadow-md transition-all flex flex-col justify-between"
           >
             <div>
               <div className="w-12 h-12 rounded-2xl bg-[#ABD2FA]/20 text-[#091540] dark:text-[#ABD2FA] flex items-center justify-center mb-5 border border-[#ABD2FA]/25">

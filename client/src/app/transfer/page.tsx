@@ -168,7 +168,7 @@ export default function TransferPage() {
         <motion.button
           whileTap={{ scale: 0.95 }}
           onClick={() => router.back()}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-black/[0.04] dark:bg-white/[0.06] text-muted-foreground hover:text-foreground text-xs font-semibold cursor-pointer"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-muted text-muted-foreground hover:text-foreground text-xs font-semibold cursor-pointer"
         >
           <ChevronLeft size={16} />
           <span>Back</span>
@@ -177,7 +177,7 @@ export default function TransferPage() {
         <motion.button
           whileTap={{ scale: 0.95 }}
           onClick={() => setShowQR(true)}
-          className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-black/[0.04] dark:bg-white/[0.06] text-foreground text-xs font-semibold hover:bg-black/[0.08] cursor-pointer"
+          className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-muted text-foreground text-xs font-semibold hover:bg-black/[0.08] cursor-pointer"
         >
           <QrCode size={14} />
           <span>Receive QR</span>
@@ -189,7 +189,7 @@ export default function TransferPage() {
         initial={{ opacity: 0, y: 15 }}
         animate={{ opacity: 1, y: 0 }}
         transition={spring}
-        className="rounded-3xl p-6 md:p-8 bg-white dark:bg-[#0D1B4D] border border-slate-200/80 dark:border-[#ABD2FA]/15 shadow-sm"
+        className="rounded-3xl p-6 md:p-8 bg-card border border-border shadow-sm"
       >
         <AnimatePresence mode="wait">
           {/* ── STEP 1: INPUT ── */}
@@ -210,7 +210,7 @@ export default function TransferPage() {
                 <h2 className="text-2xl md:text-3xl font-extrabold text-foreground mt-1">
                   Transfer {NETWORK_CONFIG.tokenSymbol}
                 </h2>
-                <div className="flex items-center justify-between mt-2 p-3 rounded-2xl bg-slate-50 dark:bg-[#091540] border border-slate-200/60 dark:border-[#ABD2FA]/15">
+                <div className="flex items-center justify-between mt-2 p-3 rounded-2xl bg-background border border-border">
                   <span className="text-xs text-muted-foreground">Available Balance:</span>
                   <span className="text-xs font-bold text-foreground">
                     {Number(balance || 0).toLocaleString(undefined, { maximumFractionDigits: 4 })}{" "}
@@ -232,7 +232,7 @@ export default function TransferPage() {
                     value={amount}
                     onChange={(e) => setAmount(e.target.value)}
                     placeholder="0.00"
-                    className="w-full text-3xl md:text-4xl font-black px-4 py-3 rounded-2xl bg-slate-50 dark:bg-[#091540] border border-slate-200 dark:border-[#ABD2FA]/20 text-foreground outline-none focus:border-[#1B2CC1] dark:focus:border-[#7692FF] focus:ring-4 focus:ring-[#7692FF]/15 transition-all tabular-nums"
+                    className="w-full text-3xl md:text-4xl font-black px-4 py-3 rounded-2xl bg-background border border-border text-foreground outline-none focus:border-[#1B2CC1] dark:focus:border-[#7692FF] focus:ring-4 focus:ring-[#7692FF]/15 transition-all tabular-nums"
                   />
                   <div className="absolute right-3.5 top-1/2 -translate-y-1/2 flex items-center gap-2">
                     <button
@@ -263,7 +263,7 @@ export default function TransferPage() {
                     value={toAddress}
                     onChange={(e) => setToAddress(e.target.value)}
                     placeholder="0x..."
-                    className="w-full px-4 py-3 rounded-2xl bg-slate-50 dark:bg-[#091540] border border-slate-200 dark:border-[#ABD2FA]/20 text-xs font-mono text-foreground outline-none focus:border-[#1B2CC1] dark:focus:border-[#7692FF] focus:ring-4 focus:ring-[#7692FF]/15 transition-all"
+                    className="w-full px-4 py-3 rounded-2xl bg-background border border-border text-xs font-mono text-foreground outline-none focus:border-[#1B2CC1] dark:focus:border-[#7692FF] focus:ring-4 focus:ring-[#7692FF]/15 transition-all"
                   />
                   {contact && (
                     <div className="absolute right-3 top-1/2 -translate-y-1/2 px-2.5 py-1 rounded-xl bg-[#7692FF]/15 text-[#1B2CC1] dark:text-[#ABD2FA] border border-[#7692FF]/25 text-xs font-bold">
@@ -278,12 +278,12 @@ export default function TransferPage() {
 
               {/* Segmented Picker: Contacts / Recent */}
               <div>
-                <div className="flex p-1 rounded-2xl bg-slate-100 dark:bg-[#091540] border border-slate-200/60 dark:border-[#ABD2FA]/15 mb-3">
+                <div className="flex p-1 rounded-2xl bg-muted border border-border mb-3">
                   <button
                     onClick={() => setContactTab("contacts")}
                     className={`flex-1 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                       contactTab === "contacts"
-                        ? "bg-white dark:bg-[#1B2CC1] text-foreground dark:text-white shadow-sm"
+                        ? "bg-white dark:bg-primary text-foreground dark:text-primary-foreground shadow-sm"
                         : "text-muted-foreground"
                     }`}
                   >
@@ -293,7 +293,7 @@ export default function TransferPage() {
                     onClick={() => setContactTab("recent")}
                     className={`flex-1 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                       contactTab === "recent"
-                        ? "bg-white dark:bg-[#1B2CC1] text-foreground dark:text-white shadow-sm"
+                        ? "bg-white dark:bg-primary text-foreground dark:text-primary-foreground shadow-sm"
                         : "text-muted-foreground"
                     }`}
                   >
@@ -312,7 +312,7 @@ export default function TransferPage() {
                         <div
                           key={c.id}
                           onClick={() => setToAddress(c.address)}
-                          className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 dark:bg-[#091540]/50 border border-slate-200/60 dark:border-[#ABD2FA]/10 hover:border-[#1B2CC1]/40 dark:hover:border-[#7692FF]/30 hover:bg-slate-100 dark:hover:bg-[#091540]/80 transition-colors cursor-pointer"
+                          className="flex items-center justify-between p-2.5 rounded-xl bg-background border border-border hover:border-[#1B2CC1]/40 dark:hover:border-[#7692FF]/30 hover:bg-slate-100 dark:hover:bg-[#091540]/80 transition-colors cursor-pointer"
                         >
                           <div className="flex items-center gap-2.5">
                             <span className="text-base">{c.emoji}</span>
@@ -342,7 +342,7 @@ export default function TransferPage() {
                             setToAddress(r.address);
                             setAmount(r.amount);
                           }}
-                          className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 dark:bg-[#091540]/50 border border-slate-200/60 dark:border-[#ABD2FA]/10 hover:border-[#1B2CC1]/40 dark:hover:border-[#7692FF]/30 hover:bg-slate-100 dark:hover:bg-[#091540]/80 transition-colors cursor-pointer"
+                          className="flex items-center justify-between p-2.5 rounded-xl bg-background border border-border hover:border-[#1B2CC1]/40 dark:hover:border-[#7692FF]/30 hover:bg-slate-100 dark:hover:bg-[#091540]/80 transition-colors cursor-pointer"
                         >
                           <span className="text-xs font-mono text-foreground">
                             {r.address.slice(0, 8)}…{r.address.slice(-6)}
@@ -363,7 +363,7 @@ export default function TransferPage() {
                 whileTap={{ scale: 0.97 }}
                 disabled={!canContinue}
                 onClick={() => setStep("confirm")}
-                className="w-full py-4 rounded-2xl bg-[#1B2CC1] hover:bg-[#15229E] text-white text-xs font-bold shadow-sm transition-all disabled:opacity-50 cursor-pointer flex items-center justify-center gap-2"
+                className="w-full py-4 rounded-2xl bg-primary hover:opacity-90 text-primary-foreground text-xs font-bold shadow-sm transition-all disabled:opacity-50 cursor-pointer flex items-center justify-center gap-2"
               >
                 <span>Review Transfer</span>
                 <ArrowRight size={16} />
@@ -398,7 +398,7 @@ export default function TransferPage() {
                 </p>
               </div>
 
-              <div className="p-4 rounded-2xl bg-slate-50 dark:bg-[#091540] border border-slate-200/60 dark:border-[#ABD2FA]/15 space-y-3 text-xs">
+              <div className="p-4 rounded-2xl bg-background border border-border space-y-3 text-xs">
                 <div className="flex items-center justify-between">
                   <span className="text-muted-foreground">Recipient</span>
                   <span className="font-mono font-bold text-foreground">
@@ -427,7 +427,7 @@ export default function TransferPage() {
                 <motion.button
                   whileTap={{ scale: 0.96 }}
                   onClick={() => setStep("input")}
-                  className="flex-1 py-3.5 rounded-2xl bg-slate-100 dark:bg-white/[0.06] text-foreground text-xs font-semibold cursor-pointer hover:bg-slate-200/70"
+                  className="flex-1 py-3.5 rounded-2xl bg-muted text-foreground text-xs font-semibold cursor-pointer hover:bg-slate-200/70"
                 >
                   Back & Edit
                 </motion.button>
@@ -435,7 +435,7 @@ export default function TransferPage() {
                   whileTap={{ scale: 0.96 }}
                   disabled={sending}
                   onClick={handleSend}
-                  className="flex-2 py-3.5 rounded-2xl bg-[#1B2CC1] hover:bg-[#15229E] text-white text-xs font-bold shadow-sm cursor-pointer disabled:opacity-50"
+                  className="flex-2 py-3.5 rounded-2xl bg-primary hover:opacity-90 text-primary-foreground text-xs font-bold shadow-sm cursor-pointer disabled:opacity-50"
                 >
                   {sending ? "Broadcasting on Chain…" : "Sign & Send"}
                 </motion.button>
@@ -463,7 +463,7 @@ export default function TransferPage() {
               </p>
 
               {txHash && (
-                <div className="p-3 rounded-2xl bg-black/[0.02] dark:bg-[#091540]/60 border border-black/[0.04] dark:border-[#ABD2FA]/15 text-xs font-mono text-muted-foreground break-all max-w-md mx-auto">
+                <div className="p-3 rounded-2xl bg-muted border border-border text-xs font-mono text-muted-foreground break-all max-w-md mx-auto">
                   Tx: {txHash}
                 </div>
               )}
@@ -472,14 +472,14 @@ export default function TransferPage() {
                 <motion.button
                   whileTap={{ scale: 0.96 }}
                   onClick={handleReset}
-                  className="flex-1 py-3.5 rounded-2xl bg-black/[0.04] dark:bg-white/[0.06] text-foreground text-xs font-semibold cursor-pointer"
+                  className="flex-1 py-3.5 rounded-2xl bg-muted text-foreground text-xs font-semibold cursor-pointer"
                 >
                   Send Another
                 </motion.button>
                 <motion.button
                   whileTap={{ scale: 0.96 }}
                   onClick={() => router.push("/dashboard")}
-                  className="flex-1 py-3.5 rounded-2xl bg-[#1B2CC1] hover:bg-[#15229E] text-white text-xs font-bold shadow-sm cursor-pointer"
+                  className="flex-1 py-3.5 rounded-2xl bg-primary hover:opacity-90 text-primary-foreground text-xs font-bold shadow-sm cursor-pointer"
                 >
                   Return to Dashboard
                 </motion.button>

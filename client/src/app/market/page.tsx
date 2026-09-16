@@ -89,7 +89,7 @@ export default function MarketPage() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search assets or #ID…"
-            className="w-full pl-10 pr-9 py-2.5 rounded-2xl bg-white dark:bg-[#0D1B4D] border border-slate-200 dark:border-[#ABD2FA]/20 text-xs font-medium text-foreground placeholder:text-muted-foreground outline-none focus:border-[#7692FF] focus:ring-4 focus:ring-[#7692FF]/15 transition-all shadow-sm"
+            className="w-full pl-10 pr-9 py-2.5 rounded-2xl bg-card border border-border text-xs font-medium text-foreground placeholder:text-muted-foreground outline-none focus:border-[#7692FF] focus:ring-4 focus:ring-[#7692FF]/15 transition-all shadow-sm"
           />
           {search && (
             <button
@@ -118,7 +118,7 @@ export default function MarketPage() {
         <motion.div
           initial={{ opacity: 0, scale: 0.98 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="rounded-3xl p-16 text-center bg-white dark:bg-[#0D1B4D] border border-slate-200/80 dark:border-[#ABD2FA]/20 shadow-sm flex flex-col items-center justify-center"
+          className="rounded-3xl p-16 text-center bg-card border border-border shadow-sm flex flex-col items-center justify-center"
         >
           <div className="w-16 h-16 rounded-3xl bg-[#7692FF]/15 text-[#1B2CC1] dark:text-[#7692FF] flex items-center justify-center mb-4 border border-[#7692FF]/20">
             <ShoppingBag size={28} />
@@ -135,7 +135,7 @@ export default function MarketPage() {
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.96 }}
             onClick={() => router.push("/vault")}
-            className="px-5 py-2.5 rounded-2xl bg-[#1B2CC1] hover:bg-[#15229E] text-white text-xs font-semibold shadow-sm"
+            className="px-5 py-2.5 rounded-2xl bg-primary hover:bg-[#15229E] text-primary-foreground text-xs font-semibold shadow-sm"
           >
             Go to My Vault
           </motion.button>
@@ -152,10 +152,10 @@ export default function MarketPage() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ ...spring, delay: i * 0.04 }}
-                className="rounded-3xl bg-white dark:bg-[#0D1B4D] border border-slate-200/80 dark:border-[#ABD2FA]/15 shadow-sm hover:shadow-md transition-all flex flex-col justify-between overflow-hidden group hover:border-[#1B2CC1] dark:hover:border-[#7692FF]/40"
+                className="rounded-3xl bg-card border border-border shadow-sm hover:shadow-md transition-all flex flex-col justify-between overflow-hidden group hover:border-[#1B2CC1] dark:hover:border-[#7692FF]/40"
               >
                 {/* Image / Thumbnail Container */}
-                <div className="relative h-48 bg-slate-50 dark:bg-[#091540]/60 flex items-center justify-center overflow-hidden border-b border-slate-100 dark:border-[#ABD2FA]/15">
+                <div className="relative h-48 bg-background/60 flex items-center justify-center overflow-hidden border-b border-border">
                   {item.previewURI ? (
                     <img
                       src={`${NETWORK_CONFIG.ipfsGateway}/ipfs/${item.previewURI}`}
@@ -178,7 +178,7 @@ export default function MarketPage() {
 
                   {/* Floating Top Badges */}
                   <div className="absolute top-3 inset-x-3 flex items-center justify-between pointer-events-none">
-                    <span className="px-2.5 py-1 rounded-full text-[10px] font-mono font-bold bg-[#091540]/80 backdrop-blur-md text-white border border-[#ABD2FA]/30">
+                    <span className="px-2.5 py-1 rounded-full text-[10px] font-mono font-bold bg-background/80 backdrop-blur-md text-white border border-[#ABD2FA]/30">
                       #{item.tokenId}
                     </span>
 
@@ -189,7 +189,7 @@ export default function MarketPage() {
                         </span>
                       )}
                       {isSelf && (
-                        <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-[#1B2CC1]/90 backdrop-blur-md text-white shadow-sm border border-[#ABD2FA]/30">
+                        <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-primary/90 backdrop-blur-md text-primary-foreground shadow-sm border border-[#ABD2FA]/30">
                           Your Asset
                         </span>
                       )}
@@ -212,7 +212,7 @@ export default function MarketPage() {
                   </div>
 
                   {/* Price Row */}
-                  <div className="mt-4 pt-4 border-t border-slate-100 dark:border-[#ABD2FA]/15 flex items-baseline justify-between">
+                  <div className="mt-4 pt-4 border-t border-border flex items-baseline justify-between">
                     <div>
                       <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider block">
                         Price
@@ -231,7 +231,7 @@ export default function MarketPage() {
                 </div>
 
                 {/* Buy Action Button */}
-                <div className="p-3 bg-slate-50/60 dark:bg-[#091540]/40 border-t border-slate-100 dark:border-[#ABD2FA]/15">
+                <div className="p-3 bg-slate-50/60 dark:bg-[#091540]/40 border-t border-border">
                   <motion.button
                     whileTap={{ scale: 0.96 }}
                     disabled={isLoading || isSelf}
@@ -239,7 +239,7 @@ export default function MarketPage() {
                     className={`w-full py-3 rounded-2xl text-xs font-bold flex items-center justify-center gap-2 shadow-sm transition-all cursor-pointer ${
                       isSelf
                         ? "bg-slate-100 dark:bg-white/[0.06] text-muted-foreground cursor-not-allowed"
-                        : "bg-[#1B2CC1] hover:bg-[#15229E] text-white shadow-sm"
+                        : "bg-primary hover:bg-[#15229E] text-white shadow-sm"
                     }`}
                   >
                     {isSelf ? (

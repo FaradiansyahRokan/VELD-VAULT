@@ -108,7 +108,7 @@ export default function DashboardPage() {
           onClick={handleCopyAddr}
           className="ios-glass-pill px-4 py-2.5 rounded-2xl flex items-center gap-3 cursor-pointer self-start md:self-auto border border-black/[0.06] dark:border-[#ABD2FA]/20 shadow-sm hover:shadow-md transition-all"
         >
-          <div className="w-8 h-8 rounded-xl bg-[#1B2CC1] flex items-center justify-center text-white shadow-sm">
+          <div className="w-8 h-8 rounded-xl bg-primary flex items-center justify-center text-primary-foreground shadow-sm">
             <Shield size={16} />
           </div>
           <div className="flex flex-col">
@@ -119,7 +119,7 @@ export default function DashboardPage() {
               {shortAddr}
             </span>
           </div>
-          <div className="p-1.5 rounded-lg bg-black/[0.04] dark:bg-[#7692FF]/15 text-muted-foreground">
+          <div className="p-1.5 rounded-lg bg-muted dark:bg-[#7692FF]/15 text-muted-foreground">
             {copied ? <Check size={13} className="text-emerald-400" /> : <Copy size={13} className="text-[#1B2CC1] dark:text-[#7692FF]" />}
           </div>
         </motion.div>
@@ -132,7 +132,7 @@ export default function DashboardPage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ ...spring, delay: 0.05 }}
-          className="lg:col-span-2 relative overflow-hidden rounded-3xl p-7 md:p-9 bg-white dark:bg-[#0D1B4D] border border-slate-200/80 dark:border-[#ABD2FA]/15 shadow-sm"
+          className="lg:col-span-2 relative overflow-hidden rounded-3xl p-7 md:p-9 bg-card border border-border shadow-sm"
         >
           <div className="relative z-10 flex flex-col justify-between h-full">
             <div>
@@ -164,12 +164,12 @@ export default function DashboardPage() {
             </div>
 
             {/* Bubbly Action Buttons */}
-            <div className="flex flex-wrap items-center gap-3 mt-8 pt-6 border-t border-slate-100 dark:border-[#ABD2FA]/15">
+            <div className="flex flex-wrap items-center gap-3 mt-8 pt-6 border-t border-border">
               <motion.button
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.97 }}
                 onClick={() => router.push("/vault")}
-                className="px-5 py-3 rounded-2xl bg-[#1B2CC1] hover:bg-[#15229E] text-white font-semibold text-sm shadow-sm flex items-center gap-2 cursor-pointer transition-all"
+                className="px-5 py-3 rounded-2xl bg-primary hover:bg-[#15229E] text-primary-foreground font-semibold text-sm shadow-sm flex items-center gap-2 cursor-pointer transition-all"
               >
                 <Shield size={16} />
                 <span>Open Vault</span>
@@ -179,7 +179,7 @@ export default function DashboardPage() {
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.97 }}
                 onClick={() => router.push("/transfer")}
-                className="px-5 py-3 rounded-2xl bg-slate-50 dark:bg-[#091540] hover:bg-slate-100 dark:hover:bg-[#0c1a4d] text-foreground font-semibold text-sm border border-slate-200/80 dark:border-[#ABD2FA]/15 shadow-sm flex items-center gap-2 cursor-pointer transition-all"
+                className="px-5 py-3 rounded-2xl bg-background hover:bg-slate-100 dark:hover:bg-[#0c1a4d] text-foreground font-semibold text-sm border border-border shadow-sm flex items-center gap-2 cursor-pointer transition-all"
               >
                 <Send size={16} className="text-[#1B2CC1] dark:text-[#7692FF]" />
                 <span>Send Tokens</span>
@@ -189,7 +189,7 @@ export default function DashboardPage() {
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.97 }}
                 onClick={() => router.push("/market")}
-                className="px-5 py-3 rounded-2xl bg-slate-50 dark:bg-[#091540] hover:bg-slate-100 dark:hover:bg-[#0c1a4d] text-foreground font-semibold text-sm border border-slate-200/80 dark:border-[#ABD2FA]/15 shadow-sm flex items-center gap-2 cursor-pointer transition-all"
+                className="px-5 py-3 rounded-2xl bg-background hover:bg-slate-100 dark:hover:bg-[#0c1a4d] text-foreground font-semibold text-sm border border-border shadow-sm flex items-center gap-2 cursor-pointer transition-all"
               >
                 <ShoppingBag size={16} className="text-[#1B2CC1] dark:text-[#7692FF]" />
                 <span>Marketplace</span>
@@ -203,7 +203,7 @@ export default function DashboardPage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ ...spring, delay: 0.1 }}
-          className="rounded-3xl p-7 bg-white dark:bg-[#0D1B4D] border border-slate-200/80 dark:border-[#ABD2FA]/15 shadow-sm flex flex-col justify-between"
+          className="rounded-3xl p-7 bg-card border border-border shadow-sm flex flex-col justify-between"
         >
           <div>
             <div className="w-12 h-12 rounded-2xl bg-[#7692FF]/15 text-[#1B2CC1] dark:text-[#ABD2FA] flex items-center justify-center mb-5 border border-[#7692FF]/20">
@@ -225,7 +225,7 @@ export default function DashboardPage() {
             </p>
           </div>
 
-          <div className="mt-6 pt-5 border-t border-slate-100 dark:border-[#ABD2FA]/15 flex items-center justify-between text-xs">
+          <div className="mt-6 pt-5 border-t border-border flex items-center justify-between text-xs">
             <span className="text-muted-foreground">Active in Escrow</span>
             <span className="font-bold text-foreground px-2.5 py-1 rounded-full bg-[#7692FF]/15 text-[#1B2CC1] dark:text-[#ABD2FA] border border-[#7692FF]/25">
               {stats.escrowPending} pending
@@ -241,10 +241,10 @@ export default function DashboardPage() {
           whileHover={{ y: -3, scale: 1.01 }}
           whileTap={{ scale: 0.98 }}
           onClick={() => router.push("/vault")}
-          className="p-5 rounded-3xl bg-white dark:bg-[#0D1B4D] border border-slate-200/80 dark:border-[#ABD2FA]/15 shadow-sm hover:shadow-md transition-all cursor-pointer group"
+          className="p-5 rounded-3xl bg-card border border-border shadow-sm hover:shadow-md transition-all cursor-pointer group"
         >
           <div className="flex items-center justify-between mb-3">
-            <div className="w-10 h-10 rounded-2xl bg-[#1B2CC1]/15 text-[#1B2CC1] dark:text-[#7692FF] flex items-center justify-center group-hover:scale-110 transition-transform border border-[#1B2CC1]/20">
+            <div className="w-10 h-10 rounded-2xl bg-primary/15 text-[#1B2CC1] dark:text-[#7692FF] flex items-center justify-center group-hover:scale-110 transition-transform border border-[#1B2CC1]/20">
               <Package size={18} />
             </div>
             <ChevronRight size={16} className="text-muted-foreground opacity-40 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
@@ -262,7 +262,7 @@ export default function DashboardPage() {
           whileHover={{ y: -3, scale: 1.01 }}
           whileTap={{ scale: 0.98 }}
           onClick={() => router.push("/vault")}
-          className="p-5 rounded-3xl bg-white dark:bg-[#0D1B4D] border border-slate-200/80 dark:border-[#ABD2FA]/15 shadow-sm hover:shadow-md transition-all cursor-pointer group"
+          className="p-5 rounded-3xl bg-card border border-border shadow-sm hover:shadow-md transition-all cursor-pointer group"
         >
           <div className="flex items-center justify-between mb-3">
             <div className="w-10 h-10 rounded-2xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center group-hover:scale-110 transition-transform border border-emerald-500/15">
@@ -283,7 +283,7 @@ export default function DashboardPage() {
           whileHover={{ y: -3, scale: 1.01 }}
           whileTap={{ scale: 0.98 }}
           onClick={() => router.push("/market")}
-          className="p-5 rounded-3xl bg-white dark:bg-[#0D1B4D] border border-slate-200/80 dark:border-[#ABD2FA]/15 shadow-sm hover:shadow-md transition-all cursor-pointer group"
+          className="p-5 rounded-3xl bg-card border border-border shadow-sm hover:shadow-md transition-all cursor-pointer group"
         >
           <div className="flex items-center justify-between mb-3">
             <div className="w-10 h-10 rounded-2xl bg-[#7692FF]/15 text-[#1B2CC1] dark:text-[#ABD2FA] flex items-center justify-center group-hover:scale-110 transition-transform border border-[#7692FF]/20">
@@ -304,7 +304,7 @@ export default function DashboardPage() {
           whileHover={{ y: -3, scale: 1.01 }}
           whileTap={{ scale: 0.98 }}
           onClick={() => router.push("/tools")}
-          className="p-5 rounded-3xl bg-white dark:bg-[#0D1B4D] border border-slate-200/80 dark:border-[#ABD2FA]/15 shadow-sm hover:shadow-md transition-all cursor-pointer group"
+          className="p-5 rounded-3xl bg-card border border-border shadow-sm hover:shadow-md transition-all cursor-pointer group"
         >
           <div className="flex items-center justify-between mb-3">
             <div className="w-10 h-10 rounded-2xl bg-[#ABD2FA]/20 text-[#091540] dark:text-[#ABD2FA] flex items-center justify-center group-hover:scale-110 transition-transform border border-[#ABD2FA]/25">
@@ -324,7 +324,7 @@ export default function DashboardPage() {
       {/* ── Two Column: Quick Actions & Recent Activity ── */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* iOS Settings-style Grouped Quick Actions */}
-        <div className="rounded-3xl p-6 bg-white dark:bg-[#0D1B4D] border border-slate-200/80 dark:border-[#ABD2FA]/15 shadow-sm">
+        <div className="rounded-3xl p-6 bg-card border border-border shadow-sm">
           <div className="flex items-center gap-2 mb-4 px-1">
             <Zap size={16} className="text-[#1B2CC1] dark:text-[#7692FF]" />
             <h2 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">
@@ -338,7 +338,7 @@ export default function DashboardPage() {
                 title: "Upload & Encrypt File",
                 desc: "Encrypt any document with AES-GCM and mint as NFT",
                 icon: Shield,
-                color: "bg-[#1B2CC1] text-white",
+                color: "bg-primary text-white",
                 onClick: () => router.push("/vault"),
               },
               {
@@ -352,7 +352,7 @@ export default function DashboardPage() {
                 title: "Encrypted Messaging",
                 desc: "Send end-to-end encrypted private messages to any wallet",
                 icon: Send,
-                color: "bg-[#091540] text-white",
+                color: "bg-background text-white",
                 onClick: () => router.push("/messages"),
               },
               {
@@ -370,7 +370,7 @@ export default function DashboardPage() {
                   whileHover={{ scale: 1.01, x: 2 }}
                   whileTap={{ scale: 0.98 }}
                   onClick={action.onClick}
-                  className="flex items-center justify-between p-3.5 rounded-2xl bg-slate-50 dark:bg-[#091540] hover:bg-slate-100 dark:hover:bg-[#0c1a4d] transition-colors cursor-pointer border border-slate-200/60 dark:border-[#ABD2FA]/10"
+                  className="flex items-center justify-between p-3.5 rounded-2xl bg-background hover:bg-slate-100 dark:hover:bg-[#0c1a4d] transition-colors cursor-pointer border border-border"
                 >
                   <div className="flex items-center gap-3.5 min-w-0">
                     <div className={`w-10 h-10 rounded-2xl ${action.color} flex items-center justify-center shrink-0 shadow-sm border border-transparent dark:border-[#ABD2FA]/20`}>
@@ -393,7 +393,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Recent Activity Card */}
-        <div className="rounded-3xl p-6 bg-white dark:bg-[#0D1B4D] border border-slate-200/80 dark:border-[#ABD2FA]/15 shadow-sm">
+        <div className="rounded-3xl p-6 bg-card border border-border shadow-sm">
           <div className="flex items-center justify-between mb-4 px-1">
             <div className="flex items-center gap-2">
               <Activity size={16} className="text-emerald-500" />
@@ -408,7 +408,7 @@ export default function DashboardPage() {
 
           {activities.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
-              <div className="w-12 h-12 rounded-full bg-slate-50 dark:bg-[#091540] flex items-center justify-center text-muted-foreground mb-3 border border-slate-200/60 dark:border-[#ABD2FA]/10">
+              <div className="w-12 h-12 rounded-full bg-background flex items-center justify-center text-muted-foreground mb-3 border border-border">
                 <Activity size={20} />
               </div>
               <p className="text-sm font-semibold text-foreground">No recent activity</p>
@@ -421,7 +421,7 @@ export default function DashboardPage() {
               {activities.map((item, i) => (
                 <div
                   key={item.id || i}
-                  className="flex items-center justify-between p-3 rounded-2xl bg-slate-50 dark:bg-[#091540] border border-slate-200/60 dark:border-[#ABD2FA]/10"
+                  className="flex items-center justify-between p-3 rounded-2xl bg-background border border-border"
                 >
                   <div className="flex items-center gap-3 min-w-0">
                     <div className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />

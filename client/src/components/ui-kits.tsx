@@ -26,12 +26,12 @@ export const Button = ({
   };
 
   const variants = {
-    primary: "bg-[#1B2CC1] hover:bg-[#15229E] text-white font-semibold shadow-sm",
-    secondary: "bg-[#7692FF]/10 dark:bg-[#091540]/60 text-foreground font-medium border border-[#7692FF]/20 hover:bg-[#7692FF]/20 dark:hover:bg-[#091540]/90",
-    glass: "enterprise-glass text-foreground font-medium hover:bg-white/90 dark:hover:bg-[#0d1b4d]/80 shadow-sm",
+    primary: "bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shadow-sm",
+    secondary: "bg-[#7692FF]/10 dark:bg-background/60 text-foreground font-medium border border-[#7692FF]/20 hover:bg-[#7692FF]/20 dark:hover:bg-background/90",
+    glass: "enterprise-glass text-foreground font-medium hover:bg-white/90 dark:hover:bg-card/80 shadow-sm",
     danger: "bg-red-500/10 text-red-600 dark:text-red-400 font-medium border border-red-500/20 hover:bg-red-500/20",
     ghost: "text-muted-foreground hover:text-foreground hover:bg-[#7692FF]/10 font-medium",
-    success: "bg-emerald-500 text-white font-semibold hover:bg-emerald-600 shadow-md shadow-emerald-500/20",
+    success: "bg-emerald-500 text-primary-foreground font-semibold hover:bg-emerald-600 shadow-md shadow-emerald-500/20",
     outline: "border border-border text-foreground font-medium hover:bg-muted/50",
   };
 
@@ -65,7 +65,7 @@ export const Input = ({ label, error, className, ...props }: any) => (
     )}
     <input
       className={cn(
-        "w-full bg-black/[0.03] dark:bg-[#091540]/60 text-foreground px-4 py-3 rounded-2xl border border-black/5 dark:border-[#ABD2FA]/15 focus:border-[#7692FF] focus:ring-4 focus:ring-[#7692FF]/20 outline-none transition-all placeholder:text-muted-foreground/50 text-sm font-medium",
+        "w-full bg-black/[0.03] dark:bg-background/60 text-foreground px-4 py-3 rounded-2xl border border-border focus:border-[#7692FF] focus:ring-4 focus:ring-[#7692FF]/20 outline-none transition-all placeholder:text-muted-foreground/50 text-sm font-medium",
         error && "border-red-500 focus:border-red-500 focus:ring-red-500/15",
         className
       )}
@@ -77,8 +77,8 @@ export const Input = ({ label, error, className, ...props }: any) => (
 
 export const Badge = ({ children, color = 'zinc', className }: any) => {
   const colors = {
-    zinc: "bg-black/5 dark:bg-[#091540]/80 text-muted-foreground border-black/5 dark:border-[#ABD2FA]/15",
-    blue: "bg-[#1B2CC1]/10 text-[#1B2CC1] dark:text-[#ABD2FA] border-[#1B2CC1]/20 dark:border-[#7692FF]/30",
+    zinc: "bg-black/5 dark:bg-background/80 text-muted-foreground border-border",
+    blue: "bg-primary/10 text-[#1B2CC1] dark:text-[#ABD2FA] border-[#1B2CC1]/20 dark:border-[#7692FF]/30",
     azure: "bg-[#ABD2FA]/15 text-[#091540] dark:text-[#ABD2FA] border-[#ABD2FA]/30",
     periwinkle: "bg-[#7692FF]/15 text-[#1B2CC1] dark:text-[#7692FF] border-[#7692FF]/30",
     green: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
@@ -108,7 +108,7 @@ export const Modal = ({ isOpen, onClose, title, children, maxWidth = "max-w-md" 
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         onClick={onClose}
-        className="absolute inset-0 bg-[#091540]/60 backdrop-blur-md"
+        className="absolute inset-0 bg-background/60 backdrop-blur-md"
       />
       <motion.div
         initial={{ scale: 0.94, opacity: 0, y: 16 }}
@@ -116,7 +116,7 @@ export const Modal = ({ isOpen, onClose, title, children, maxWidth = "max-w-md" 
         exit={{ scale: 0.94, opacity: 0, y: 16 }}
         transition={{ type: "spring", stiffness: 350, damping: 28 }}
         className={cn(
-          "relative w-full bg-white/95 dark:bg-[#0d1b4d]/95 border border-black/5 dark:border-[#ABD2FA]/20 p-6 md:p-8 rounded-[28px] shadow-2xl z-10 overflow-hidden backdrop-blur-2xl",
+          "relative w-full bg-card/95 border border-border p-6 md:p-8 rounded-[28px] shadow-2xl z-10 overflow-hidden backdrop-blur-2xl",
           maxWidth
         )}
       >

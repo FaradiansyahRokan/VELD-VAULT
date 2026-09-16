@@ -88,7 +88,7 @@ export default function Navbar() {
             onClick={() => router.push(wallet ? "/dashboard" : "/")}
             className="flex items-center gap-2.5 cursor-pointer select-none"
           >
-            <div className="w-9 h-9 rounded-2xl bg-[#1B2CC1] flex items-center justify-center text-white shadow-sm">
+            <div className="w-9 h-9 rounded-2xl bg-primary flex items-center justify-center text-primary-foreground shadow-sm">
               <Shield size={18} className="stroke-[2.2]" />
             </div>
             <div className="flex flex-col">
@@ -109,7 +109,7 @@ export default function Navbar() {
 
         {/* Center: Bubbly Nav Tabs (Desktop) */}
         {!isAuthPage && (
-          <div className="hidden md:flex items-center gap-1 bg-slate-100 dark:bg-[#091540] p-1 rounded-full border border-slate-200/60 dark:border-[#ABD2FA]/15">
+          <div className="hidden md:flex items-center gap-1 bg-muted p-1 rounded-full border border-border">
             {NAV_ITEMS.map((item) => {
               const Icon = item.icon;
               const isActive = pathname === item.href;
@@ -126,12 +126,12 @@ export default function Navbar() {
                   {isActive && (
                     <motion.div
                       layoutId="activeNavPill"
-                      className="absolute inset-0 bg-white dark:bg-[#1B2CC1] rounded-full shadow-sm border border-slate-200/80 dark:border-transparent"
+                      className="absolute inset-0 bg-white dark:bg-primary rounded-full shadow-sm border border-slate-200/80 dark:border-transparent"
                       transition={{ type: "spring", stiffness: 380, damping: 30 }}
                     />
                   )}
                   <span className="relative z-10 flex items-center gap-1.5">
-                    <Icon size={14} className={isActive ? "text-[#1B2CC1] dark:text-white" : "opacity-70"} />
+                    <Icon size={14} className={isActive ? "text-[#1B2CC1] dark:text-primary-foreground" : "opacity-70"} />
                     {item.label}
                   </span>
                 </button>
@@ -163,7 +163,7 @@ export default function Navbar() {
               {/* Connected Address Pill */}
               <motion.div
                 whileHover={{ scale: 1.02 }}
-                className="flex items-center gap-1.5 pl-2.5 pr-1.5 py-1 rounded-full bg-slate-100 dark:bg-[#091540] border border-slate-200 dark:border-[#ABD2FA]/20 text-xs font-mono font-medium text-foreground"
+                className="flex items-center gap-1.5 pl-2.5 pr-1.5 py-1 rounded-full bg-muted border border-border text-xs font-mono font-medium text-foreground"
               >
                 <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shadow-sm shadow-emerald-500/50" />
                 <span>
@@ -198,7 +198,7 @@ export default function Navbar() {
               whileHover={{ scale: 1.03 }}
               whileTap={{ scale: 0.96 }}
               onClick={() => router.push("/")}
-              className="flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-[#1B2CC1] hover:bg-[#15229E] text-white text-xs font-semibold shadow-sm cursor-pointer"
+              className="flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-semibold shadow-sm cursor-pointer"
             >
               <Wallet size={14} />
               <span>Connect</span>
@@ -211,7 +211,7 @@ export default function Navbar() {
             whileTap={{ scale: 0.95 }}
             onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
             aria-label="Toggle theme"
-            className="w-8 h-8 rounded-full flex items-center justify-center bg-slate-100 dark:bg-[#091540] border border-slate-200 dark:border-[#ABD2FA]/20 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+            className="w-8 h-8 rounded-full flex items-center justify-center bg-muted border border-border text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
           >
             {theme === "dark" ? <Sun size={15} /> : <Moon size={15} />}
           </motion.button>
@@ -266,8 +266,8 @@ export default function Navbar() {
                     }}
                     className={`flex items-center gap-2.5 p-3 rounded-2xl text-xs font-semibold transition-all ${
                       isActive
-                        ? "bg-[#1B2CC1] text-white shadow-sm"
-                        : "bg-black/[0.03] dark:bg-[#091540]/60 text-foreground hover:bg-black/[0.06] border border-transparent dark:border-[#ABD2FA]/10"
+                        ? "bg-primary text-primary-foreground shadow-sm"
+                        : "bg-black/[0.03] dark:bg-background/60 text-foreground hover:bg-black/[0.06] border border-transparent dark:border-[#ABD2FA]/10"
                     }`}
                   >
                     <Icon size={16} />

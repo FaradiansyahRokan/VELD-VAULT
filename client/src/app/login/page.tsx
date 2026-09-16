@@ -100,7 +100,7 @@ export default function LoginPage() {
   return (
     <div className="relative min-h-screen flex items-center justify-center p-4 overflow-hidden font-sans">
       {/* Organic Enterprise Ambient Background Glows */}
-      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[650px] h-[650px] bg-[#1B2CC1]/20 dark:bg-[#1B2CC1]/30 rounded-full blur-[150px] pointer-events-none" />
+      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[650px] h-[650px] bg-primary/20 dark:bg-primary/30 rounded-full blur-[150px] pointer-events-none" />
       <div className="absolute bottom-1/4 left-1/3 w-[450px] h-[450px] bg-[#7692FF]/15 dark:bg-[#7692FF]/20 rounded-full blur-[130px] pointer-events-none" />
 
       {/* Main Authentication Card */}
@@ -108,13 +108,13 @@ export default function LoginPage() {
         initial={{ opacity: 0, scale: 0.96, y: 15 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         transition={spring}
-        className="relative z-10 w-full max-w-md rounded-3xl p-7 md:p-9 bg-white dark:bg-[#0D1B4D] border border-slate-200/80 dark:border-[#ABD2FA]/15 shadow-sm"
+        className="relative z-10 w-full max-w-md rounded-3xl p-7 md:p-9 bg-card border border-border shadow-sm"
       >
         {/* Top App Icon & Title */}
         <div className="flex flex-col items-center text-center mb-6">
           <motion.div
             whileHover={{ scale: 1.05 }}
-            className="w-14 h-14 rounded-2xl bg-[#1B2CC1] flex items-center justify-center text-white shadow-sm mb-3.5"
+            className="w-14 h-14 rounded-2xl bg-primary flex items-center justify-center text-primary-foreground shadow-sm mb-3.5"
           >
             <Shield size={28} className="stroke-[2.2]" />
           </motion.div>
@@ -150,7 +150,7 @@ export default function LoginPage() {
                 whileTap={{ scale: 0.97 }}
                 onClick={handleCreate}
                 disabled={isCreating}
-                className="w-full p-4 rounded-2xl bg-[#1B2CC1] hover:bg-[#15229E] text-white flex items-center justify-between shadow-sm cursor-pointer transition-all"
+                className="w-full p-4 rounded-2xl bg-primary hover:opacity-90 text-primary-foreground flex items-center justify-between shadow-sm cursor-pointer transition-all"
               >
                 <div className="flex items-center gap-3 text-left">
                   <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center">
@@ -169,7 +169,7 @@ export default function LoginPage() {
                 whileHover={{ scale: 1.01, y: -1 }}
                 whileTap={{ scale: 0.97 }}
                 onClick={() => setView("IMPORT")}
-                className="w-full p-4 rounded-2xl bg-slate-50 dark:bg-[#091540] hover:bg-slate-100 dark:hover:bg-[#0c1a4d] text-foreground flex items-center justify-between border border-slate-200/80 dark:border-[#ABD2FA]/15 cursor-pointer transition-all shadow-sm"
+                className="w-full p-4 rounded-2xl bg-background hover:bg-slate-100 dark:hover:bg-[#0c1a4d] text-foreground flex items-center justify-between border border-border cursor-pointer transition-all shadow-sm"
               >
                 <div className="flex items-center gap-3 text-left">
                   <div className="w-10 h-10 rounded-xl bg-slate-200/70 dark:bg-[#7692FF]/15 flex items-center justify-center text-[#1B2CC1] dark:text-[#ABD2FA]">
@@ -217,7 +217,7 @@ export default function LoginPage() {
                 {words.map((word, i) => (
                   <div
                     key={i}
-                    className="p-2.5 rounded-xl bg-slate-50 dark:bg-[#091540] border border-slate-200/70 dark:border-[#ABD2FA]/20 text-center shadow-xs"
+                    className="p-2.5 rounded-xl bg-background border border-border text-center shadow-xs"
                   >
                     <span className="text-[10px] text-muted-foreground font-mono mr-1.5">
                       {i + 1}.
@@ -233,7 +233,7 @@ export default function LoginPage() {
               <motion.button
                 whileTap={{ scale: 0.96 }}
                 onClick={copyMnemonic}
-                className="w-full py-2.5 rounded-xl bg-slate-100 dark:bg-[#091540] hover:bg-slate-200/80 text-foreground text-xs font-semibold flex items-center justify-center gap-2 cursor-pointer transition-colors border border-slate-200/60 dark:border-[#ABD2FA]/20"
+                className="w-full py-2.5 rounded-xl bg-muted hover:bg-slate-200/80 text-foreground text-xs font-semibold flex items-center justify-center gap-2 cursor-pointer transition-colors border border-border"
               >
                 {isCopied ? <Check size={14} className="text-emerald-500" /> : <Copy size={14} className="text-[#1B2CC1] dark:text-[#7692FF]" />}
                 <span>{isCopied ? "Copied to Clipboard" : "Copy Recovery Phrase"}</span>
@@ -258,7 +258,7 @@ export default function LoginPage() {
                 whileTap={{ scale: 0.97 }}
                 onClick={enterVault}
                 disabled={!confirmed}
-                className="w-full py-3.5 rounded-2xl bg-[#1B2CC1] hover:bg-[#15229E] text-white text-xs font-bold shadow-sm transition-all disabled:opacity-50 cursor-pointer"
+                className="w-full py-3.5 rounded-2xl bg-primary hover:opacity-90 text-primary-foreground text-xs font-bold shadow-sm transition-all disabled:opacity-50 cursor-pointer"
               >
                 Enter Vault Dashboard
               </motion.button>
@@ -307,7 +307,7 @@ export default function LoginPage() {
                     value={importInput}
                     onChange={(e) => setImportInput(e.target.value)}
                     placeholder="Enter your 12-word seed phrase separated by spaces, or raw 0x private key…"
-                    className={`w-full p-3.5 rounded-2xl bg-slate-50 dark:bg-[#091540] border border-slate-200 dark:border-[#ABD2FA]/20 text-xs font-mono text-foreground outline-none focus:border-[#1B2CC1] dark:focus:border-[#7692FF] focus:ring-4 focus:ring-[#7692FF]/15 transition-all resize-none ${
+                    className={`w-full p-3.5 rounded-2xl bg-background border border-border text-xs font-mono text-foreground outline-none focus:border-[#1B2CC1] dark:focus:border-[#7692FF] focus:ring-4 focus:ring-[#7692FF]/15 transition-all resize-none ${
                       !showInputSecret ? "password-mask" : ""
                     }`}
                   />
@@ -319,7 +319,7 @@ export default function LoginPage() {
                 whileTap={{ scale: 0.97 }}
                 onClick={handleImport}
                 disabled={isLoading || !importInput.trim()}
-                className="w-full py-3.5 rounded-2xl bg-[#1B2CC1] hover:bg-[#15229E] text-white text-xs font-bold shadow-sm transition-all disabled:opacity-50 cursor-pointer"
+                className="w-full py-3.5 rounded-2xl bg-primary hover:opacity-90 text-primary-foreground text-xs font-bold shadow-sm transition-all disabled:opacity-50 cursor-pointer"
               >
                 {isLoading ? "Verifying On-Chain…" : "Unlock Vault"}
               </motion.button>

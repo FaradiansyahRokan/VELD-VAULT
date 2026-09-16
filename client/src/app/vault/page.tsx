@@ -232,7 +232,7 @@ export default function VaultPage() {
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.96 }}
             onClick={() => setModals((p) => ({ ...p, batchUpload: true }))}
-            className="px-4 py-2.5 rounded-2xl bg-white dark:bg-[#091540] hover:bg-slate-50 dark:hover:bg-[#0c1a4d] text-foreground text-xs font-semibold border border-slate-200 dark:border-[#ABD2FA]/20 flex items-center gap-2 cursor-pointer transition-all shadow-sm"
+            className="px-4 py-2.5 rounded-2xl bg-white dark:bg-[#091540] hover:bg-slate-50 dark:hover:bg-[#0c1a4d] text-foreground text-xs font-semibold border border-border flex items-center gap-2 cursor-pointer transition-all shadow-sm"
           >
             <FolderUp size={15} className="text-[#1B2CC1] dark:text-[#7692FF]" />
             <span>Batch Upload</span>
@@ -242,7 +242,7 @@ export default function VaultPage() {
             <motion.div
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.96 }}
-              className="px-5 py-2.5 rounded-2xl bg-[#1B2CC1] hover:bg-[#15229E] text-white text-xs font-semibold shadow-sm flex items-center gap-2 transition-all cursor-pointer"
+              className="px-5 py-2.5 rounded-2xl bg-primary hover:bg-[#15229E] text-primary-foreground text-xs font-semibold shadow-sm flex items-center gap-2 transition-all cursor-pointer"
             >
               <Upload size={15} />
               <span>{loading ? "Encrypting…" : "Upload File"}</span>
@@ -278,7 +278,7 @@ export default function VaultPage() {
                 {salesItems.map((sale: any, i: number) => (
                   <div
                     key={`sale-${i}`}
-                    className="p-4 rounded-2xl bg-white dark:bg-[#0D1B4D] border border-slate-200/80 dark:border-[#ABD2FA]/15 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm"
+                    className="p-4 rounded-2xl bg-card border border-border flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm"
                   >
                     <div>
                       <p className="text-sm font-bold text-foreground">{sale.name}</p>
@@ -367,7 +367,7 @@ export default function VaultPage() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search assets by name or ID…"
-              className="w-full pl-9 pr-4 py-2 rounded-2xl bg-white dark:bg-[#0d1b4d]/85 border border-black/[0.06] dark:border-[#ABD2FA]/20 text-xs font-medium text-foreground placeholder:text-muted-foreground outline-none focus:border-[#7692FF] focus:ring-4 focus:ring-[#7692FF]/15 transition-all shadow-sm"
+              className="w-full pl-9 pr-4 py-2 rounded-2xl bg-card/85 border border-black/[0.06] dark:border-[#ABD2FA]/20 text-xs font-medium text-foreground placeholder:text-muted-foreground outline-none focus:border-[#7692FF] focus:ring-4 focus:ring-[#7692FF]/15 transition-all shadow-sm"
             />
           </div>
           <span className="text-xs text-muted-foreground font-medium hidden sm:inline-block">
@@ -381,9 +381,9 @@ export default function VaultPage() {
         <motion.div
           initial={{ opacity: 0, scale: 0.98 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="rounded-3xl p-16 text-center bg-white dark:bg-[#0d1b4d]/85 border border-black/[0.06] dark:border-[#ABD2FA]/20 shadow-sm flex flex-col items-center justify-center"
+          className="rounded-3xl p-16 text-center bg-card/85 border border-black/[0.06] dark:border-[#ABD2FA]/20 shadow-sm flex flex-col items-center justify-center"
         >
-          <div className="w-16 h-16 rounded-3xl bg-[#1B2CC1]/15 text-[#1B2CC1] dark:text-[#7692FF] flex items-center justify-center mb-4 border border-[#1B2CC1]/20">
+          <div className="w-16 h-16 rounded-3xl bg-primary/15 text-[#1B2CC1] dark:text-[#7692FF] flex items-center justify-center mb-4 border border-[#1B2CC1]/20">
             <Lock size={28} />
           </div>
           <h3 className="text-xl font-bold text-foreground">Your Vault is Empty</h3>
@@ -391,7 +391,7 @@ export default function VaultPage() {
             Upload files to store them end-to-end encrypted on IPFS with decentralized ownership verified on BridgeStone L1.
           </p>
           <label className="cursor-pointer">
-            <div className="px-5 py-2.5 rounded-2xl bg-[#1B2CC1] hover:bg-[#15229E] text-white text-xs font-semibold shadow-sm flex items-center gap-2 cursor-pointer transition-all">
+            <div className="px-5 py-2.5 rounded-2xl bg-primary hover:bg-[#15229E] text-primary-foreground text-xs font-semibold shadow-sm flex items-center gap-2 cursor-pointer transition-all">
               <Upload size={14} />
               <span>Upload Your First File</span>
             </div>
@@ -399,7 +399,7 @@ export default function VaultPage() {
           </label>
         </motion.div>
       ) : filteredVault.length === 0 ? (
-        <div className="rounded-3xl p-12 text-center bg-white dark:bg-[#0D1B4D] border border-slate-200/80 dark:border-[#ABD2FA]/20 text-muted-foreground text-sm">
+        <div className="rounded-3xl p-12 text-center bg-card border border-border text-muted-foreground text-sm">
           No assets match your search query "{searchQuery}".
         </div>
       ) : (
@@ -414,7 +414,7 @@ export default function VaultPage() {
                 initial={{ opacity: 0, y: 15 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ ...spring, delay: i * 0.03 }}
-                className={`rounded-3xl bg-white dark:bg-[#0D1B4D] border border-slate-200/80 dark:border-[#ABD2FA]/15 shadow-sm hover:shadow-md transition-all flex flex-col justify-between overflow-hidden group ${
+                className={`rounded-3xl bg-card border border-border shadow-sm hover:shadow-md transition-all flex flex-col justify-between overflow-hidden group ${
                   inEscrow ? "ring-2 ring-amber-500/30 bg-amber-50/20 dark:bg-amber-950/10" : ""
                 }`}
               >
@@ -464,7 +464,7 @@ export default function VaultPage() {
 
                   {/* Price Tag if Listed or in Escrow */}
                   {(file.isListed || inEscrow) && (
-                    <div className="mt-3 p-3 rounded-2xl bg-slate-50 dark:bg-[#091540] border border-slate-200/60 dark:border-[#ABD2FA]/15 flex items-center justify-between">
+                    <div className="mt-3 p-3 rounded-2xl bg-background border border-border flex items-center justify-between">
                       <span className="text-[11px] text-muted-foreground font-medium">Price</span>
                       <span className="text-sm font-extrabold text-[#1B2CC1] dark:text-[#ABD2FA]">
                         {file.price} {NETWORK_CONFIG.tokenSymbol}
@@ -493,7 +493,7 @@ export default function VaultPage() {
                 </div>
 
                 {/* ── Action Footer ── */}
-                <div className="p-3 bg-slate-50/60 dark:bg-[#091540]/60 border-t border-slate-100 dark:border-[#ABD2FA]/15 flex items-center gap-1.5">
+                <div className="p-3 bg-slate-50/60 dark:bg-[#091540]/60 border-t border-border flex items-center gap-1.5">
                   {inEscrow ? (
                     isSeller ? (
                       <motion.button
@@ -570,7 +570,7 @@ export default function VaultPage() {
                       <motion.button
                         whileTap={{ scale: 0.95 }}
                         onClick={() => openModal("edit", file.id, { price: file.price, desc: file.description, escrow: true })}
-                        className="p-2 rounded-xl bg-black/[0.03] dark:bg-[#7692FF]/15 hover:bg-[#7692FF]/25 text-foreground transition-colors"
+                        className="p-2 rounded-xl bg-muted dark:bg-[#7692FF]/15 hover:bg-[#7692FF]/25 text-foreground transition-colors"
                         title="Edit Price"
                       >
                         <Tag size={15} className="text-[#1B2CC1] dark:text-[#7692FF]" />
@@ -582,7 +582,7 @@ export default function VaultPage() {
                       <motion.button
                         whileTap={{ scale: 0.95 }}
                         onClick={() => handleDecrypt(file.cid, "PREVIEW")}
-                        className="flex-1 py-2 px-3.5 rounded-xl bg-[#1B2CC1] hover:bg-[#15229E] text-white text-xs font-semibold shadow-sm flex items-center justify-center gap-1.5 cursor-pointer transition-all"
+                        className="flex-1 py-2 px-3.5 rounded-xl bg-primary hover:bg-[#15229E] text-primary-foreground text-xs font-semibold shadow-sm flex items-center justify-center gap-1.5 cursor-pointer transition-all"
                       >
                         <Eye size={14} />
                         <span>Decrypt & Open</span>
@@ -594,7 +594,7 @@ export default function VaultPage() {
                           <motion.button
                             whileTap={{ scale: 0.95 }}
                             onClick={() => openModal("share", file.id, { name: file.name })}
-                            className="p-2 rounded-xl bg-black/[0.03] dark:bg-[#091540]/80 hover:bg-[#7692FF]/15 text-foreground transition-colors cursor-pointer border border-transparent dark:border-[#ABD2FA]/15"
+                            className="p-2 rounded-xl bg-muted dark:bg-[#091540]/80 hover:bg-[#7692FF]/15 text-foreground transition-colors cursor-pointer border border-transparent dark:border-[#ABD2FA]/15"
                             title="Share with Expiry"
                           >
                             <Link2 size={15} className="text-[#1B2CC1] dark:text-[#7692FF]" />
@@ -604,7 +604,7 @@ export default function VaultPage() {
                           <motion.button
                             whileTap={{ scale: 0.95 }}
                             onClick={() => openModal("transfer", file.id, { mode: "MOVE", cid: file.cid, name: file.name })}
-                            className="p-2 rounded-xl bg-black/[0.03] dark:bg-[#091540]/80 hover:bg-[#7692FF]/15 text-foreground transition-colors cursor-pointer border border-transparent dark:border-[#ABD2FA]/15"
+                            className="p-2 rounded-xl bg-muted dark:bg-[#091540]/80 hover:bg-[#7692FF]/15 text-foreground transition-colors cursor-pointer border border-transparent dark:border-[#ABD2FA]/15"
                             title="Transfer / Send"
                           >
                             <Send size={15} className="text-[#1B2CC1] dark:text-[#7692FF]" />
@@ -614,7 +614,7 @@ export default function VaultPage() {
                           <motion.button
                             whileTap={{ scale: 0.95 }}
                             onClick={() => openModal("sell", file.id)}
-                            className="p-2 rounded-xl bg-black/[0.03] dark:bg-[#091540]/80 hover:bg-[#7692FF]/15 text-foreground transition-colors cursor-pointer border border-transparent dark:border-[#ABD2FA]/15"
+                            className="p-2 rounded-xl bg-muted dark:bg-[#091540]/80 hover:bg-[#7692FF]/15 text-foreground transition-colors cursor-pointer border border-transparent dark:border-[#ABD2FA]/15"
                             title="List on Marketplace"
                           >
                             <Tag size={15} className="text-[#1B2CC1] dark:text-[#7692FF]" />
@@ -703,7 +703,7 @@ export default function VaultPage() {
                 <textarea
                   value={formData.desc}
                   onChange={(e) => setFormData({ ...formData, desc: e.target.value })}
-                  className="w-full bg-black/[0.02] dark:bg-white/[0.04] border border-black/[0.08] dark:border-white/[0.1] rounded-2xl p-3.5 text-xs text-foreground outline-none focus:border-[#7692FF] transition-colors resize-none h-20"
+                  className="w-full bg-muted border border-black/[0.08] dark:border-white/[0.1] rounded-2xl p-3.5 text-xs text-foreground outline-none focus:border-[#7692FF] transition-colors resize-none h-20"
                   placeholder="Describe your asset for buyers…"
                 />
               </div>
@@ -712,7 +712,7 @@ export default function VaultPage() {
                 <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
                   Public Thumbnail Preview <span className="text-[10px] font-normal normal-case">(optional, unencrypted)</span>
                 </label>
-                <label className="flex items-center gap-3 p-3.5 rounded-2xl border border-dashed border-black/[0.12] dark:border-white/[0.15] bg-black/[0.02] dark:bg-white/[0.03] cursor-pointer hover:border-[#7692FF] transition-colors">
+                <label className="flex items-center gap-3 p-3.5 rounded-2xl border border-dashed border-black/[0.12] dark:border-white/[0.15] bg-muted dark:bg-white/[0.03] cursor-pointer hover:border-[#7692FF] transition-colors">
                   <ImagePlus size={18} className="text-muted-foreground" />
                   <span className="text-xs text-muted-foreground truncate">
                     {formData.previewFile ? formData.previewFile.name : "Select an image preview…"}
@@ -731,7 +731,7 @@ export default function VaultPage() {
                 whileTap={{ scale: 0.98 }}
                 onClick={handleListForSale}
                 disabled={!formData.price || loading}
-                className="w-full py-3.5 rounded-2xl bg-[#1B2CC1] hover:bg-[#15229E] text-white text-xs font-bold shadow-sm transition-all disabled:opacity-50 cursor-pointer"
+                className="w-full py-3.5 rounded-2xl bg-primary hover:bg-[#15229E] text-primary-foreground text-xs font-bold shadow-sm transition-all disabled:opacity-50 cursor-pointer"
               >
                 {loading ? "Listing on Chain…" : "Publish Listing"}
               </motion.button>
@@ -766,7 +766,7 @@ export default function VaultPage() {
                     toast.error(e.message);
                   }
                 }}
-                className="w-full py-3.5 rounded-2xl bg-[#1B2CC1] hover:bg-[#15229E] text-white text-xs font-bold shadow-sm transition-all cursor-pointer"
+                className="w-full py-3.5 rounded-2xl bg-primary hover:bg-[#15229E] text-primary-foreground text-xs font-bold shadow-sm transition-all cursor-pointer"
               >
                 Update Price
               </motion.button>
@@ -788,7 +788,7 @@ export default function VaultPage() {
           >
             <div className="space-y-4 pt-2">
               {/* Segmented Control */}
-              <div className="flex p-1 rounded-2xl bg-black/[0.04] dark:bg-white/[0.06] border border-black/5 dark:border-white/5">
+              <div className="flex p-1 rounded-2xl bg-muted dark:bg-white/[0.06] border border-black/5 dark:border-white/5">
                 {(["MOVE", "COPY"] as const).map((m) => (
                   <button
                     key={m}
@@ -831,7 +831,7 @@ export default function VaultPage() {
                       initial={{ opacity: 0, height: 0 }}
                       animate={{ opacity: 1, height: "auto" }}
                       exit={{ opacity: 0, height: 0 }}
-                      className="mb-3 overflow-hidden rounded-2xl border border-black/[0.06] dark:border-white/[0.08] bg-black/[0.02] dark:bg-white/[0.03] p-2"
+                      className="mb-3 overflow-hidden rounded-2xl border border-black/[0.06] dark:border-white/[0.08] bg-muted dark:bg-white/[0.03] p-2"
                     >
                       <input
                         value={contactSearch}
@@ -852,7 +852,7 @@ export default function VaultPage() {
                                 setFormData((p) => ({ ...p, address: contact.address }));
                                 setShowContactPicker(false);
                               }}
-                              className="w-full flex items-center justify-between p-2 rounded-xl hover:bg-black/[0.05] dark:hover:bg-white/[0.08] text-left text-xs transition-colors cursor-pointer"
+                              className="w-full flex items-center justify-between p-2 rounded-xl hover:bg-muted dark:hover:bg-white/[0.08] text-left text-xs transition-colors cursor-pointer"
                             >
                               <span className="font-semibold text-foreground">{contact.name}</span>
                               <span className="font-mono text-[10px] text-muted-foreground">
@@ -869,7 +869,7 @@ export default function VaultPage() {
                   value={formData.address}
                   onChange={(e) => setFormData({ ...formData, address: e.target.value })}
                   placeholder="0x…"
-                  className="w-full px-3.5 py-3 rounded-2xl bg-black/[0.02] dark:bg-white/[0.04] border border-black/[0.08] dark:border-white/[0.1] font-mono text-xs text-foreground outline-none focus:border-[#7692FF] transition-colors"
+                  className="w-full px-3.5 py-3 rounded-2xl bg-muted border border-black/[0.08] dark:border-white/[0.1] font-mono text-xs text-foreground outline-none focus:border-[#7692FF] transition-colors"
                 />
               </div>
 
@@ -903,7 +903,7 @@ export default function VaultPage() {
                   }
                 }}
                 disabled={!formData.address || loading}
-                className="w-full py-3.5 rounded-2xl bg-[#1B2CC1] hover:bg-[#15229E] text-white text-xs font-bold shadow-sm transition-all disabled:opacity-50 cursor-pointer"
+                className="w-full py-3.5 rounded-2xl bg-primary hover:bg-[#15229E] text-primary-foreground text-xs font-bold shadow-sm transition-all disabled:opacity-50 cursor-pointer"
               >
                 {loading ? "Confirming…" : "Execute Transfer"}
               </motion.button>
@@ -933,7 +933,7 @@ export default function VaultPage() {
                 <motion.button
                   whileTap={{ scale: 0.96 }}
                   onClick={() => closeModal("burn")}
-                  className="flex-1 py-3 rounded-2xl bg-black/[0.04] dark:bg-white/[0.06] text-foreground text-xs font-semibold cursor-pointer"
+                  className="flex-1 py-3 rounded-2xl bg-muted dark:bg-white/[0.06] text-foreground text-xs font-semibold cursor-pointer"
                 >
                   Cancel
                 </motion.button>

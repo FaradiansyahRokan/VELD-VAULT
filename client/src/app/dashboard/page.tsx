@@ -6,7 +6,7 @@ import { useStore } from "@/lib/store";
 import { useActivityStore } from "@/lib/activity-store";
 import { useContactsStore } from "@/lib/contact-store";
 import { NETWORK_CONFIG } from "@/lib/constants";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   Shield,
   Coins,
@@ -37,10 +37,17 @@ const spring = {
 export default function DashboardPage() {
   const router = useRouter();
   const { contract, wallet, vaultItems, marketItems, salesItems, balance, startAutoRefresh } = useStore();
-  const { getActivities } = useActivityStore();
+  const allActivities = useActivityStore((state) => state.activities);
   const { contacts } = useContactsStore();
   const [mounted, setMounted] = useState(false);
   const [copied, setCopied] = useState(false);
+
+  // Live timer tick to update relative timestamps automatically every 10s
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    const timer = setInterval(() => setTick((t) => t + 1), 10000);
+    return () => clearInterval(timer);
+  }, []);
 
   useEffect(() => {
     setMounted(true);
@@ -55,10 +62,15 @@ export default function DashboardPage() {
     startAutoRefresh();
   }, [mounted, contract, wallet, router, startAutoRefresh]);
 
-  const activities = useMemo(
-    () => (wallet ? getActivities(wallet.address).slice(0, 6) : []),
-    [wallet?.address, getActivities]
-  );
+  // Reactive subscription: auto-updates whenever any activity is recorded across the app
+  const activities = useMemo(() => {
+    if (!wallet?.address) return [];
+    const target = wallet.address.toLowerCase();
+    return allActivities
+      .filter((a) => a.walletAddress?.toLowerCase() === target)
+      .sort((a, b) => b.timestamp - a.timestamp)
+      .slice(0, 6);
+  }, [wallet?.address, allActivities]);
 
   const stats = useMemo(() => {
     if (!wallet) return null;
@@ -409,27 +421,34 @@ export default function DashboardPage() {
             </div>
           ) : (
             <div className="space-y-2">
-              {activities.map((item, i) => (
-                <div
-                  key={item.id || i}
-                  className="flex items-center justify-between p-3 rounded-2xl bg-background border border-border"
-                >
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
-                    <div className="min-w-0">
-                      <p className="text-xs font-bold text-foreground truncate">
-                        {item.title}
-                      </p>
-                      <p className="text-[11px] text-muted-foreground truncate">
-                        {item.description}
-                      </p>
+              <AnimatePresence initial={false}>
+                {activities.map((item, i) => (
+                  <motion.div
+                    key={item.id || i}
+                    layout
+                    initial={{ opacity: 0, y: -8, scale: 0.98 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.95 }}
+                    transition={{ duration: 0.2 }}
+                    className="flex items-center justify-between p-3 rounded-2xl bg-background border border-border"
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="w-2 h-2 rounded-full bg-emerald-500 shrink-0 animate-pulse" />
+                      <div className="min-w-0">
+                        <p className="text-xs font-bold text-foreground truncate">
+                          {item.title}
+                        </p>
+                        <p className="text-[11px] text-muted-foreground truncate">
+                          {item.description}
+                        </p>
+                      </div>
                     </div>
-                  </div>
-                  <span className="text-[10px] text-muted-foreground shrink-0 font-medium ml-2">
-                    {formatRelativeTime(item.timestamp)}
-                  </span>
-                </div>
-              ))}
+                    <span className="text-[10px] text-muted-foreground shrink-0 font-medium ml-2">
+                      {formatRelativeTime(item.timestamp)}
+                    </span>
+                  </motion.div>
+                ))}
+              </AnimatePresence>
             </div>
           )}
         </div>

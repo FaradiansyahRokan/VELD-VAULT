@@ -44,8 +44,10 @@ export const useActivityStore = create<ActivityState>()(
       activities: [],
 
       addActivity: (activity) => {
+        const normalizedAddress = activity.walletAddress?.toLowerCase() || "";
         const newActivity: Activity = {
           ...activity,
+          walletAddress: normalizedAddress,
           id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
           timestamp: Date.now(),
         };
@@ -55,16 +57,18 @@ export const useActivityStore = create<ActivityState>()(
       },
 
       clearActivities: (walletAddress) => {
+        const target = walletAddress?.toLowerCase();
         set((state) => ({
           activities: state.activities.filter(
-            (a) => a.walletAddress !== walletAddress
+            (a) => a.walletAddress?.toLowerCase() !== target
           ),
         }));
       },
 
       getActivities: (walletAddress) => {
+        const target = walletAddress?.toLowerCase();
         return get()
-          .activities.filter((a) => a.walletAddress === walletAddress)
+          .activities.filter((a) => a.walletAddress?.toLowerCase() === target)
           .sort((a, b) => b.timestamp - a.timestamp);
       },
     }),
@@ -74,6 +78,15 @@ export const useActivityStore = create<ActivityState>()(
     }
   )
 );
+
+// Cross-tab real-time synchronization
+if (typeof window !== "undefined") {
+  window.addEventListener("storage", (e) => {
+    if (e.key === "ciphervault-activity") {
+      useActivityStore.persist?.rehydrate();
+    }
+  });
+}
 
 // ── Helpers ───────────────────────────────────────────────────
 export const ACTIVITY_META: Record<

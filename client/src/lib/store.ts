@@ -13,6 +13,7 @@ import {
   clearVaultKey,
 } from "./crypto-engine";
 import { recordPriceEvent } from "@/components/PriceHistory";
+import { useActivityStore } from "./activity-store";
 
 // ============================================================
 // NETWORK SETUP — BRIDGESTONE (Avalanche L1, ChainID 777000)
@@ -324,7 +325,7 @@ export const useStore = create<VaultState>((set, get) => ({
   // REFRESH BALANCE
   // ----------------------------------------------------------
   refreshBalance: async () => {
-    const { wallet } = get();
+    const { wallet, balance: prevBalance } = get();
     if (!wallet) return;
     try {
       const response = await fetch(RPC_URL, {
@@ -343,7 +344,22 @@ export const useStore = create<VaultState>((set, get) => ({
       });
       const data = await response.json();
       if (data?.result) {
-        set({ balance: ethers.formatEther(BigInt(data.result)) });
+        const newBalanceStr = ethers.formatEther(BigInt(data.result));
+        const prevNum = parseFloat(prevBalance || "0");
+        const newNum = parseFloat(newBalanceStr);
+
+        // If balance increased, record incoming deposit/transfer
+        if (prevBalance && prevNum > 0 && newNum > prevNum + 0.0001) {
+          const diff = (newNum - prevNum).toFixed(4);
+          useActivityStore.getState().addActivity({
+            type: "transfer_in",
+            title: "Deposit received",
+            description: `+${diff} ${NETWORK_CONFIG.tokenSymbol} added to wallet balance`,
+            walletAddress: wallet.address,
+            amount: diff,
+          });
+        }
+        set({ balance: newBalanceStr });
       }
     } catch (err) {
       console.error("[refreshBalance] Gagal fetch balance:", err);

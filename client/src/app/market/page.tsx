@@ -8,6 +8,7 @@ import { motion } from "framer-motion";
 import { NETWORK_CONFIG } from "@/lib/constants";
 import { toast } from "sonner";
 import PriceHistory from "@/components/PriceHistory";
+import { useActivityStore } from "@/lib/activity-store";
 
 const spring = {
   type: "spring" as const,
@@ -47,6 +48,16 @@ export default function MarketPage() {
       await buyAsset(id, price);
       toast.dismiss(t);
       toast.success("Asset purchased! Funds escrowed pending dual confirmation.");
+      if (wallet) {
+        useActivityStore.getState().addActivity({
+          type: "buy",
+          title: "Asset purchased",
+          description: `Acquired token #${id} for ${price} ${NETWORK_CONFIG.tokenSymbol}`,
+          walletAddress: wallet.address,
+          amount: price,
+          tokenId: id,
+        });
+      }
     } catch (e: any) {
       toast.dismiss(t);
       toast.error(e.message || "Purchase failed");

@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { ethers } from "ethers";
 import { getTunnelUrls, checkNodeHealth } from "./tunnel-sync";
-import { NETWORK_CONFIG, CONTRACT_ADDRESS } from "./constants";
+import { NETWORK_CONFIG, CONTRACT_ADDRESS, KEY_DERIVATION_MESSAGE } from "./constants";
 import { gasOverride, gasOverrideWithValue, patchProviderFeeData } from "./gas-config";
 import CipherVaultArtifact from "@/abis/CipherVault.json";
 import {
@@ -90,15 +90,16 @@ async function registerPublicKey(wallet: ethers.Wallet | ethers.HDNodeWallet): P
 // ============================================================
 export interface WalletInfo {
   address: string;
-  privateKey: string;
+  privateKey?: string;
   mnemonic?: string;
+  walletType: "in-app" | "web3";
 }
 
 export type NetworkStatus = "checking" | "online" | "offline" | "wrong-network";
 
 interface VaultState {
-  provider: ethers.JsonRpcProvider | null;
-  signer: ethers.Wallet | ethers.HDNodeWallet | null;
+  provider: ethers.JsonRpcProvider | ethers.BrowserProvider | null;
+  signer: ethers.Signer | null;
   contract: ethers.Contract | null;
   wallet: WalletInfo | null;
   balance: string;
@@ -114,6 +115,7 @@ interface VaultState {
   // Auth
   createWallet: () => Promise<string>;
   importWallet: (secret: string) => Promise<boolean>;
+  connectWeb3Wallet: () => Promise<boolean>;
   logout: () => void;
 
   // Network
@@ -249,6 +251,7 @@ export const useStore = create<VaultState>((set, get) => ({
         address: connectedWallet.address,
         privateKey: connectedWallet.privateKey,
         mnemonic: randomWallet.mnemonic?.phrase,
+        walletType: "in-app",
       },
       balance: "0.0",
       vaultItems: [],
@@ -296,6 +299,7 @@ export const useStore = create<VaultState>((set, get) => ({
           address: connectedWallet.address,
           privateKey: connectedWallet.privateKey,
           mnemonic: cleanSecret.split(" ").length > 1 ? cleanSecret : undefined,
+          walletType: "in-app",
         },
         balance: "0.0",
       });
@@ -324,6 +328,121 @@ export const useStore = create<VaultState>((set, get) => ({
     } catch (e) {
       console.error("importWallet error:", e);
       return false;
+    }
+  },
+
+  // ----------------------------------------------------------
+  // CONNECT WEB3 WALLET (MetaMask, Rabby, Coinbase - EIP-1193)
+  // Maximum Security: Private keys never touch JavaScript memory.
+  // ----------------------------------------------------------
+  connectWeb3Wallet: async (): Promise<boolean> => {
+    get().logout();
+    if (typeof window === "undefined" || !(window as any).ethereum) {
+      throw new Error("No Web3 wallet extension detected. Please install MetaMask, Rabby, or Coinbase Wallet.");
+    }
+    const ethereum = (window as any).ethereum;
+
+    try {
+      // 1. Request accounts
+      const accounts: string[] = await ethereum.request({ method: "eth_requestAccounts" });
+      if (!accounts || accounts.length === 0) {
+        throw new Error("No account selected in your Web3 wallet.");
+      }
+
+      // 2. Ensure Avalanche Subnet (ChainID) is active
+      const targetChainHex = `0x${NETWORK_CONFIG.chainId.toString(16)}`;
+      try {
+        await ethereum.request({
+          method: "wallet_switchEthereumChain",
+          params: [{ chainId: targetChainHex }],
+        });
+      } catch (switchError: any) {
+        // 4902: Chain not added yet
+        if (switchError.code === 4902 || switchError?.data?.originalError?.code === 4902) {
+          const directRpc = process.env.NEXT_PUBLIC_RPC_URL || NETWORK_CONFIG.rpcUrl;
+          await ethereum.request({
+            method: "wallet_addEthereumChain",
+            params: [
+              {
+                chainId: targetChainHex,
+                chainName: NETWORK_CONFIG.name,
+                nativeCurrency: {
+                  name: NETWORK_CONFIG.tokenName,
+                  symbol: NETWORK_CONFIG.tokenSymbol,
+                  decimals: 18,
+                },
+                rpcUrls: [directRpc],
+              },
+            ],
+          });
+        }
+      }
+
+      // 3. Setup BrowserProvider & Signer
+      const browserProvider = new ethers.BrowserProvider(ethereum);
+      const web3Signer = await browserProvider.getSigner();
+      const connectedAddress = await web3Signer.getAddress();
+
+      const contract = new ethers.Contract(
+        CONTRACT_ADDRESS,
+        CipherVaultArtifact.abi,
+        web3Signer
+      );
+
+      // 4. Set state immediately
+      set({
+        provider: browserProvider,
+        signer: web3Signer,
+        contract,
+        wallet: {
+          address: connectedAddress,
+          walletType: "web3",
+        },
+        balance: "0.0",
+      });
+
+      // 5. Derive public key for ECDH & register to pubkey-store (zero gas)
+      try {
+        const sig = await web3Signer.signMessage(KEY_DERIVATION_MESSAGE);
+        const digest = ethers.hashMessage(KEY_DERIVATION_MESSAGE);
+        const recoveredPubKey = ethers.SigningKey.recoverPublicKey(digest, sig);
+        if (recoveredPubKey) {
+          fetch("/api/pubkey-store", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              address: connectedAddress,
+              publicKey: recoveredPubKey,
+            }),
+          }).catch(() => {});
+        }
+      } catch (signErr) {
+        console.warn("[connectWeb3Wallet] Vault key derivation signature deferred:", signErr);
+      }
+
+      // 6. Start refresh & background balance
+      get().startAutoRefresh();
+      get().refreshBalance().catch(() => {});
+
+      // 7. Event listeners for account/chain changes
+      if (!ethereum._ciphervaultListeners) {
+        ethereum._ciphervaultListeners = true;
+        ethereum.on("accountsChanged", (newAccs: string[]) => {
+          if (!newAccs || newAccs.length === 0) {
+            get().logout();
+          } else {
+            get().connectWeb3Wallet().catch(() => {});
+          }
+        });
+        ethereum.on("chainChanged", () => {
+          window.location.reload();
+        });
+      }
+
+      return true;
+    } catch (err: any) {
+      console.error("[connectWeb3Wallet] Error:", err);
+      throw err;
     }
   },
 

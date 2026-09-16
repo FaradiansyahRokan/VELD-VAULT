@@ -17,6 +17,7 @@ import {
   Lock,
   Eye,
   EyeOff,
+  Wallet,
 } from "lucide-react";
 import { toast } from "sonner";
 import { copyToClipboard } from "@/lib/clipboard";
@@ -31,7 +32,7 @@ const spring = {
 };
 
 export default function LoginPage() {
-  const { createWallet, importWallet, logout } = useStore();
+  const { createWallet, importWallet, connectWeb3Wallet, logout } = useStore();
   const router = useRouter();
 
   const [view, setView] = useState<View>("MENU");
@@ -40,6 +41,7 @@ export default function LoginPage() {
   const [importInput, setImportInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
+  const [isConnectingWeb3, setIsConnectingWeb3] = useState(false);
   const [confirmed, setConfirmed] = useState(false);
   const [showInputSecret, setShowInputSecret] = useState(false);
 
@@ -51,7 +53,23 @@ export default function LoginPage() {
     setImportInput("");
     setIsLoading(false);
     setIsCreating(false);
+    setIsConnectingWeb3(false);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleConnectWeb3 = async () => {
+    setIsConnectingWeb3(true);
+    try {
+      const success = await connectWeb3Wallet();
+      if (success) {
+        toast.success("Web3 wallet connected successfully!");
+        router.push("/dashboard");
+      }
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to connect Web3 wallet");
+    } finally {
+      setIsConnectingWeb3(false);
+    }
+  };
 
   const handleCreate = async () => {
     setIsCreating(true);
@@ -148,24 +166,59 @@ export default function LoginPage() {
                 Non-custodial cryptographic vault on Avalanche Subnet. Select how you would like to connect.
               </p>
 
+              {/* Connect Web3 Wallet Button (Recommended) */}
+              <motion.button
+                whileHover={{ scale: 1.01, y: -1 }}
+                whileTap={{ scale: 0.97 }}
+                onClick={handleConnectWeb3}
+                disabled={isConnectingWeb3}
+                className="w-full p-4 rounded-2xl btn-enterprise-primary text-primary-foreground cursor-pointer transition-all shadow-md flex items-center justify-between"
+              >
+                <div className="flex items-center gap-3 text-left">
+                  <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center shrink-0">
+                    <Wallet size={20} />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h4 className="text-sm font-bold">Connect Web3 Wallet</h4>
+                      <span className="px-1.5 py-0.5 rounded-md bg-emerald-400/20 text-emerald-300 border border-emerald-400/30 text-[9px] font-bold tracking-wider uppercase">
+                        Recommended
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-white/80">MetaMask, Rabby, Coinbase (Extension Secured)</p>
+                  </div>
+                </div>
+                {isConnectingWeb3 ? (
+                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin shrink-0" />
+                ) : (
+                  <ArrowRight size={16} className="shrink-0" />
+                )}
+              </motion.button>
+
+              <div className="flex items-center gap-3 py-1">
+                <div className="flex-1 h-px bg-border" />
+                <span className="text-[10px] uppercase font-mono tracking-widest text-muted-foreground">or in-app vault</span>
+                <div className="flex-1 h-px bg-border" />
+              </div>
+
               {/* Create New Vault Button */}
               <motion.button
                 whileHover={{ scale: 1.01, y: -1 }}
                 whileTap={{ scale: 0.97 }}
                 onClick={handleCreate}
                 disabled={isCreating}
-                className="w-full p-4 rounded-2xl btn-enterprise-primary text-primary-foreground cursor-pointer transition-all"
+                className="w-full p-4 rounded-2xl bg-background hover:bg-muted text-foreground flex items-center justify-between border border-border cursor-pointer transition-all shadow-sm"
               >
                 <div className="flex items-center gap-3 text-left">
-                  <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center">
+                  <div className="w-10 h-10 rounded-xl bg-slate-200/70 dark:bg-[#7692FF]/15 flex items-center justify-center text-[#1B2CC1] dark:text-[#ABD2FA]">
                     <PlusCircle size={20} />
                   </div>
                   <div>
-                    <h4 className="text-sm font-bold">Create New Vault</h4>
-                    <p className="text-[11px] text-white/80">Generate a fresh 12-word recovery phrase</p>
+                    <h4 className="text-sm font-bold">Create In-App Vault</h4>
+                    <p className="text-[11px] text-muted-foreground">Generate a fresh 12-word recovery phrase</p>
                   </div>
                 </div>
-                <ArrowRight size={16} />
+                <ArrowRight size={16} className="text-muted-foreground" />
               </motion.button>
 
               {/* Import Existing Vault Button */}

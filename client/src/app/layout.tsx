@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { Toaster } from 'sonner';
@@ -8,9 +8,23 @@ import PageAnimate from "@/components/PageAnimate";
 
 const mono = JetBrains_Mono({ subsets: ["latin"], variable: '--font-mono' });
 
+export const viewport: Viewport = {
+  themeColor: "#091540",
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+};
+
 export const metadata: Metadata = {
   title: "CipherVault — Decentralized Encrypted Vault & Marketplace",
   description: "Secure Web3 data marketplace with client-side encryption and IPFS storage on BridgeStone L1",
+  manifest: "/manifest.webmanifest",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "CipherVault",
+  },
   icons: {
     icon: "/icon.png",
     apple: "/apple-icon.png",

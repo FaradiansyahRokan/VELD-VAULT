@@ -4,8 +4,9 @@ pragma solidity ^0.8.20;
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
-contract CipherVault is ERC721URIStorage, Ownable {
+contract CipherVault is ERC721URIStorage, Ownable, ReentrancyGuard {
     uint256 private _tokenIds;
     uint256 private _itemsSold;
 
@@ -86,9 +87,10 @@ contract CipherVault is ERC721URIStorage, Ownable {
         emit ListingCancelled(tokenId); // EMIT EVENT
     }
 
-    function buyAsset(uint256 tokenId) public payable {
+    function buyAsset(uint256 tokenId) public payable nonReentrant {
         uint256 price = idToVaultItem[tokenId].price;
         require(msg.value == price, "Wrong price");
+        require(idToVaultItem[tokenId].isListed, "Not listed");
         
         if (idToVaultItem[tokenId].useEscrow) {
             idToVaultItem[tokenId].isEscrowActive = true;
@@ -101,23 +103,26 @@ contract CipherVault is ERC721URIStorage, Ownable {
             idToVaultItem[tokenId].owner = payable(msg.sender);
             idToVaultItem[tokenId].isListed = false;
             idToVaultItem[tokenId].seller = payable(address(0));
-            seller.transfer(msg.value);
             _itemsSold++;
             emit AssetSold(tokenId, msg.sender, price); // EMIT EVENT
+
+            (bool success, ) = seller.call{value: msg.value}("");
+            require(success, "Payment to seller failed");
         }
     }
 
-    function confirmTrade(uint256 tokenId) public {
+    function confirmTrade(uint256 tokenId) public nonReentrant {
         require(idToVaultItem[tokenId].isEscrowActive, "Not in escrow");
+        require(msg.sender == idToVaultItem[tokenId].buyer || msg.sender == idToVaultItem[tokenId].seller, "Not trade party");
+
         if (msg.sender == idToVaultItem[tokenId].buyer) idToVaultItem[tokenId].buyerConfirmed = true;
         else if (msg.sender == idToVaultItem[tokenId].seller) idToVaultItem[tokenId].sellerConfirmed = true;
 
         if (idToVaultItem[tokenId].buyerConfirmed && idToVaultItem[tokenId].sellerConfirmed) {
             address payable seller = idToVaultItem[tokenId].seller;
             address buyer = idToVaultItem[tokenId].buyer;
-            _transfer(address(this), buyer, tokenId);
-            seller.transfer(idToVaultItem[tokenId].price);
-            
+            uint256 price = idToVaultItem[tokenId].price;
+
             idToVaultItem[tokenId].owner = payable(buyer);
             idToVaultItem[tokenId].seller = payable(address(0));
             idToVaultItem[tokenId].buyer = address(0);
@@ -126,28 +131,38 @@ contract CipherVault is ERC721URIStorage, Ownable {
             idToVaultItem[tokenId].buyerConfirmed = false;
             idToVaultItem[tokenId].sellerConfirmed = false;
             _itemsSold++;
-            
-            emit AssetSold(tokenId, buyer, idToVaultItem[tokenId].price); // EMIT EVENT
+
+            _transfer(address(this), buyer, tokenId);
+            emit AssetSold(tokenId, buyer, price); // EMIT EVENT
+
+            (bool success, ) = seller.call{value: price}("");
+            require(success, "Payment to seller failed");
         } else {
             emit EscrowUpdate(tokenId, "Confirm"); // EMIT EVENT
         }
     }
 
-    function cancelTrade(uint256 tokenId) public {
+    function cancelTrade(uint256 tokenId) public nonReentrant {
         require(idToVaultItem[tokenId].isEscrowActive, "Not in escrow");
+        require(msg.sender == idToVaultItem[tokenId].buyer || msg.sender == idToVaultItem[tokenId].seller, "Not authorized to cancel");
+
         address payable buyer = payable(idToVaultItem[tokenId].buyer);
-        buyer.transfer(idToVaultItem[tokenId].price);
-        _transfer(address(this), idToVaultItem[tokenId].seller, tokenId);
-        
-        idToVaultItem[tokenId].owner = idToVaultItem[tokenId].seller;
+        address payable seller = idToVaultItem[tokenId].seller;
+        uint256 price = idToVaultItem[tokenId].price;
+
+        idToVaultItem[tokenId].owner = seller;
         idToVaultItem[tokenId].seller = payable(address(0));
         idToVaultItem[tokenId].buyer = address(0);
         idToVaultItem[tokenId].isListed = false;
         idToVaultItem[tokenId].isEscrowActive = false;
         idToVaultItem[tokenId].buyerConfirmed = false;
         idToVaultItem[tokenId].sellerConfirmed = false;
-        
+
+        _transfer(address(this), seller, tokenId);
         emit EscrowUpdate(tokenId, "Cancel"); // EMIT EVENT
+
+        (bool success, ) = buyer.call{value: price}("");
+        require(success, "Refund to buyer failed");
     }
 
     /**

@@ -437,8 +437,19 @@ export default function Navbar() {
                   </div>
                 </motion.div>
 
-                {/* 3. Private Key Card with Show/Hide & Copy */}
-                {wallet.privateKey && (
+                {/* 3. Private Key Card or Web3 Secured Badge */}
+                {wallet.walletType === "web3" ? (
+                  <motion.div
+                    variants={waveItemVariants}
+                    className="p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 dark:text-emerald-300 text-xs flex items-center gap-2.5"
+                  >
+                    <Shield size={16} className="text-emerald-500 shrink-0" />
+                    <div>
+                      <div className="font-bold text-[11px] leading-tight">Extension / Hardware Secured</div>
+                      <div className="text-[10px] opacity-80 leading-tight">Keys managed safely in Web3 wallet</div>
+                    </div>
+                  </motion.div>
+                ) : wallet.privateKey ? (
                   <motion.div
                     variants={waveItemVariants}
                     className="p-3 rounded-2xl bg-black/[0.03] dark:bg-white/[0.04] border border-border/40"
@@ -481,7 +492,7 @@ export default function Navbar() {
                       )}
                     </div>
                   </motion.div>
-                )}
+                ) : null}
 
                 {/* 4. Quick Actions */}
                 <motion.div
@@ -811,8 +822,19 @@ export default function Navbar() {
                       </div>
                     </motion.div>
 
-                    {/* Private Key Card */}
-                    {wallet.privateKey && (
+                    {/* Private Key Card or Web3 Secured Badge */}
+                    {wallet.walletType === "web3" ? (
+                      <motion.div
+                        variants={waveItemVariants}
+                        className="p-2.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 dark:text-emerald-300 text-xs flex items-center gap-2.5"
+                      >
+                        <Shield size={16} className="text-emerald-500 shrink-0" />
+                        <div>
+                          <div className="font-bold text-[11px] leading-tight">Extension / Hardware Secured</div>
+                          <div className="text-[9.5px] opacity-80 leading-tight">Keys managed safely in Web3 wallet</div>
+                        </div>
+                      </motion.div>
+                    ) : wallet.privateKey ? (
                       <motion.div
                         variants={waveItemVariants}
                         className="p-2.5 rounded-2xl bg-black/[0.03] dark:bg-white/[0.04] border border-border/40"
@@ -855,7 +877,7 @@ export default function Navbar() {
                           )}
                         </div>
                       </motion.div>
-                    )}
+                    ) : null}
 
                     {/* Action Buttons */}
                     <motion.div

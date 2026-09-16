@@ -28,8 +28,8 @@ import { toast } from "sonner";
 import { getSubtleCrypto } from "@/lib/webcrypto-shim";
 
 /* ── Constants ───────────────────────────────────────────────── */
-const SERIF = "-apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Roboto, sans-serif";
-const MONO = "'JetBrains Mono', 'Courier New', monospace";
+
+
 const EASE: [number, number, number, number] = [0.16, 1, 0.3, 1];
 
 const EMOJIS = ["🦊", "🐺", "🦁", "🐯", "🦅", "🦋", "🐉", "🌙", "⚡", "🔮", "🎯", "🛡️", "🌊", "🔥", "❄️", "🎭"];
@@ -46,497 +46,7 @@ const TOOLS = [
 ] as const;
 type ToolId = typeof TOOLS[number]["id"];
 
-/* ══════════════════════════════════════════════════════════════ */
-/*  GLOBAL CSS                                                    */
-/* ══════════════════════════════════════════════════════════════ */
-const CSS = `
 
-/* ── Variables ── */
-:root {
-  --t-bg:     #F8FAFC;
-  --t-fg:     #091540;
-  --t-muted:  #475569;
-  --t-border: rgba(9, 21, 64, 0.08);
-  --t-lite:   rgba(9, 21, 64, 0.05);
-  --t-card:   #FFFFFF;
-  --t-surf:   #F8FAFC;
-  --t-ink:    #091540;   /* rail bg light-mode */
-  --t-rail-t: #F4F8FC;   /* rail text */
-  --t-rail-m: #8E9EC5;   /* rail muted */
-  --t-up:     #10B981;
-  --t-dn:     #EF4444;
-}
-.dark {
-  --t-bg:     #091540;
-  --t-fg:     #F4F8FC;
-  --t-muted:  #8E9EC5;
-  --t-border: rgba(171, 210, 250, 0.16);
-  --t-lite:   rgba(171, 210, 250, 0.08);
-  --t-card:   #0D1B4D;
-  --t-surf:   #091540;
-  --t-ink:    #060E2C;
-  --t-rail-t: #F4F8FC;
-  --t-rail-m: #7692FF;
-  --t-up:     #34D399;
-  --t-dn:     #F87171;
-}
-
-/* ── Root split layout ── */
-.tk-root {
-  display: flex;
-  background: var(--t-bg);
-  /* offset navbar: 92px desktop, 56px mobile */
-  padding-top: 92px;
-  min-height: 100vh;
-  overflow: hidden;
-  position: relative;
-}
-@media (max-width: 768px) {
-  .tk-root {
-    flex-direction: column;
-    padding-top: 56px;
-    padding-bottom: 56px;
-    overflow: visible;
-    min-height: 100vh;
-  }
-}
-
-/* ══ RAIL (left sidebar) ══════════════════════════════════════ */
-.tk-rail {
-  width: 240px;
-  flex-shrink: 0;
-  background: var(--t-ink);
-  border-right: 1px solid rgba(171, 210, 250, 0.1);
-  display: flex;
-  flex-direction: column;
-  overflow-y: auto;
-  position: sticky;
-  top: 92px;
-  height: calc(100vh - 92px);
-}
-.tk-rail::-webkit-scrollbar { width: 2px; }
-.tk-rail::-webkit-scrollbar-thumb { background: rgba(171, 210, 250, 0.12); }
-@media (max-width: 768px) {
-  .tk-rail {
-    position: static;
-    width: 100%;
-    height: auto;
-    flex-direction: row;
-    overflow-x: auto;
-    overflow-y: hidden;
-    border-right: none;
-    border-bottom: 1px solid rgba(171, 210, 250, 0.12);
-    -webkit-overflow-scrolling: touch;
-    scroll-snap-type: x mandatory;
-  }
-  .tk-rail::-webkit-scrollbar { height: 2px; width: 0; }
-}
-
-.tk-rail-header {
-  padding: 28px 22px 16px;
-  flex-shrink: 0;
-}
-@media (max-width: 768px) {
-  .tk-rail-header { display: none; }
-}
-.tk-rail-suite {
-  font-family: 'DM Mono', monospace;
-  font-size: 10px; letter-spacing: 0.28em; text-transform: uppercase;
-  color: var(--t-rail-m); margin-bottom: 4px;
-}
-.tk-rail-title {
-  font-family: inherit;
-  font-size: 17px; font-weight: 700; font-style: italic;
-  color: var(--t-rail-t); letter-spacing: -0.01em;
-}
-
-.tk-rail-list { flex: 1; padding: 8px 0 24px; }
-@media (max-width: 768px) {
-  .tk-rail-list {
-    display: flex; flex-direction: row; padding: 0;
-    align-items: stretch; flex: none; width: max-content;
-    min-width: 100%;
-  }
-}
-
-.tk-rail-item {
-  display: flex; align-items: center; gap: 14px;
-  width: 100%; padding: 13px 22px;
-  background: none; border: none; cursor: pointer;
-  text-align: left; transition: background 0.18s;
-  position: relative;
-}
-.tk-rail-item::before {
-  content: ''; position: absolute;
-  left: 0; top: 0; bottom: 0; width: 3px;
-  background: #7692FF;
-  transform: scaleY(0); transform-origin: center;
-  transition: transform 0.25s cubic-bezier(0.16,1,0.3,1);
-}
-.tk-rail-item.active { background: rgba(118, 146, 255, 0.12); }
-.tk-rail-item.active::before { transform: scaleY(1); }
-.tk-rail-item:hover:not(.active) { background: rgba(118, 146, 255, 0.05); }
-
-@media (max-width: 768px) {
-  .tk-rail-item {
-    flex-direction: column; align-items: center; gap: 3px;
-    padding: 12px 18px; flex-shrink: 0;
-    border-bottom: 2px solid transparent;
-  }
-  .tk-rail-item::before { display: none; }
-  .tk-rail-item.active { border-bottom-color: #7692FF; background: transparent; }
-}
-
-.tk-rail-num {
-  font-family: inherit;
-  font-size: 13px; font-style: italic;
-  color: var(--t-rail-m); flex-shrink: 0; width: 20px;
-  transition: color 0.18s;
-}
-.tk-rail-item.active .tk-rail-num { color: var(--t-rail-t); }
-@media (max-width: 768px) { .tk-rail-num { display: none; } }
-
-.tk-rail-label {
-  font-family: inherit;
-  font-size: 14px; color: var(--t-rail-m);
-  transition: color 0.18s; white-space: nowrap;
-  line-height: 1;
-}
-.tk-rail-item.active .tk-rail-label { color: var(--t-rail-t); }
-.tk-rail-item:hover .tk-rail-label { color: var(--t-rail-t); }
-
-.tk-rail-hint {
-  font-family: 'DM Mono', monospace;
-  font-size: 10px; color: var(--t-rail-m); line-height: 1.4;
-  letter-spacing: 0.02em; margin-top: 2px;
-}
-@media (max-width: 768px) {
-  .tk-rail-hint { display: none; }
-  .tk-rail-label { font-size: 12px; }
-}
-
-/* ══ WORKSPACE (right pane) ══════════════════════════════════ */
-.tk-workspace {
-  flex: 1;
-  min-width: 0;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-}
-@media (max-width: 768px) {
-  .tk-workspace {
-    overflow-y: visible;
-    overflow-x: hidden;
-  }
-}
-.tk-workspace::-webkit-scrollbar { width: 3px; }
-.tk-workspace::-webkit-scrollbar-thumb { background: var(--t-lite); }
-
-.tk-ws-head {
-  padding: 36px 44px 28px;
-  border-bottom: 1px solid var(--t-lite);
-  flex-shrink: 0;
-}
-@media (max-width: 768px) {
-  .tk-ws-head { padding: 24px 20px 18px; }
-}
-.tk-ws-eyebrow {
-  font-family: 'DM Mono', monospace;
-  font-size: 11px; letter-spacing: 0.24em; text-transform: uppercase;
-  color: var(--t-muted); margin-bottom: 8px; font-style: italic;
-}
-.tk-ws-title {
-  font-family: inherit;
-  font-size: clamp(28px, 4vw, 42px);
-  font-weight: 700; letter-spacing: -0.025em; line-height: 1;
-  color: var(--t-fg);
-}
-.tk-ws-title em { font-style: italic; font-weight: 400; color: var(--t-muted); }
-.tk-ws-sub {
-  font-family: inherit;
-  font-size: 16px; color: var(--t-muted);
-  margin-top: 10px; line-height: 1.6;
-  max-width: 560px;
-}
-@media (max-width: 768px) { .tk-ws-sub { font-size: 15px; } }
-
-.tk-ws-body {
-  flex: 1; padding: 36px 44px 60px;
-}
-@media (max-width: 768px) {
-  .tk-ws-body { padding: 22px 18px 40px; }
-}
-
-/* ── Shared form elements ──────────────────────────────────── */
-.tk-section { margin-bottom: 36px; }
-.tk-section-title {
-  font-family: 'DM Mono', monospace;
-  font-size: 11px; letter-spacing: 0.22em; text-transform: uppercase;
-  color: var(--t-muted); margin-bottom: 16px;
-  display: flex; align-items: center; gap: 12px;
-}
-.tk-section-title::after {
-  content: ''; flex: 1; height: 1px; background: var(--t-lite);
-}
-
-.tk-label {
-  display: block; font-family: 'DM Mono', monospace;
-  font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase;
-  color: var(--t-muted); margin-bottom: 8px;
-}
-.tk-input {
-  width: 100%; background: transparent; border: none;
-  border-bottom: 1px solid var(--t-lite);
-  padding: 10px 0; font-family: 'DM Mono', monospace;
-  font-size: 13px; color: var(--t-fg); outline: none;
-  transition: border-color 0.25s;
-}
-.tk-input:focus { border-bottom-color: var(--t-fg); }
-.tk-input::placeholder { color: var(--t-muted); }
-.tk-input.valid   { border-bottom-color: var(--t-up); }
-.tk-input.invalid { border-bottom-color: var(--t-dn); }
-
-.tk-textarea {
-  width: 100%; background: transparent;
-  border: 1px solid var(--t-lite); padding: 12px 14px;
-  font-family: 'DM Mono', monospace; font-size: 13px;
-  color: var(--t-fg); outline: none; resize: vertical;
-  min-height: 80px; transition: border-color 0.25s; line-height: 1.65;
-}
-.tk-textarea:focus { border-color: var(--t-fg); }
-.tk-textarea::placeholder { color: var(--t-muted); }
-
-.tk-field { margin-bottom: 22px; }
-
-.tk-btn-primary {
-  display: inline-flex; align-items: center; justify-content: center; gap: 9px;
-  height: 42px; padding: 0 24px;
-  background: #1B2CC1;
-  color: #FFFFFF; border: 1px solid rgba(171, 210, 250, 0.25);
-  border-radius: 14px; cursor: pointer;
-  font-family: inherit; font-style: normal; font-weight: 700;
-  font-size: 13px; letter-spacing: 0.02em;
-  box-shadow: 0 4px 14px rgba(27, 44, 193, 0.28);
-  transition: all 0.2s;
-}
-.tk-btn-primary:hover {
-  background: #15229E;
-  transform: translateY(-1px);
-  box-shadow: 0 6px 18px rgba(27, 44, 193, 0.38);
-}
-.tk-btn-primary:active { transform: scale(0.98); }
-.tk-btn-primary:disabled { opacity: 0.35; cursor: not-allowed; transform: none; box-shadow: none; }
-
-.tk-btn-ghost {
-  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
-  height: 38px; padding: 0 18px;
-  background: rgba(118, 146, 255, 0.06); color: var(--t-muted);
-  border: 1px solid var(--t-lite); border-radius: 12px; cursor: pointer;
-  font-family: 'DM Mono', monospace; font-size: 11px;
-  letter-spacing: 0.12em; text-transform: uppercase; font-weight: 600;
-  transition: all 0.2s;
-}
-.tk-btn-ghost:hover { border-color: #7692FF; color: var(--t-fg); background: rgba(118, 146, 255, 0.12); }
-.tk-btn-ghost.danger:hover { border-color: var(--t-dn); color: var(--t-dn); }
-.tk-btn-ghost:disabled { opacity: 0.35; cursor: not-allowed; }
-
-.tk-btn-row {
-  display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 6px;
-}
-
-/* ── Result block ── */
-.tk-result {
-  background: var(--t-surf); border: 1px solid var(--t-lite);
-  border-radius: 16px;
-  padding: 16px 18px; margin-top: 16px;
-}
-.tk-result-label {
-  font-family: 'DM Mono', monospace;
-  font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase;
-  color: var(--t-muted); margin-bottom: 10px;
-}
-.tk-mono {
-  font-family: 'DM Mono', monospace; font-size: 12px;
-  color: var(--t-fg); word-break: break-all; line-height: 1.8;
-}
-.tk-mono.up { color: var(--t-up); }
-.tk-mono.dn { color: var(--t-dn); }
-.tk-mono.warn {
-  color: var(--t-dn); padding: 10px 12px;
-  border: 1px solid rgba(122,40,40,0.2);
-  background: rgba(122,40,40,0.04);
-  border-radius: 10px;
-}
-
-/* ── Copy pill ── */
-.tk-copy {
-  display: inline-flex; align-items: center; gap: 5px;
-  background: none; border: 1px solid var(--t-lite); padding: 4px 10px;
-  border-radius: 8px;
-  font-family: 'DM Mono', monospace; font-size: 11px;
-  letter-spacing: 0.1em; text-transform: uppercase;
-  color: var(--t-muted); cursor: pointer; transition: all 0.2s;
-  white-space: nowrap; flex-shrink: 0;
-}
-.tk-copy:hover { border-color: #7692FF; color: var(--t-fg); }
-.tk-copy.done  { border-color: var(--t-up); color: var(--t-up); }
-
-.tk-row { display: flex; align-items: flex-start; gap: 10px; }
-.tk-col { flex: 1; min-width: 0; }
-
-/* ── Tables ── */
-.tk-table { width: 100%; border-collapse: collapse; }
-.tk-table th {
-  font-family: 'DM Mono', monospace;
-  font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase;
-  color: var(--t-muted); font-weight: 400; text-align: left;
-  padding: 8px 12px; border-bottom: 1px solid var(--t-lite);
-}
-.tk-table td {
-  font-family: inherit; font-size: 15px;
-  color: var(--t-fg); padding: 12px 12px;
-  border-bottom: 1px solid var(--t-lite);
-  vertical-align: middle;
-}
-.tk-table tr:last-child td { border-bottom: none; }
-.tk-table tr:hover td { background: var(--t-surf); }
-.tk-table td.mono { font-family: 'DM Mono', monospace; font-size: 12px; }
-
-/* ── Contact card ── */
-.tk-contact-card {
-  border: 1px solid var(--t-lite); background: var(--t-card);
-  border-radius: 16px;
-  display: flex; align-items: center; gap: 14px;
-  padding: 14px 16px; margin-bottom: 8px;
-  transition: all 0.2s;
-}
-.tk-contact-card:hover { border-color: rgba(118, 146, 255, 0.4); box-shadow: 0 4px 14px rgba(9, 21, 64, 0.05); }
-.tk-avatar {
-  width: 40px; height: 40px; border: 1px solid rgba(171, 210, 250, 0.25);
-  border-radius: 12px;
-  background: rgba(118, 146, 255, 0.1); display: flex; align-items: center;
-  justify-content: center; font-size: 20px; flex-shrink: 0;
-}
-
-/* ── Emoji picker ── */
-.tk-emoji-grid {
-  display: grid; grid-template-columns: repeat(8, 36px); gap: 4px; margin-top: 8px;
-}
-.tk-emoji-btn {
-  width: 36px; height: 36px; background: var(--t-surf); border: 1px solid var(--t-lite);
-  cursor: pointer; font-size: 18px; display: flex; align-items: center;
-  justify-content: center; transition: all 0.15s;
-}
-.tk-emoji-btn:hover  { border-color: var(--t-fg); }
-.tk-emoji-btn.picked { border-color: var(--t-fg); background: var(--t-fg); }
-
-/* ── Drag-drop zone ── */
-.tk-dropzone {
-  border: 1px dashed var(--t-border); padding: 36px 24px;
-  text-align: center; cursor: pointer; transition: all 0.25s;
-  background: transparent;
-}
-.tk-dropzone:hover, .tk-dropzone.drag-over {
-  border-color: var(--t-fg); background: var(--t-surf);
-}
-.tk-dropzone-label {
-  font-family: inherit; font-size: 17px;
-  font-style: italic; color: var(--t-muted); margin-bottom: 6px;
-}
-.tk-dropzone-hint {
-  font-family: 'DM Mono', monospace; font-size: 11px;
-  letter-spacing: 0.14em; text-transform: uppercase; color: var(--t-muted);
-}
-
-/* ── Status badges ── */
-.tk-badge {
-  display: inline-flex; align-items: center; gap: 5px;
-  padding: 3px 9px; font-family: 'DM Mono', monospace;
-  font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase;
-  border: 1px solid;
-}
-.tk-badge.ok   { color: var(--t-up); border-color: rgba(42,107,63,0.3); background: rgba(42,107,63,0.06); }
-.tk-badge.fail { color: var(--t-dn); border-color: rgba(122,40,40,0.3); background: rgba(122,40,40,0.06); }
-.tk-badge.info { color: var(--t-muted); border-color: var(--t-lite); background: var(--t-surf); }
-
-/* ── Filter bar ── */
-.tk-filter-bar {
-  display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 20px;
-}
-.tk-filter-chip {
-  padding: 6px 14px; background: transparent; border: 1px solid var(--t-lite);
-  font-family: 'DM Mono', monospace; font-size: 11px;
-  letter-spacing: 0.1em; text-transform: uppercase; color: var(--t-muted);
-  cursor: pointer; transition: all 0.15s;
-}
-.tk-filter-chip:hover { border-color: var(--t-fg); color: var(--t-fg); }
-.tk-filter-chip.active { background: var(--t-fg); color: var(--t-bg); border-color: var(--t-fg); }
-
-/* ── Multisig flow ── */
-.tk-signer-row {
-  display: flex; align-items: center; gap: 14px;
-  padding: 14px 16px; border: 1px solid var(--t-lite);
-  margin-bottom: 6px; background: var(--t-card); transition: all 0.2s;
-}
-.tk-signer-row.signed { border-color: rgba(42,107,63,0.35); background: rgba(42,107,63,0.04); }
-.tk-sig-dot {
-  width: 10px; height: 10px; border: 1.5px solid var(--t-border); border-radius: 0;
-  flex-shrink: 0; transition: all 0.3s;
-}
-.tk-sig-dot.done { background: var(--t-up); border-color: var(--t-up); }
-
-/* ── SVG Charts ── */
-.tk-chart-wrap {
-  border: 1px solid var(--t-lite); padding: 20px;
-  background: var(--t-card); margin-bottom: 16px;
-}
-.tk-chart-label {
-  font-family: 'DM Mono', monospace; font-size: 11px;
-  letter-spacing: 0.2em; text-transform: uppercase;
-  color: var(--t-muted); margin-bottom: 14px;
-}
-
-/* ── Stat pair ── */
-.tk-stats-row {
-  display: grid; grid-template-columns: repeat(3, 1fr);
-  border: 1px solid var(--t-lite); margin-bottom: 28px;
-}
-@media (max-width: 480px) { .tk-stats-row { grid-template-columns: repeat(2, 1fr); } }
-.tk-stat-cell {
-  padding: 20px 18px; border-right: 1px solid var(--t-lite);
-}
-.tk-stat-cell:last-child { border-right: none; }
-.tk-stat-val {
-  font-family: inherit;
-  font-size: 28px; font-weight: 700; color: var(--t-fg);
-  letter-spacing: -0.02em; line-height: 1; margin-bottom: 5px;
-}
-.tk-stat-label {
-  font-family: 'DM Mono', monospace; font-size: 11px;
-  letter-spacing: 0.16em; text-transform: uppercase; color: var(--t-muted);
-}
-
-/* Spin */
-@keyframes tk-spin { to { transform: rotate(360deg); } }
-.tk-spin { animation: tk-spin 1s linear infinite; display: inline-block; }
-
-/* ── Search input ── */
-.tk-search-wrap { position: relative; margin-bottom: 20px; }
-.tk-search-ico { position: absolute; left: 0; top: 50%; transform: translateY(-50%); color: var(--t-muted); pointer-events: none; }
-.tk-search {
-  width: 100%; background: transparent; border: none;
-  border-bottom: 1px solid var(--t-lite);
-  padding: 10px 0 10px 24px; font-family: inherit;
-  font-size: 16px; font-style: italic; color: var(--t-fg); outline: none;
-  transition: border-color 0.25s;
-}
-.tk-search:focus { border-bottom-color: var(--t-fg); }
-.tk-search::placeholder { color: var(--t-muted); }
-
-/* ── Two-col form grid ── */
-.tk-form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-@media (max-width: 480px) { .tk-form-grid { grid-template-columns: 1fr; } }
-`;
 
 /* ══════════════════════════════════════════════════════════════ */
 /*  SVG ICONS                                                     */
@@ -589,20 +99,20 @@ function ContactManager({ walletAddr }: { walletAddr: string }) {
   return (
     <div>
       {/* Stats */}
-      <div className="tk-stats-row">
-        <div className="tk-stat-cell"><div className="tk-stat-val">{contacts.length}</div><div className="tk-stat-label">Contacts</div></div>
-        <div className="tk-stat-cell"><div className="tk-stat-val">{filtered.length}</div><div className="tk-stat-label">Shown</div></div>
-        <div className="tk-stat-cell"><div className="tk-stat-val">{contacts.filter(c => c.note).length}</div><div className="tk-stat-label">With Notes</div></div>
+      <div className="grid grid-cols-2 md:grid-cols-3 border border-border mb-7">
+        <div className="p-5 border-b md:border-b-0 md:border-r border-border last:border-r-0"><div className="text-[28px] font-bold text-foreground tracking-tight leading-none mb-1">{contacts.length}</div><div className="font-mono text-[11px] tracking-widest uppercase text-muted-foreground">Contacts</div></div>
+        <div className="p-5 border-b md:border-b-0 md:border-r border-border last:border-r-0"><div className="text-[28px] font-bold text-foreground tracking-tight leading-none mb-1">{filtered.length}</div><div className="font-mono text-[11px] tracking-widest uppercase text-muted-foreground">Shown</div></div>
+        <div className="p-5 border-b md:border-b-0 md:border-r border-border last:border-r-0"><div className="text-[28px] font-bold text-foreground tracking-tight leading-none mb-1">{contacts.filter(c => c.note).length}</div><div className="font-mono text-[11px] tracking-widest uppercase text-muted-foreground">With Notes</div></div>
       </div>
 
       {/* Search + Add */}
-      <div style={{ display: "flex", gap: 10, marginBottom: 20, alignItems: "flex-end" }}>
-        <div className="tk-search-wrap" style={{ flex: 1, marginBottom: 0 }}>
-          <Ic.Search /><span className="tk-search-ico" style={{ left: 0, pointerEvents: "none" }} />
+      <div className="flex gap-[10px] mb-[20px] items-end">
+        <div className="relative mb-5 flex-1 flex-1 mb-0">
+          <Ic.Search /><span className="absolute left-0 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none left-0 pointer-events-none" />
           <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search contacts…"
-            className="tk-search" style={{ paddingLeft: 24 }} />
+            className="w-full bg-transparent border-0 border-b border-border py-2.5 pl-6 italic text-[16px] text-foreground outline-none transition-colors focus:border-foreground placeholder:text-muted-foreground pl-[24px]" />
         </div>
-        <button className="tk-btn-primary" style={{ height: 38, padding: "0 18px", fontSize: 15 }} onClick={openAdd}>
+        <button className="btn-enterprise-primary h-[38px] px-[18px] text-[15px]" onClick={openAdd}>
           <Ic.Plus /> Add
         </button>
       </div>
@@ -611,41 +121,41 @@ function ContactManager({ walletAddr }: { walletAddr: string }) {
       <AnimatePresence>
         {showForm && (
           <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }}
-            style={{ overflow: "hidden", marginBottom: 24 }}>
-            <div style={{ border: "1px solid var(--t-lite)", padding: "24px 22px", background: "var(--t-card)" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
-                <span style={{ fontFamily: MONO, fontSize: 11, letterSpacing: "0.2em", textTransform: "uppercase", color: "var(--t-muted)" }}>
+            className="overflow-hidden mb-[24px]">
+            <div className="border border-border p-[24px_22px] bg-card">
+              <div className="flex justify-between items-center mb-[18px]">
+                <span className="font-mono text-[11px] tracking-[0.2em] uppercase text-muted-foreground">
                   {editId ? "Edit Contact" : "New Contact"}
                 </span>
-                <button onClick={() => setShowForm(false)} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--t-muted)" }}><Ic.X /></button>
+                <button onClick={() => setShowForm(false)} className="bg-transparent border-none cursor-pointer text-muted-foreground"><Ic.X /></button>
               </div>
-              <div className="tk-form-grid">
-                <div className="tk-field">
-                  <label className="tk-label">Name</label>
-                  <input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="Alice" className="tk-input" />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="mb-5">
+                  <label className="block font-mono text-[11px] tracking-widest uppercase text-muted-foreground mb-2">Name</label>
+                  <input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="Alice" className="w-full bg-transparent border-0 border-b border-border py-2.5 font-mono text-[13px] text-foreground outline-none focus:border-foreground transition-colors placeholder:text-muted-foreground" />
                 </div>
-                <div className="tk-field">
-                  <label className="tk-label">Wallet Address</label>
+                <div className="mb-5">
+                  <label className="block font-mono text-[11px] tracking-widest uppercase text-muted-foreground mb-2">Wallet Address</label>
                   <input value={form.address} onChange={e => setForm(f => ({ ...f, address: e.target.value }))} placeholder="0x…"
-                    className={`tk-input ${form.address ? (ethers.isAddress(form.address.trim()) ? "valid" : "invalid") : ""}`} />
+                    className={`w-full bg-transparent border-0 border-b border-border py-2.5 font-mono text-[13px] text-foreground outline-none focus:border-foreground transition-colors placeholder:text-muted-foreground ${form.address ? (ethers.isAddress(form.address.trim()) ? "valid" : "invalid") : ""}`} />
                 </div>
               </div>
-              <div className="tk-field">
-                <label className="tk-label">Note (optional)</label>
-                <input value={form.note} onChange={e => setForm(f => ({ ...f, note: e.target.value }))} placeholder="Personal wallet, trading, etc." className="tk-input" />
+              <div className="mb-5">
+                <label className="block font-mono text-[11px] tracking-widest uppercase text-muted-foreground mb-2">Note (optional)</label>
+                <input value={form.note} onChange={e => setForm(f => ({ ...f, note: e.target.value }))} placeholder="Personal wallet, trading, etc." className="w-full bg-transparent border-0 border-b border-border py-2.5 font-mono text-[13px] text-foreground outline-none focus:border-foreground transition-colors placeholder:text-muted-foreground" />
               </div>
-              <div className="tk-field">
-                <label className="tk-label">Avatar</label>
-                <div className="tk-emoji-grid">
+              <div className="mb-5">
+                <label className="block font-mono text-[11px] tracking-widest uppercase text-muted-foreground mb-2">Avatar</label>
+                <div className="grid grid-cols-8 gap-1 mt-2">
                   {EMOJIS.map(e => (
-                    <button key={e} className={`tk-emoji-btn ${form.emoji === e ? "picked" : ""}`}
+                    <button key={e} className={`w-[36px] h-[36px] border border-border cursor-pointer text-[18px] flex items-center justify-center transition-colors ${form.emoji === e ? "border-foreground bg-foreground" : "bg-muted/5 hover:border-foreground"}`}
                       onClick={() => setForm(f => ({ ...f, emoji: e }))}>{e}</button>
                   ))}
                 </div>
               </div>
-              <div className="tk-btn-row">
-                <button className="tk-btn-primary" onClick={save}><Ic.Check /> {editId ? "Update" : "Save Contact"}</button>
-                <button className="tk-btn-ghost" onClick={() => setShowForm(false)}>Cancel</button>
+              <div className="flex items-center gap-2.5 flex-wrap mt-1.5">
+                <button className="btn-enterprise-primary" onClick={save}><Ic.Check /> {editId ? "Update" : "Save Contact"}</button>
+                <button className="inline-flex items-center justify-center gap-2 h-[38px] px-4.5 bg-muted/10 text-muted-foreground border border-border rounded-xl font-mono text-[11px] tracking-widest uppercase font-semibold transition-colors hover:border-primary hover:text-foreground hover:bg-muted/20 disabled:opacity-35 disabled:cursor-not-allowed" onClick={() => setShowForm(false)}>Cancel</button>
               </div>
             </div>
           </motion.div>
@@ -654,32 +164,32 @@ function ContactManager({ walletAddr }: { walletAddr: string }) {
 
       {/* List */}
       {filtered.length === 0
-        ? <p style={{ fontFamily: SERIF, fontSize: 16, fontStyle: "italic", color: "var(--t-muted)", padding: "32px 0", textAlign: "center" }}>
+        ? <p className="font-serif text-[16px] italic text-muted-foreground py-[32px] text-center">
           {search ? "No matching contacts." : "No contacts yet. Add one above."}
         </p>
         : filtered.map(c => (
-          <motion.div key={c.id} className="tk-contact-card" layout
+          <motion.div key={c.id} className="enterprise-card flex items-center gap-3.5 p-3.5 mb-2 transition-all hover:border-primary/40 hover:shadow-md" layout
             initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
-            <div className="tk-avatar">{c.emoji}</div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <p style={{ fontFamily: SERIF, fontSize: 16, color: "var(--t-fg)", marginBottom: 3 }}>{c.name}</p>
-              <p style={{ fontFamily: MONO, fontSize: 11, color: "var(--t-muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            <div className="w-10 h-10 border border-primary/25 rounded-xl bg-primary/10 flex items-center justify-center text-[20px] shrink-0">{c.emoji}</div>
+            <div className="flex-1 min-w-0">
+              <p className="font-serif text-[16px] text-foreground mb-[3px]">{c.name}</p>
+              <p className="font-mono text-[11px] text-muted-foreground overflow-hidden text-ellipsis whitespace-nowrap">
                 {c.address}
               </p>
-              {c.note && <p style={{ fontFamily: SERIF, fontSize: 13, fontStyle: "italic", color: "var(--t-muted)", marginTop: 2 }}>{c.note}</p>}
+              {c.note && <p className="font-serif text-[13px] italic text-muted-foreground mt-[2px]">{c.note}</p>}
             </div>
-            <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
-              <button className={`tk-copy ${copiedId === c.id ? "done" : ""}`} onClick={() => copy(c.address, c.id)}>
+            <div className="flex gap-[6px] shrink-0">
+              <button className={`inline-flex items-center gap-[5px] p-[4px_10px] rounded-[8px] font-mono text-[11px] tracking-[0.1em] uppercase cursor-pointer transition-colors whitespace-nowrap shrink-0 border ${copiedId === c.id ? "border-green-500 text-green-500" : "bg-transparent border-border text-muted-foreground hover:border-primary hover:text-foreground"}`} onClick={() => copy(c.address, c.id)}>
                 {copiedId === c.id ? <Ic.Check /> : <Ic.Copy />}
               </button>
-              <button className="tk-btn-ghost" style={{ height: 32, padding: "0 10px" }}
+              <button className="inline-flex items-center justify-center gap-2 h-[38px] px-4.5 bg-muted/10 text-muted-foreground border border-border rounded-xl font-mono text-[11px] tracking-widest uppercase font-semibold transition-colors hover:border-primary hover:text-foreground hover:bg-muted/20 disabled:opacity-35 disabled:cursor-not-allowed h-[32px] px-[10px]"
                 onClick={() => router.push(`/messages?to=${c.address}`)}>
                 <Ic.Msg />
               </button>
-              <button className="tk-btn-ghost" style={{ height: 32, padding: "0 10px" }} onClick={() => openEdit(c)}>
+              <button className="inline-flex items-center justify-center gap-2 h-[38px] px-4.5 bg-muted/10 text-muted-foreground border border-border rounded-xl font-mono text-[11px] tracking-widest uppercase font-semibold transition-colors hover:border-primary hover:text-foreground hover:bg-muted/20 disabled:opacity-35 disabled:cursor-not-allowed h-[32px] px-[10px]" onClick={() => openEdit(c)}>
                 <Ic.Edit />
               </button>
-              <button className="tk-btn-ghost danger" style={{ height: 32, padding: "0 10px" }} onClick={() => del(c.id, c.name)}>
+              <button className="inline-flex items-center justify-center gap-2 h-[38px] px-4.5 bg-muted/10 text-muted-foreground border border-border rounded-xl font-mono text-[11px] tracking-widest uppercase font-semibold transition-colors hover:border-primary hover:text-foreground hover:bg-muted/20 disabled:opacity-35 disabled:cursor-not-allowed danger h-[32px] px-[10px]" onClick={() => del(c.id, c.name)}>
                 <Ic.Trash />
               </button>
             </div>
@@ -717,16 +227,16 @@ function AddressExplorer() {
 
   return (
     <div>
-      <div className="tk-field">
-        <label className="tk-label">Wallet or Contract Address</label>
-        <div className="tk-row" style={{ alignItems: "flex-end" }}>
+      <div className="mb-5">
+        <label className="block font-mono text-[11px] tracking-widest uppercase text-muted-foreground mb-2">Wallet or Contract Address</label>
+        <div className="flex items-start gap-2.5 items-end">
           <input value={addr} onChange={e => setAddr(e.target.value)}
             onKeyDown={e => e.key === "Enter" && lookup()}
-            placeholder="0x…" className={`tk-input ${addr ? (isValid ? "valid" : "invalid") : ""}`}
-            style={{ flex: 1 }} />
-          <button className="tk-btn-primary" style={{ marginLeft: 10, height: 38, padding: "0 20px", fontSize: 15, flexShrink: 0 }}
+            placeholder="0x…" className={`w-full bg-transparent border-0 border-b border-border py-[10px] font-mono text-[13px] text-foreground outline-none transition-colors placeholder:text-muted-foreground flex-1 ${addr ? (isValid ? "border-green-500" : "border-red-500") : "focus:border-foreground"}`}
+             />
+          <button className="btn-enterprise-primary ml-[10px] h-[38px] px-[20px] text-[15px] shrink-0"
             onClick={lookup} disabled={!isValid || loading}>
-            {loading ? <span className="tk-spin">◌</span> : "Inspect"}
+            {loading ? <span className="animate-spin inline-block">◌</span> : "Inspect"}
           </button>
         </div>
       </div>
@@ -734,36 +244,36 @@ function AddressExplorer() {
       <AnimatePresence>
         {data && (
           <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, ease: EASE }}>
-            <div className="tk-stats-row">
-              <div className="tk-stat-cell">
-                <div className="tk-stat-val">{parseFloat(data.balance).toFixed(4)}</div>
-                <div className="tk-stat-label">{NETWORK_CONFIG.tokenSymbol} Balance</div>
+            <div className="grid grid-cols-2 md:grid-cols-3 border border-border mb-7">
+              <div className="p-5 border-b md:border-b-0 md:border-r border-border last:border-r-0">
+                <div className="text-[28px] font-bold text-foreground tracking-tight leading-none mb-1">{parseFloat(data.balance).toFixed(4)}</div>
+                <div className="font-mono text-[11px] tracking-widest uppercase text-muted-foreground">{NETWORK_CONFIG.tokenSymbol} Balance</div>
               </div>
-              <div className="tk-stat-cell">
-                <div className="tk-stat-val">{data.txCount.toLocaleString()}</div>
-                <div className="tk-stat-label">Transactions</div>
+              <div className="p-5 border-b md:border-b-0 md:border-r border-border last:border-r-0">
+                <div className="text-[28px] font-bold text-foreground tracking-tight leading-none mb-1">{data.txCount.toLocaleString()}</div>
+                <div className="font-mono text-[11px] tracking-widest uppercase text-muted-foreground">Transactions</div>
               </div>
-              <div className="tk-stat-cell">
-                <div className="tk-stat-val">{data.isContract ? "Smart" : "EOA"}</div>
-                <div className="tk-stat-label">Account Type</div>
+              <div className="p-5 border-b md:border-b-0 md:border-r border-border last:border-r-0">
+                <div className="text-[28px] font-bold text-foreground tracking-tight leading-none mb-1">{data.isContract ? "Smart" : "EOA"}</div>
+                <div className="font-mono text-[11px] tracking-widest uppercase text-muted-foreground">Account Type</div>
               </div>
             </div>
 
-            <div className="tk-result">
-              <div className="tk-result-label">Address Details</div>
-              <table className="tk-table">
+            <div className="enterprise-card p-4 mt-4">
+              <div className="font-mono text-[11px] tracking-widest uppercase text-muted-foreground mb-2.5">Address Details</div>
+              <table className="w-full border-collapse">
                 <tbody>
-                  <tr><td style={{ width: 160 }}><span className="tk-label" style={{ margin: 0 }}>Address</span></td>
+                  <tr><td className="w-[160px]"><span className="block font-mono text-[11px] tracking-widest uppercase text-muted-foreground mb-2 m-0">Address</span></td>
                     <td className="mono">{addr.trim()}</td></tr>
-                  <tr><td><span className="tk-label" style={{ margin: 0 }}>Balance</span></td>
+                  <tr><td><span className="block font-mono text-[11px] tracking-widest uppercase text-muted-foreground mb-2 m-0">Balance</span></td>
                     <td>{parseFloat(data.balance).toFixed(6)} {NETWORK_CONFIG.tokenSymbol}</td></tr>
-                  <tr><td><span className="tk-label" style={{ margin: 0 }}>Nonce / Tx Count</span></td>
+                  <tr><td><span className="block font-mono text-[11px] tracking-widest uppercase text-muted-foreground mb-2 m-0">Nonce / Tx Count</span></td>
                     <td>{data.txCount}</td></tr>
-                  <tr><td><span className="tk-label" style={{ margin: 0 }}>Type</span></td>
-                    <td><span className={`tk-badge ${data.isContract ? "info" : "ok"}`}>
+                  <tr><td><span className="block font-mono text-[11px] tracking-widest uppercase text-muted-foreground mb-2 m-0">Type</span></td>
+                    <td><span className={`inline-flex items-center gap-[5px] px-[9px] py-[3px] font-mono text-[11px] tracking-[0.12em] uppercase border ${data.isContract ? "text-muted-foreground border-border bg-muted/10" : "text-green-500 border-green-500/30 bg-green-500/10"}`}>
                       {data.isContract ? "Smart Contract" : "Externally Owned Account"}
                     </span></td></tr>
-                  <tr><td><span className="tk-label" style={{ margin: 0 }}>Network</span></td>
+                  <tr><td><span className="block font-mono text-[11px] tracking-widest uppercase text-muted-foreground mb-2 m-0">Network</span></td>
                     <td>{NETWORK_CONFIG.name} — Chain {NETWORK_CONFIG.chainId}</td></tr>
                 </tbody>
               </table>
@@ -816,31 +326,31 @@ function TxHistory({ walletAddr }: { walletAddr: string }) {
 
   return (
     <div>
-      <div className="tk-stats-row">
-        <div className="tk-stat-cell"><div className="tk-stat-val">{all.length}</div><div className="tk-stat-label">Total Events</div></div>
-        <div className="tk-stat-cell"><div className="tk-stat-val">{all.filter(a => a.type === "transfer_out" || a.type === "transfer_in").length}</div><div className="tk-stat-label">Transfers</div></div>
-        <div className="tk-stat-cell"><div className="tk-stat-val">{shown.length}</div><div className="tk-stat-label">Filtered</div></div>
+      <div className="grid grid-cols-2 md:grid-cols-3 border border-border mb-7">
+        <div className="p-5 border-b md:border-b-0 md:border-r border-border last:border-r-0"><div className="text-[28px] font-bold text-foreground tracking-tight leading-none mb-1">{all.length}</div><div className="font-mono text-[11px] tracking-widest uppercase text-muted-foreground">Total Events</div></div>
+        <div className="p-5 border-b md:border-b-0 md:border-r border-border last:border-r-0"><div className="text-[28px] font-bold text-foreground tracking-tight leading-none mb-1">{all.filter(a => a.type === "transfer_out" || a.type === "transfer_in").length}</div><div className="font-mono text-[11px] tracking-widest uppercase text-muted-foreground">Transfers</div></div>
+        <div className="p-5 border-b md:border-b-0 md:border-r border-border last:border-r-0"><div className="text-[28px] font-bold text-foreground tracking-tight leading-none mb-1">{shown.length}</div><div className="font-mono text-[11px] tracking-widest uppercase text-muted-foreground">Filtered</div></div>
       </div>
 
-      <div className="tk-search-wrap">
-        <span className="tk-search-ico"><Ic.Search /></span>
-        <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search transactions…" className="tk-search" />
+      <div className="relative mb-5 flex-1">
+        <span className="absolute left-0 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none"><Ic.Search /></span>
+        <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search transactions…" className="w-full bg-transparent border-0 border-b border-border py-2.5 pl-6 italic text-[16px] text-foreground outline-none transition-colors focus:border-foreground placeholder:text-muted-foreground" />
       </div>
 
-      <div className="tk-filter-bar">
+      <div className="flex gap-2 flex-wrap mb-5">
         {TYPES.map(t => (
-          <button key={t} className={`tk-filter-chip ${filter === t ? "active" : ""}`} onClick={() => setFilter(t)}>
+          <button key={t} className={`p-[6px_14px] border border-border font-mono text-[11px] tracking-[0.1em] uppercase cursor-pointer transition-colors ${filter === t ? "bg-foreground text-background border-foreground" : "bg-transparent text-muted-foreground hover:border-foreground hover:text-foreground"}`} onClick={() => setFilter(t)}>
             {t === "all" ? "All" : typeLabel(t)}
           </button>
         ))}
       </div>
 
       {shown.length === 0
-        ? <p style={{ fontFamily: SERIF, fontSize: 16, fontStyle: "italic", color: "var(--t-muted)", padding: "32px 0", textAlign: "center" }}>
+        ? <p className="font-serif text-[16px] italic text-muted-foreground py-[32px] text-center">
           No matching transactions.
         </p>
-        : <div style={{ border: "1px solid var(--t-lite)", maxHeight: "450px", overflowY: "auto" }}>
-          <table className="tk-table">
+        : <div className="border border-border max-h-[450px] overflow-y-auto">
+          <table className="w-full border-collapse">
             <thead>
               <tr>
                 <th>Event</th>
@@ -852,14 +362,14 @@ function TxHistory({ walletAddr }: { walletAddr: string }) {
             <tbody>
               {shown.map((a, i) => (
                 <tr key={i}>
-                  <td style={{ fontFamily: SERIF, fontSize: 15, fontWeight: 500 }}>{a.title}</td>
-                  <td style={{ fontFamily: SERIF, fontSize: 14, color: "var(--t-muted)", maxWidth: 240 }}>
-                    <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", display: "block" }}>
+                  <td className="font-serif text-[15px] font-medium">{a.title}</td>
+                  <td className="font-serif text-[14px] text-muted-foreground max-w-[240px]">
+                    <span className="overflow-hidden text-ellipsis whitespace-nowrap block">
                       {a.description || "—"}
                     </span>
                   </td>
-                  <td><span className={`tk-badge ${typeBadge(a.type)}`}>{typeLabel(a.type)}</span></td>
-                  <td className="mono" style={{ whiteSpace: "nowrap", fontSize: 11 }}>
+                  <td><span className={`inline-flex items-center gap-1.5 px-2 py-1 font-mono text-[11px] tracking-widest uppercase border ${typeBadge(a.type)}`}>{typeLabel(a.type)}</span></td>
+                  <td className="mono whitespace-nowrap text-[11px]">
                     {new Date(a.timestamp).toLocaleDateString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
                   </td>
                 </tr>
@@ -924,37 +434,37 @@ function SignDocument({ wallet, signer }: { wallet: any; signer: any }) {
   return (
     <div>
       {/* Step 1: upload */}
-      <div className="tk-section">
-        <div className="tk-section-title">Step 1 — Upload Document</div>
-        <div className={`tk-dropzone ${dragOver ? "drag-over" : ""}`}
+      <div className="mb-9">
+        <div className="flex items-center gap-3 font-mono text-[11px] tracking-widest uppercase text-muted-foreground mb-4 after:content-[''] after:flex-1 after:h-px after:bg-border">Step 1 — Upload Document</div>
+        <div className={`border border-dashed border-border p-[36px_24px] text-center cursor-pointer transition-colors bg-transparent ${dragOver ? "border-foreground bg-muted/5" : "hover:border-foreground hover:bg-muted/5"}`}
           onDragOver={e => { e.preventDefault(); setDragOver(true) }}
           onDragLeave={() => setDragOver(false)}
           onDrop={onDrop}
           onClick={() => fileRef.current?.click()}>
-          <div style={{ fontSize: 28, marginBottom: 10 }}><Ic.File /></div>
-          <p className="tk-dropzone-label">{file ? file.name : "Drop a file here, or click to browse"}</p>
-          <p className="tk-dropzone-hint">{file ? `${(file.size / 1024).toFixed(1)} KB · ${file.type || "unknown type"}` : "PDF, DOC, TXT, any format"}</p>
+          <div className="text-[28px] mb-[10px]"><Ic.File /></div>
+          <p className="text-[17px] italic text-muted-foreground mb-1.5">{file ? file.name : "Drop a file here, or click to browse"}</p>
+          <p className="font-mono text-[11px] tracking-widest uppercase text-muted-foreground">{file ? `${(file.size / 1024).toFixed(1)} KB · ${file.type || "unknown type"}` : "PDF, DOC, TXT, any format"}</p>
         </div>
-        <input ref={fileRef} type="file" style={{ display: "none" }} onChange={e => e.target.files?.[0] && hashFile(e.target.files[0])} />
+        <input ref={fileRef} type="file" className="hidden" onChange={e => e.target.files?.[0] && hashFile(e.target.files[0])} />
       </div>
 
       {/* Step 2: hash result */}
       {hash && (
-        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="tk-section">
-          <div className="tk-section-title">Step 2 — SHA-256 Hash</div>
-          <div className="tk-result">
-            <div className="tk-result-label">File fingerprint (SHA-256)</div>
-            <div className="tk-row">
-              <div className="tk-mono" style={{ flex: 1 }}>{hash}</div>
-              <button className="tk-copy" onClick={() => { navigator.clipboard.writeText(hash); toast.success("Copied") }}><Ic.Copy /></button>
+        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="mb-9">
+          <div className="flex items-center gap-3 font-mono text-[11px] tracking-widest uppercase text-muted-foreground mb-4 after:content-[''] after:flex-1 after:h-px after:bg-border">Step 2 — SHA-256 Hash</div>
+          <div className="enterprise-card p-4 mt-4">
+            <div className="font-mono text-[11px] tracking-widest uppercase text-muted-foreground mb-2.5">File fingerprint (SHA-256)</div>
+            <div className="flex items-start gap-2.5">
+              <div className="font-mono text-[12px] text-foreground break-all leading-relaxed flex-1">{hash}</div>
+              <button className="inline-flex items-center gap-1.5 bg-transparent border border-border px-2.5 py-1 rounded-lg font-mono text-[11px] tracking-widest uppercase text-muted-foreground cursor-pointer transition-colors whitespace-nowrap shrink-0 hover:border-primary hover:text-foreground" onClick={() => { navigator.clipboard.writeText(hash); toast.success("Copied") }}><Ic.Copy /></button>
             </div>
           </div>
 
-          {!wallet && <p style={{ fontFamily: SERIF, fontSize: 14, fontStyle: "italic", color: "var(--t-dn)", marginTop: 12 }}>Connect wallet to sign</p>}
+          {!wallet && <p className="font-serif text-[14px] italic text-red-500 mt-[12px]">Connect wallet to sign</p>}
           {wallet && phase === "hashed" && (
-            <div className="tk-btn-row" style={{ marginTop: 16 }}>
-              <button className="tk-btn-primary" onClick={sign} disabled={busy}>
-                {busy ? <span className="tk-spin">◌</span> : <Ic.Send />}
+            <div className="flex items-center gap-2.5 flex-wrap mt-1.5 mt-[16px]">
+              <button className="btn-enterprise-primary" onClick={sign} disabled={busy}>
+                {busy ? <span className="animate-spin inline-block">◌</span> : <Ic.Send />}
                 {busy ? "Signing…" : "Sign with Wallet"}
               </button>
             </div>
@@ -964,27 +474,27 @@ function SignDocument({ wallet, signer }: { wallet: any; signer: any }) {
 
       {/* Step 3: signature */}
       {sig && (
-        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="tk-section">
-          <div className="tk-section-title">Step 3 — Signature</div>
-          <div className="tk-result">
-            <div className="tk-result-label">EIP-191 Signature</div>
-            <div className="tk-row">
-              <div className="tk-mono" style={{ flex: 1, wordBreak: "break-all" }}>{sig}</div>
-              <button className="tk-copy" onClick={() => { navigator.clipboard.writeText(sig); toast.success("Copied") }}><Ic.Copy /></button>
+        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="mb-9">
+          <div className="flex items-center gap-3 font-mono text-[11px] tracking-widest uppercase text-muted-foreground mb-4 after:content-[''] after:flex-1 after:h-px after:bg-border">Step 3 — Signature</div>
+          <div className="enterprise-card p-4 mt-4">
+            <div className="font-mono text-[11px] tracking-widest uppercase text-muted-foreground mb-2.5">EIP-191 Signature</div>
+            <div className="flex items-start gap-2.5">
+              <div className="font-mono text-[12px] text-foreground break-all leading-relaxed flex-1 break-all">{sig}</div>
+              <button className="inline-flex items-center gap-1.5 bg-transparent border border-border px-2.5 py-1 rounded-lg font-mono text-[11px] tracking-widest uppercase text-muted-foreground cursor-pointer transition-colors whitespace-nowrap shrink-0 hover:border-primary hover:text-foreground" onClick={() => { navigator.clipboard.writeText(sig); toast.success("Copied") }}><Ic.Copy /></button>
             </div>
           </div>
 
-          <div className="tk-section-title" style={{ marginTop: 24 }}>Step 4 — Verify Signer</div>
-          <div className="tk-field">
-            <label className="tk-label">Expected Signer Address</label>
-            <input value={verifyAddr} onChange={e => setVerifyAddr(e.target.value)} placeholder="0x…" className="tk-input" />
+          <div className="flex items-center gap-3 font-mono text-[11px] tracking-widest uppercase text-muted-foreground mb-4 after:content-[''] after:flex-1 after:h-px after:bg-border mt-[24px]">Step 4 — Verify Signer</div>
+          <div className="mb-5">
+            <label className="block font-mono text-[11px] tracking-widest uppercase text-muted-foreground mb-2">Expected Signer Address</label>
+            <input value={verifyAddr} onChange={e => setVerifyAddr(e.target.value)} placeholder="0x…" className="w-full bg-transparent border-0 border-b border-border py-2.5 font-mono text-[13px] text-foreground outline-none focus:border-foreground transition-colors placeholder:text-muted-foreground" />
           </div>
-          <button className="tk-btn-primary" onClick={verify} disabled={!verifyAddr.trim()}>
+          <button className="btn-enterprise-primary" onClick={verify} disabled={!verifyAddr.trim()}>
             <Ic.Check /> Verify Signature
           </button>
           {verified !== null && (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={{ marginTop: 14 }}>
-              <span className={`tk-badge ${verified ? "ok" : "fail"}`}>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mt-[14px]">
+              <span className={`inline-flex items-center gap-[5px] px-[9px] py-[3px] font-mono text-[11px] tracking-[0.12em] uppercase border ${verified ? "text-green-500 border-green-500/30 bg-green-500/10" : "text-red-500 border-red-500/30 bg-red-500/10"}`}>
                 {verified ? "✓ Signature matches — document is authentic" : "✗ Signature mismatch"}
               </span>
             </motion.div>
@@ -1026,45 +536,45 @@ function HashVerifier() {
 
   return (
     <div>
-      <div className="tk-section">
-        <div className="tk-section-title">Upload File to Hash</div>
-        <div className={`tk-dropzone ${dragOver ? "drag-over" : ""}`}
+      <div className="mb-9">
+        <div className="flex items-center gap-3 font-mono text-[11px] tracking-widest uppercase text-muted-foreground mb-4 after:content-[''] after:flex-1 after:h-px after:bg-border">Upload File to Hash</div>
+        <div className={`border border-dashed border-border p-[36px_24px] text-center cursor-pointer transition-colors bg-transparent ${dragOver ? "border-foreground bg-muted/5" : "hover:border-foreground hover:bg-muted/5"}`}
           onDragOver={e => { e.preventDefault(); setDragOver(true) }}
           onDragLeave={() => setDragOver(false)}
           onDrop={e => { e.preventDefault(); setDragOver(false); const f = e.dataTransfer.files[0]; if (f) hashFile(f); }}
           onClick={() => fileRef.current?.click()}>
-          <div style={{ fontSize: 28, marginBottom: 10 }}><Ic.File /></div>
-          <p className="tk-dropzone-label">{file ? file.name : "Drop file here or click to browse"}</p>
-          <p className="tk-dropzone-hint">{file ? `${(file.size / 1024).toFixed(1)} KB` : "Any file type accepted"}</p>
+          <div className="text-[28px] mb-[10px]"><Ic.File /></div>
+          <p className="text-[17px] italic text-muted-foreground mb-1.5">{file ? file.name : "Drop file here or click to browse"}</p>
+          <p className="font-mono text-[11px] tracking-widest uppercase text-muted-foreground">{file ? `${(file.size / 1024).toFixed(1)} KB` : "Any file type accepted"}</p>
         </div>
-        <input ref={fileRef} type="file" style={{ display: "none" }} onChange={e => e.target.files?.[0] && hashFile(e.target.files[0])} />
+        <input ref={fileRef} type="file" className="hidden" onChange={e => e.target.files?.[0] && hashFile(e.target.files[0])} />
       </div>
 
-      {loading && <p style={{ fontFamily: MONO, fontSize: 12, color: "var(--t-muted)" }}><span className="tk-spin">◌</span> Computing…</p>}
+      {loading && <p className="font-mono text-[12px] text-muted-foreground"><span className="animate-spin inline-block">◌</span> Computing…</p>}
 
       {computed && (
         <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
-          <div className="tk-result" style={{ marginBottom: 16 }}>
-            <div className="tk-result-label">Computed SHA-256</div>
-            <div className="tk-row">
-              <div className="tk-mono" style={{ flex: 1 }}>{computed}</div>
-              <button className="tk-copy" onClick={() => { navigator.clipboard.writeText(computed); toast.success("Copied") }}><Ic.Copy /></button>
+          <div className="enterprise-card p-4 mt-4 mb-[16px]">
+            <div className="font-mono text-[11px] tracking-widest uppercase text-muted-foreground mb-2.5">Computed SHA-256</div>
+            <div className="flex items-start gap-2.5">
+              <div className="font-mono text-[12px] text-foreground break-all leading-relaxed flex-1">{computed}</div>
+              <button className="inline-flex items-center gap-1.5 bg-transparent border border-border px-2.5 py-1 rounded-lg font-mono text-[11px] tracking-widest uppercase text-muted-foreground cursor-pointer transition-colors whitespace-nowrap shrink-0 hover:border-primary hover:text-foreground" onClick={() => { navigator.clipboard.writeText(computed); toast.success("Copied") }}><Ic.Copy /></button>
             </div>
           </div>
 
-          <div className="tk-section">
-            <div className="tk-section-title">Compare Against Known Hash</div>
-            <div className="tk-field">
-              <label className="tk-label">Expected Hash (hex, with or without 0x)</label>
+          <div className="mb-9">
+            <div className="flex items-center gap-3 font-mono text-[11px] tracking-widest uppercase text-muted-foreground mb-4 after:content-[''] after:flex-1 after:h-px after:bg-border">Compare Against Known Hash</div>
+            <div className="mb-5">
+              <label className="block font-mono text-[11px] tracking-widest uppercase text-muted-foreground mb-2">Expected Hash (hex, with or without 0x)</label>
               <input value={expected} onChange={e => setExpected(e.target.value)}
-                placeholder="sha256 hash to compare…" className="tk-input" />
+                placeholder="sha256 hash to compare…" className="w-full bg-transparent border-0 border-b border-border py-2.5 font-mono text-[13px] text-foreground outline-none focus:border-foreground transition-colors placeholder:text-muted-foreground" />
             </div>
-            <button className="tk-btn-primary" onClick={compare} disabled={!expected.trim()}>
+            <button className="btn-enterprise-primary" onClick={compare} disabled={!expected.trim()}>
               Compare Hashes
             </button>
             {result && (
-              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={{ marginTop: 14 }}>
-                <span className={`tk-badge ${result === "match" ? "ok" : "fail"}`}>
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mt-[14px]">
+                <span className={`inline-flex items-center gap-[5px] px-[9px] py-[3px] font-mono text-[11px] tracking-[0.12em] uppercase border ${result === "match" ? "text-green-500 border-green-500/30 bg-green-500/10" : "text-red-500 border-red-500/30 bg-red-500/10"}`}>
                   {result === "match" ? "✓ Hashes match — file is unmodified" : "✗ Hash mismatch — file may have been altered"}
                 </span>
               </motion.div>
@@ -1106,53 +616,53 @@ function MultiSigner({ wallet, signer }: { wallet: any; signer: any }) {
 
   return (
     <div>
-      <div className="tk-stats-row">
-        <div className="tk-stat-cell"><div className="tk-stat-val">{signedCount}/{threshold}</div><div className="tk-stat-label">Signatures</div></div>
-        <div className="tk-stat-cell"><div className="tk-stat-val">{threshold}</div><div className="tk-stat-label">Required</div></div>
-        <div className="tk-stat-cell"><div className="tk-stat-val">{approved ? "Yes" : "No"}</div><div className="tk-stat-label">Approved</div></div>
+      <div className="grid grid-cols-2 md:grid-cols-3 border border-border mb-7">
+        <div className="p-5 border-b md:border-b-0 md:border-r border-border last:border-r-0"><div className="text-[28px] font-bold text-foreground tracking-tight leading-none mb-1">{signedCount}/{threshold}</div><div className="font-mono text-[11px] tracking-widest uppercase text-muted-foreground">Signatures</div></div>
+        <div className="p-5 border-b md:border-b-0 md:border-r border-border last:border-r-0"><div className="text-[28px] font-bold text-foreground tracking-tight leading-none mb-1">{threshold}</div><div className="font-mono text-[11px] tracking-widest uppercase text-muted-foreground">Required</div></div>
+        <div className="p-5 border-b md:border-b-0 md:border-r border-border last:border-r-0"><div className="text-[28px] font-bold text-foreground tracking-tight leading-none mb-1">{approved ? "Yes" : "No"}</div><div className="font-mono text-[11px] tracking-widest uppercase text-muted-foreground">Approved</div></div>
       </div>
 
-      <div className="tk-section">
-        <div className="tk-section-title">Proposal Message</div>
-        <div className="tk-field">
-          <label className="tk-label">Message / Proposal</label>
+      <div className="mb-9">
+        <div className="flex items-center gap-3 font-mono text-[11px] tracking-widest uppercase text-muted-foreground mb-4 after:content-[''] after:flex-1 after:h-px after:bg-border">Proposal Message</div>
+        <div className="mb-5">
+          <label className="block font-mono text-[11px] tracking-widest uppercase text-muted-foreground mb-2">Message / Proposal</label>
           <textarea value={message} onChange={e => setMessage(e.target.value)}
             placeholder="Describe the transaction or proposal requiring multi-party approval…"
-            className="tk-textarea" rows={3} />
+            className="w-full bg-transparent border border-border p-3.5 font-mono text-[13px] text-foreground outline-none resize-y min-h-[80px] focus:border-foreground transition-colors leading-relaxed placeholder:text-muted-foreground" rows={3} />
         </div>
         {msgHash && (
-          <div className="tk-result">
-            <div className="tk-result-label">Proposal Hash (Keccak-256)</div>
-            <div className="tk-mono">{msgHash}</div>
+          <div className="enterprise-card p-4 mt-4">
+            <div className="font-mono text-[11px] tracking-widest uppercase text-muted-foreground mb-2.5">Proposal Hash (Keccak-256)</div>
+            <div className="font-mono text-[12px] text-foreground break-all leading-relaxed">{msgHash}</div>
           </div>
         )}
       </div>
 
-      <div className="tk-section">
-        <div className="tk-section-title">
+      <div className="mb-9">
+        <div className="flex items-center gap-3 font-mono text-[11px] tracking-widest uppercase text-muted-foreground mb-4 after:content-[''] after:flex-1 after:h-px after:bg-border">
           Signers — threshold: &nbsp;
           {[2, 3].map(n => (
-            <button key={n} className={`tk-filter-chip ${threshold === n ? "active" : ""}`} style={{ padding: "3px 10px", fontSize: 11 }} onClick={() => setThreshold(n)}>{n}-of-3</button>
+            <button key={n} className={`px-[10px] py-[3px] text-[11px] border border-border font-mono tracking-[0.1em] uppercase cursor-pointer transition-colors ${threshold === n ? "bg-foreground text-background border-foreground" : "bg-transparent text-muted-foreground hover:border-foreground hover:text-foreground"} px-[10px] py-[3px] text-[11px]`} onClick={() => setThreshold(n)}>{n}-of-3</button>
           ))}
         </div>
 
         {signers.map((s, i) => (
-          <div key={i} className={`tk-signer-row ${s.signed ? "signed" : ""}`}>
-            <div className={`tk-sig-dot ${s.signed ? "done" : ""}`} />
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <p style={{ fontFamily: SERIF, fontSize: 16, color: "var(--t-fg)", marginBottom: 3 }}>{s.label}</p>
+          <div key={i} className={`flex items-center gap-[14px] p-[14px_16px] border mb-[6px] transition-all ${s.signed ? "border-green-500/35 bg-green-500/5" : "border-border bg-card"}`}>
+            <div className={`w-[10px] h-[10px] border-[1.5px] shrink-0 transition-all ${s.signed ? "bg-green-500 border-green-500" : "border-border"}`} />
+            <div className="flex-1 min-w-0">
+              <p className="font-serif text-[16px] text-foreground mb-[3px]">{s.label}</p>
               {s.isYou
-                ? <p style={{ fontFamily: MONO, fontSize: 11, color: "var(--t-muted)", overflow: "hidden", textOverflow: "ellipsis" }}>{s.addr || "No wallet connected"}</p>
+                ? <p className="font-mono text-[11px] text-muted-foreground overflow-hidden text-ellipsis">{s.addr || "No wallet connected"}</p>
                 : <input value={s.addr} onChange={e => setSigners(prev => prev.map((x, j) => j === i ? { ...x, addr: e.target.value } : x))}
-                  placeholder="0x… (simulated signer)" className="tk-input" style={{ fontSize: 12, padding: "4px 0" }} />
+                  placeholder="0x… (simulated signer)" className="w-full bg-transparent border-0 border-b border-border py-2.5 font-mono text-[13px] text-foreground outline-none focus:border-foreground transition-colors placeholder:text-muted-foreground text-[12px] py-[4px]" />
               }
             </div>
             {!s.signed
-              ? <button className="tk-btn-ghost" disabled={!message.trim() || busy || (s.isYou && !wallet)}
-                onClick={() => signAs(i)} style={{ flexShrink: 0 }}>
+              ? <button className="inline-flex items-center justify-center gap-2 h-[38px] px-[18px] bg-muted/10 text-muted-foreground border border-border rounded-xl font-mono text-[11px] tracking-widest uppercase font-semibold transition-colors hover:border-primary hover:text-foreground hover:bg-muted/20 disabled:opacity-35 disabled:cursor-not-allowed shrink-0" disabled={!message.trim() || busy || (s.isYou && !wallet)}
+                onClick={() => signAs(i)}>
                 {busy ? "…" : "Sign →"}
               </button>
-              : <span className="tk-badge ok"><Ic.Check /> Signed</span>
+              : <span className="inline-flex items-center gap-1.5 px-2 py-1 font-mono text-[11px] tracking-widest uppercase border ok"><Ic.Check /> Signed</span>
             }
           </div>
         ))}
@@ -1160,9 +670,9 @@ function MultiSigner({ wallet, signer }: { wallet: any; signer: any }) {
 
       {approved && (
         <motion.div initial={{ opacity: 0, scale: 0.97 }} animate={{ opacity: 1, scale: 1 }}
-          style={{ border: "1px solid rgba(42,107,63,0.3)", background: "rgba(42,107,63,0.05)", padding: "20px 22px", marginTop: 8 }}>
-          <p style={{ fontFamily: SERIF, fontSize: 18, color: "var(--t-up)", marginBottom: 4 }}>Proposal approved.</p>
-          <p style={{ fontFamily: SERIF, fontSize: 14, fontStyle: "italic", color: "var(--t-muted)" }}>
+          className="border border-green-500/30 bg-green-500/5 p-[20px_22px] mt-[8px]">
+          <p className="font-serif text-[18px] text-green-500 mb-[4px]">Proposal approved.</p>
+          <p className="font-serif text-[14px] italic text-muted-foreground">
             {signedCount} of {signers.length} signers have confirmed. Threshold of {threshold} met — safe to execute.
           </p>
         </motion.div>
@@ -1211,25 +721,25 @@ function Analytics({ walletAddr, balance }: { walletAddr: string; balance: strin
   return (
     <div>
       {/* Stats */}
-      <div className="tk-stats-row">
-        <div className="tk-stat-cell"><div className="tk-stat-val">{activities.length}</div><div className="tk-stat-label">Total Events</div></div>
-        <div className="tk-stat-cell"><div className="tk-stat-val">{parseFloat(balance || "0").toFixed(3)}</div><div className="tk-stat-label">{NETWORK_CONFIG.tokenSymbol} Balance</div></div>
-        <div className="tk-stat-cell"><div className="tk-stat-val">{typeCounts.length}</div><div className="tk-stat-label">Event Types</div></div>
+      <div className="grid grid-cols-2 md:grid-cols-3 border border-border mb-7">
+        <div className="p-5 border-b md:border-b-0 md:border-r border-border last:border-r-0"><div className="text-[28px] font-bold text-foreground tracking-tight leading-none mb-1">{activities.length}</div><div className="font-mono text-[11px] tracking-widest uppercase text-muted-foreground">Total Events</div></div>
+        <div className="p-5 border-b md:border-b-0 md:border-r border-border last:border-r-0"><div className="text-[28px] font-bold text-foreground tracking-tight leading-none mb-1">{parseFloat(balance || "0").toFixed(3)}</div><div className="font-mono text-[11px] tracking-widest uppercase text-muted-foreground">{NETWORK_CONFIG.tokenSymbol} Balance</div></div>
+        <div className="p-5 border-b md:border-b-0 md:border-r border-border last:border-r-0"><div className="text-[28px] font-bold text-foreground tracking-tight leading-none mb-1">{typeCounts.length}</div><div className="font-mono text-[11px] tracking-widest uppercase text-muted-foreground">Event Types</div></div>
       </div>
 
       {/* Activity timeline bar chart */}
-      <div className="tk-chart-wrap">
-        <div className="tk-chart-label">Daily Activity — Last 14 Days</div>
+      <div className="border border-border p-5 bg-card mb-4">
+        <div className="font-mono text-[11px] tracking-widest uppercase text-muted-foreground mb-3.5">Daily Activity — Last 14 Days</div>
         {activities.length === 0
-          ? <p style={{ fontFamily: SERIF, fontSize: 14, fontStyle: "italic", color: "var(--t-muted)", textAlign: "center", padding: "28px 0" }}>No activity data yet.</p>
-          : <div style={{ display: "flex", alignItems: "flex-end", gap: 6, height: 100 }}>
+          ? <p className="font-serif text-[14px] italic text-muted-foreground text-center py-[28px]">No activity data yet.</p>
+          : <div className="flex items-end gap-[6px] h-[100px]">
             {timeData.map((d, i) => (
-              <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
+              <div key={i} className="flex-1 flex flex-col items-center gap-[4px]">
                 <motion.div
                   initial={{ height: 0 }} animate={{ height: d.count === 0 ? 2 : `${(d.count / maxCount) * 80}px` }}
                   transition={{ delay: i * 0.03, duration: 0.5, ease: EASE }}
-                  style={{ width: "100%", background: d.count > 0 ? "var(--t-fg)" : "var(--t-lite)", minHeight: 2 }} />
-                <span style={{ fontFamily: MONO, fontSize: 9, color: "var(--t-muted)", transform: "rotate(-45deg)", transformOrigin: "top left", whiteSpace: "nowrap", width: 20, overflow: "hidden" }}>
+                  className={`w-full min-h-[2px] ${d.count > 0 ? "bg-foreground" : "bg-muted/10"}`} />
+                <span className="font-mono text-[9px] text-muted-foreground -rotate-45 origin-top-left whitespace-nowrap w-[20px] overflow-hidden">
                   {d.label}
                 </span>
               </div>
@@ -1240,23 +750,23 @@ function Analytics({ walletAddr, balance }: { walletAddr: string; balance: strin
 
       {/* Event type distribution */}
       {typeCounts.length > 0 && (
-        <div className="tk-chart-wrap">
-          <div className="tk-chart-label">Event Distribution</div>
+        <div className="border border-border p-5 bg-card mb-4">
+          <div className="font-mono text-[11px] tracking-widest uppercase text-muted-foreground mb-3.5">Event Distribution</div>
           {typeCounts.map(([type, count]) => {
             const pct = Math.round((count / activities.length) * 100);
             return (
-              <div key={type} style={{ marginBottom: 12 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 5 }}>
-                  <span style={{ fontFamily: SERIF, fontSize: 15, color: "var(--t-fg)" }}>
+              <div key={type} className="mb-[12px]">
+                <div className="flex justify-between mb-[5px]">
+                  <span className="font-serif text-[15px] text-foreground">
                     {type.replace(/_/g, " ")}
                   </span>
-                  <span style={{ fontFamily: MONO, fontSize: 11, color: "var(--t-muted)" }}>{count} · {pct}%</span>
+                  <span className="font-mono text-[11px] text-muted-foreground">{count} · {pct}%</span>
                 </div>
-                <div style={{ height: 4, background: "var(--t-lite)", position: "relative" }}>
+                <div className="h-[4px] bg-muted/10 relative">
                   <motion.div
                     initial={{ width: 0 }} animate={{ width: `${pct}%` }}
                     transition={{ duration: 0.7, ease: EASE }}
-                    style={{ position: "absolute", inset: 0, background: typeColorMap[type] || "var(--t-fg)" }} />
+                    className="absolute inset-0" style={{ background: typeColorMap[type] || "var(--foreground)" }} />
                 </div>
               </div>
             );
@@ -1265,13 +775,13 @@ function Analytics({ walletAddr, balance }: { walletAddr: string; balance: strin
       )}
 
       {/* Balance context */}
-      <div className="tk-result">
-        <div className="tk-result-label">Current Position</div>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", flexWrap: "wrap", gap: 12 }}>
-          <span style={{ fontFamily: SERIF, fontSize: 36, fontWeight: 700, color: "var(--t-fg)", letterSpacing: "-0.025em" }}>
-            {totalBal.toFixed(4)} <em style={{ fontSize: 18, fontWeight: 400, color: "var(--t-muted)" }}>{NETWORK_CONFIG.tokenSymbol}</em>
+      <div className="enterprise-card p-4 mt-4">
+        <div className="font-mono text-[11px] tracking-widest uppercase text-muted-foreground mb-2.5">Current Position</div>
+        <div className="flex justify-between items-baseline flex-wrap gap-[12px]">
+          <span className="font-serif text-[36px] font-bold text-foreground tracking-[-0.025em]">
+            {totalBal.toFixed(4)} <em className="text-[18px] font-normal text-muted-foreground">{NETWORK_CONFIG.tokenSymbol}</em>
           </span>
-          <span className={`tk-badge ${totalBal > 0 ? "ok" : "info"}`}>
+          <span className={`inline-flex items-center gap-[5px] px-[9px] py-[3px] font-mono text-[11px] tracking-[0.12em] uppercase border ${totalBal > 0 ? "text-green-500 border-green-500/30 bg-green-500/10" : "text-muted-foreground border-border bg-muted/10"}`}>
             {totalBal > 0 ? "Active" : "Empty"} · {NETWORK_CONFIG.name}
           </span>
         </div>
@@ -1311,56 +821,56 @@ export default function ToolsPage() {
   };
 
   return (
-    <div className="tk-root">
-      <style>{CSS}</style>
+    <div className="flex flex-col md:flex-row bg-background pt-[56px] md:pt-[92px] min-h-screen relative w-full">
+      
 
       {/* ══ LEFT RAIL ══════════════════════════════════════ */}
-      <aside className="tk-rail">
-        <div className="tk-rail-header">
-          <div className="tk-rail-suite">CipherVault</div>
-          <div className="tk-rail-title">Tools &amp; Utils</div>
+      <aside className="w-full md:w-[240px] shrink-0 bg-muted/20 border-b md:border-b-0 md:border-r border-border flex flex-row md:flex-col overflow-x-auto md:overflow-y-auto sticky top-[92px] md:h-[calc(100vh-92px)]">
+        <div className="hidden md:block p-6 shrink-0">
+          <div className="font-mono text-[10px] tracking-widest uppercase text-muted-foreground mb-1">CipherVault</div>
+          <div className="text-[17px] font-bold italic text-foreground tracking-tight">Tools &amp; Utils</div>
         </div>
 
-        <div className="tk-rail-list">
+        <div className="flex md:flex-col flex-row p-0 md:py-2 md:px-0 flex-none md:flex-1 min-w-full md:min-w-0 w-max md:w-auto">
           {TOOLS.map(t => (
             <button key={t.id}
-              className={`tk-rail-item ${active === t.id ? "active" : ""}`}
+              className={`flex flex-col md:flex-row items-center gap-[3px] md:gap-[14px] w-full p-[12px_18px] md:p-[13px_22px] bg-transparent border-b-[2px] md:border-b-0 md:border-l-[3px] border-transparent text-left transition-colors relative hover:bg-muted/5 shrink-0 md:shrink ${active === t.id ? "border-primary bg-muted/10 md:border-l-primary" : ""}`}
               onClick={() => setActive(t.id)}>
-              <span className="tk-rail-num">{t.num}</span>
+              <span className="hidden md:block font-serif text-[13px] italic text-muted-foreground shrink-0 w-5 transition-colors">{t.num}</span>
               <div>
-                <div className="tk-rail-label">{t.label}</div>
-                <div className="tk-rail-hint">{t.hint}</div>
+                <div className="text-[12px] md:text-[14px] text-muted-foreground transition-colors whitespace-nowrap leading-none">{t.label}</div>
+                <div className="hidden md:block font-mono text-[10px] text-muted-foreground leading-relaxed tracking-wider mt-0.5">{t.hint}</div>
               </div>
             </button>
           ))}
         </div>
 
         {/* Footer (desktop) */}
-        <div style={{ padding: "20px 22px", borderTop: "1px solid rgba(255,255,255,0.06)", flexShrink: 0 }} className="tk-rail-header" /* reuse hide-on-mobile */>
-          <p style={{ fontFamily: MONO, fontSize: 10, letterSpacing: "0.18em", textTransform: "uppercase", color: "var(--t-rail-m)" }}>
+        <div className="p-[20px_22px] border-t border-white/5 shrink-0 hidden md:block" /* reuse hide-on-mobile */>
+          <p className="font-mono text-[10px] tracking-[0.18em] uppercase text-muted-foreground">
             {wallet?.address.slice(0, 6)}…{wallet?.address.slice(-4)}
           </p>
-          <p style={{ fontFamily: MONO, fontSize: 10, color: "var(--t-rail-m)", marginTop: 3 }}>
+          <p className="font-mono text-[10px] text-muted-foreground mt-[3px]">
             {parseFloat(balance || "0").toFixed(4)} {NETWORK_CONFIG.tokenSymbol}
           </p>
         </div>
       </aside>
 
       {/* ══ WORKSPACE ══════════════════════════════════════ */}
-      <main className="tk-workspace">
+      <main className="flex-1 min-w-0 overflow-y-visible md:overflow-y-auto flex flex-col">
         <AnimatePresence mode="wait">
           <motion.div key={active}
             initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -6 }} transition={{ duration: 0.3, ease: EASE }}>
 
             {/* Workspace header */}
-            <div className="tk-ws-head">
-              <p className="tk-ws-eyebrow">{tool.num} · {tool.hint}</p>
-              <h1 className="tk-ws-title">{tool.label.split(" ").map((w, i) => i === 0 ? w : <em key={i}> {w}</em>)}</h1>
+            <div className="p-6 md:px-11 md:py-9 border-b border-border shrink-0">
+              <p className="font-mono text-[11px] tracking-widest uppercase text-muted-foreground mb-2 italic">{tool.num} · {tool.hint}</p>
+              <h1 className="text-2xl md:text-[42px] font-bold tracking-tight leading-none text-foreground">{tool.label.split(" ").map((w, i) => i === 0 ? w : <em key={i}> {w}</em>)}</h1>
             </div>
 
             {/* Workspace body */}
-            <div className="tk-ws-body">
+            <div className="flex-1 p-5 md:px-11 md:py-9">
               {renderContent()}
             </div>
           </motion.div>

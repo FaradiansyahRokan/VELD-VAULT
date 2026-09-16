@@ -177,7 +177,7 @@ export default function TransferPage() {
         <motion.button
           whileTap={{ scale: 0.95 }}
           onClick={() => setShowQR(true)}
-          className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-muted text-foreground text-xs font-semibold hover:bg-black/[0.08] cursor-pointer"
+          className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-muted text-foreground text-xs font-semibold hover:bg-muted cursor-pointer"
         >
           <QrCode size={14} />
           <span>Receive QR</span>
@@ -312,7 +312,7 @@ export default function TransferPage() {
                         <div
                           key={c.id}
                           onClick={() => setToAddress(c.address)}
-                          className="flex items-center justify-between p-2.5 rounded-xl bg-background border border-border hover:border-[#1B2CC1]/40 dark:hover:border-[#7692FF]/30 hover:bg-slate-100 dark:hover:bg-[#091540]/80 transition-colors cursor-pointer"
+                          className="flex items-center justify-between p-2.5 rounded-xl bg-background border border-border hover:border-primary/50 hover:bg-muted transition-colors cursor-pointer"
                         >
                           <div className="flex items-center gap-2.5">
                             <span className="text-base">{c.emoji}</span>
@@ -342,7 +342,7 @@ export default function TransferPage() {
                             setToAddress(r.address);
                             setAmount(r.amount);
                           }}
-                          className="flex items-center justify-between p-2.5 rounded-xl bg-background border border-border hover:border-[#1B2CC1]/40 dark:hover:border-[#7692FF]/30 hover:bg-slate-100 dark:hover:bg-[#091540]/80 transition-colors cursor-pointer"
+                          className="flex items-center justify-between p-2.5 rounded-xl bg-background border border-border hover:border-primary/50 hover:bg-muted transition-colors cursor-pointer"
                         >
                           <span className="text-xs font-mono text-foreground">
                             {r.address.slice(0, 8)}…{r.address.slice(-6)}
@@ -427,7 +427,7 @@ export default function TransferPage() {
                 <motion.button
                   whileTap={{ scale: 0.96 }}
                   onClick={() => setStep("input")}
-                  className="flex-1 py-3.5 rounded-2xl bg-muted text-foreground text-xs font-semibold cursor-pointer hover:bg-slate-200/70"
+                  className="flex-1 py-3.5 rounded-2xl bg-muted text-foreground text-xs font-semibold cursor-pointer hover:bg-muted"
                 >
                   Back & Edit
                 </motion.button>

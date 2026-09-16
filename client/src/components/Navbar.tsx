@@ -267,7 +267,7 @@ export default function Navbar() {
                     className={`flex items-center gap-2.5 p-3 rounded-2xl text-xs font-semibold transition-all ${
                       isActive
                         ? "bg-primary text-primary-foreground shadow-sm"
-                        : "bg-black/[0.03] dark:bg-background/60 text-foreground hover:bg-black/[0.06] border border-transparent dark:border-[#ABD2FA]/10"
+                        : "bg-black/[0.03] dark:bg-background/60 text-foreground hover:bg-muted border border-transparent dark:border-[#ABD2FA]/10"
                     }`}
                   >
                     <Icon size={16} />

@@ -179,7 +179,7 @@ export default function DashboardPage() {
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.97 }}
                 onClick={() => router.push("/transfer")}
-                className="px-5 py-3 rounded-2xl bg-background hover:bg-slate-100 dark:hover:bg-[#0c1a4d] text-foreground font-semibold text-sm border border-border shadow-sm flex items-center gap-2 cursor-pointer transition-all"
+                className="px-5 py-3 rounded-2xl bg-background hover:bg-muted text-foreground font-semibold text-sm border border-border shadow-sm flex items-center gap-2 cursor-pointer transition-all"
               >
                 <Send size={16} className="text-[#1B2CC1] dark:text-[#7692FF]" />
                 <span>Send Tokens</span>
@@ -189,7 +189,7 @@ export default function DashboardPage() {
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.97 }}
                 onClick={() => router.push("/market")}
-                className="px-5 py-3 rounded-2xl bg-background hover:bg-slate-100 dark:hover:bg-[#0c1a4d] text-foreground font-semibold text-sm border border-border shadow-sm flex items-center gap-2 cursor-pointer transition-all"
+                className="px-5 py-3 rounded-2xl bg-background hover:bg-muted text-foreground font-semibold text-sm border border-border shadow-sm flex items-center gap-2 cursor-pointer transition-all"
               >
                 <ShoppingBag size={16} className="text-[#1B2CC1] dark:text-[#7692FF]" />
                 <span>Marketplace</span>
@@ -370,7 +370,7 @@ export default function DashboardPage() {
                   whileHover={{ scale: 1.01, x: 2 }}
                   whileTap={{ scale: 0.98 }}
                   onClick={action.onClick}
-                  className="flex items-center justify-between p-3.5 rounded-2xl bg-background hover:bg-slate-100 dark:hover:bg-[#0c1a4d] transition-colors cursor-pointer border border-border"
+                  className="flex items-center justify-between p-3.5 rounded-2xl bg-background hover:bg-muted transition-colors cursor-pointer border border-border"
                 >
                   <div className="flex items-center gap-3.5 min-w-0">
                     <div className={`w-10 h-10 rounded-2xl ${action.color} flex items-center justify-center shrink-0 shadow-sm border border-transparent dark:border-[#ABD2FA]/20`}>

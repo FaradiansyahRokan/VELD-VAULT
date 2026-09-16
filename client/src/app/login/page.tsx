@@ -169,7 +169,7 @@ export default function LoginPage() {
                 whileHover={{ scale: 1.01, y: -1 }}
                 whileTap={{ scale: 0.97 }}
                 onClick={() => setView("IMPORT")}
-                className="w-full p-4 rounded-2xl bg-background hover:bg-slate-100 dark:hover:bg-[#0c1a4d] text-foreground flex items-center justify-between border border-border cursor-pointer transition-all shadow-sm"
+                className="w-full p-4 rounded-2xl bg-background hover:bg-muted text-foreground flex items-center justify-between border border-border cursor-pointer transition-all shadow-sm"
               >
                 <div className="flex items-center gap-3 text-left">
                   <div className="w-10 h-10 rounded-xl bg-slate-200/70 dark:bg-[#7692FF]/15 flex items-center justify-center text-[#1B2CC1] dark:text-[#ABD2FA]">
@@ -233,7 +233,7 @@ export default function LoginPage() {
               <motion.button
                 whileTap={{ scale: 0.96 }}
                 onClick={copyMnemonic}
-                className="w-full py-2.5 rounded-xl bg-muted hover:bg-slate-200/80 text-foreground text-xs font-semibold flex items-center justify-center gap-2 cursor-pointer transition-colors border border-border"
+                className="w-full py-2.5 rounded-xl bg-muted hover:bg-muted text-foreground text-xs font-semibold flex items-center justify-center gap-2 cursor-pointer transition-colors border border-border"
               >
                 {isCopied ? <Check size={14} className="text-emerald-500" /> : <Copy size={14} className="text-[#1B2CC1] dark:text-[#7692FF]" />}
                 <span>{isCopied ? "Copied to Clipboard" : "Copy Recovery Phrase"}</span>

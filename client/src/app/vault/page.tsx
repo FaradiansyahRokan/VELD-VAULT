@@ -712,7 +712,7 @@ export default function VaultPage() {
                 <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
                   Public Thumbnail Preview <span className="text-[10px] font-normal normal-case">(optional, unencrypted)</span>
                 </label>
-                <label className="flex items-center gap-3 p-3.5 rounded-2xl border border-dashed border-black/[0.12] dark:border-white/[0.15] bg-muted dark:bg-white/[0.03] cursor-pointer hover:border-[#7692FF] transition-colors">
+                <label className="flex items-center gap-3 p-3.5 rounded-2xl border border-dashed border-black/[0.12] dark:border-white/[0.15] bg-muted dark:bg-white/[0.03] cursor-pointer hover:border-primary/50 transition-colors">
                   <ImagePlus size={18} className="text-muted-foreground" />
                   <span className="text-xs text-muted-foreground truncate">
                     {formData.previewFile ? formData.previewFile.name : "Select an image preview…"}

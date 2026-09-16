@@ -152,7 +152,7 @@ export default function MarketPage() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ ...spring, delay: i * 0.04 }}
-                className="rounded-3xl bg-card border border-border shadow-sm hover:shadow-md transition-all flex flex-col justify-between overflow-hidden group hover:border-[#1B2CC1] dark:hover:border-[#7692FF]/40"
+                className="rounded-3xl bg-card border border-border shadow-sm hover:shadow-md transition-all flex flex-col justify-between overflow-hidden group hover:border-primary/50"
               >
                 {/* Image / Thumbnail Container */}
                 <div className="relative h-48 bg-background/60 flex items-center justify-center overflow-hidden border-b border-border">

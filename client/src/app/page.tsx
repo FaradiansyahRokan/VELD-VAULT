@@ -120,7 +120,7 @@ export default function LandingPage() {
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.97 }}
             onClick={() => router.push("/market")}
-            className="w-full sm:w-auto px-7 py-4 rounded-2xl bg-card hover:bg-slate-50 dark:hover:bg-[#112366] text-foreground font-semibold text-sm border border-border shadow-sm flex items-center justify-center gap-2 cursor-pointer transition-all"
+            className="w-full sm:w-auto px-7 py-4 rounded-2xl bg-card hover:bg-muted text-foreground font-semibold text-sm border border-border shadow-sm flex items-center justify-center gap-2 cursor-pointer transition-all"
           >
             <ShoppingBag size={16} className="text-[#1B2CC1] dark:text-[#7692FF]" />
             <span>Explore Marketplace</span>
